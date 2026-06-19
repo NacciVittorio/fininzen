@@ -43,7 +43,11 @@ from fininzen.demo_seed import (
     ensure_demo_seed,
 )
 from fininzen.permissions import DEMO_USERNAME, IsNotDemoUser
-from fininzen.throttles import GrantRateThrottle, LoginRateThrottle, RegisterRateThrottle
+from fininzen.throttles import (
+    GrantRateThrottle,
+    LoginRateThrottle,
+    RegisterRateThrottle,
+)
 from fininzen.mixins import require_personal_context
 
 logger = logging.getLogger(__name__)

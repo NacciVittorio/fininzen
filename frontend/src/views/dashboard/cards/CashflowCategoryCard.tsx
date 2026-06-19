@@ -25,7 +25,7 @@ type CashflowCategoryCardProps = {
     setFilterYear: AppContextValue["setFilterYear"];
     setFilterCat: AppContextValue["setFilterCat"];
     setTab: AppContextValue["setTab"];
-  pieHover: number | null;
+    pieHover: number | null;
     setPieHover: AppContextValue["setPieHover"];
     T: Translator;
     formatEur: (value: NumericValue) => string;

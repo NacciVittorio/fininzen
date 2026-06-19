@@ -13,11 +13,11 @@ export type UpdateGrantPayload = {
 };
 
 export type ShareGrant = {
-  id: number | string;
-  permission: GrantPermission;
-  owner_id?: number | string;
-  owner_email?: string;
-  grantee_email?: string;
+    id: number | string;
+    permission: GrantPermission;
+    owner_id?: number | string;
+    owner_email?: string;
+    grantee_email?: string;
 };
 
 export type GrantsResponse = {

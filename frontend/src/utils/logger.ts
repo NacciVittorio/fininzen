@@ -4,13 +4,13 @@
 const DEV = import.meta.env.DEV;
 
 export const logError = (...args: unknown[]): void => {
-  if (DEV) console.error(...args);
+    if (DEV) console.error(...args);
 };
 
 export const logWarn = (...args: unknown[]): void => {
-  if (DEV) console.warn(...args);
+    if (DEV) console.warn(...args);
 };
 
 export const logDebug = (...args: unknown[]): void => {
-  if (DEV) console.debug(...args);
+    if (DEV) console.debug(...args);
 };

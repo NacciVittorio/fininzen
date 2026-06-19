@@ -131,7 +131,7 @@ export function useSessionController(providerState: AppProviderState) {
         ts: 0,
         inFlight: null,
     });
-  const summaryCacheRef = useRef<ClientCache<PortfolioSummaryResponse>>({
+    const summaryCacheRef = useRef<ClientCache<PortfolioSummaryResponse>>({
         data: null,
         ts: 0,
         inFlight: null,

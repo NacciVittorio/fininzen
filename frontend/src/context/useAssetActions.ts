@@ -12,10 +12,7 @@ import type { DecimalSeparator } from "../utils/formatters";
 import type { RefreshReason } from "../utils/refreshReasons";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppProviderState } from "./useAppProviderState";
-import type {
-  TickerResult,
-  TickerSearchOrigin,
-} from "./useImportAndTicker";
+import type { TickerResult, TickerSearchOrigin } from "./useImportAndTicker";
 
 type AssetActionState = Pick<
     AppProviderState,
@@ -49,8 +46,8 @@ export type AssetActionsOptions = AssetActionState & {
     guardDemo: () => boolean;
     refreshAfter: (reason: RefreshReason) => unknown;
     setTickerQuery: Dispatch<SetStateAction<string>>;
-  setTickerResults: Dispatch<SetStateAction<TickerResult[]>>;
-  setTickerSearchOrigin: Dispatch<SetStateAction<TickerSearchOrigin>>;
+    setTickerResults: Dispatch<SetStateAction<TickerResult[]>>;
+    setTickerSearchOrigin: Dispatch<SetStateAction<TickerSearchOrigin>>;
 };
 
 type AssetPayload = {

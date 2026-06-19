@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fininzen", "0011_userprofile_transaction_preferences"),
     ]

@@ -11,12 +11,12 @@ const EPS = 0.005;
 
 // True if a row belongs to the selected group.
 export function inGroup(
-  isBankAccount: boolean | null | undefined,
-  group: AllocationGroup,
+    isBankAccount: boolean | null | undefined,
+    group: AllocationGroup,
 ): boolean {
-  if (group === "investments") return !isBankAccount;
-  if (group === "accounts") return !!isBankAccount;
-  return true; // "all"
+    if (group === "investments") return !isBankAccount;
+    if (group === "accounts") return !!isBankAccount;
+    return true; // "all"
 }
 
 // Filter value-bearing rows (e.g. summary by_type) to the selected group, drop
@@ -24,32 +24,32 @@ export function inGroup(
 // the accessors so it works for by_type, currency, etc.
 // Returns [{ row, value, pct }] sorted by value desc.
 type GroupRowsOptions<Row> = {
-  group?: AllocationGroup;
-  getIsBank: (row: Row) => boolean | null | undefined;
-  getValue: (row: Row) => number;
+    group?: AllocationGroup;
+    getIsBank: (row: Row) => boolean | null | undefined;
+    getValue: (row: Row) => number;
 };
 
 export type GroupedRow<Row> = {
-  row: Row;
-  value: number;
-  pct: number;
+    row: Row;
+    value: number;
+    pct: number;
 };
 
 export function groupRows<Row>(
-  rows: readonly Row[] | null | undefined,
-  { group = "all", getIsBank, getValue }: GroupRowsOptions<Row>,
+    rows: readonly Row[] | null | undefined,
+    { group = "all", getIsBank, getValue }: GroupRowsOptions<Row>,
 ): GroupedRow<Row>[] {
-  const kept = (rows || [])
-    .filter((r) => inGroup(getIsBank(r), group))
-    .filter((r) => Math.abs(getValue(r)) > EPS);
-  const total = kept.reduce((s, r) => s + getValue(r), 0);
-  return kept
-    .map((r) => ({
-      row: r,
-      value: getValue(r),
-      pct: total > 0 ? (getValue(r) / total) * 100 : 0,
-    }))
-    .sort((a, b) => b.value - a.value);
+    const kept = (rows || [])
+        .filter((r) => inGroup(getIsBank(r), group))
+        .filter((r) => Math.abs(getValue(r)) > EPS);
+    const total = kept.reduce((s, r) => s + getValue(r), 0);
+    return kept
+        .map((r) => ({
+            row: r,
+            value: getValue(r),
+            pct: total > 0 ? (getValue(r) / total) * 100 : 0,
+        }))
+        .sort((a, b) => b.value - a.value);
 }
 
 // Recompute allocation-target rows within a group: current_pct relative to the
@@ -57,37 +57,39 @@ export function groupRows<Row>(
 // backend thresholds in portfolio/views.py (±2%). Rows with a target but no
 // holdings are kept (a 0% holding against a target is meaningful — "buy").
 export type AllocationTargetRow = {
-  is_bank_account?: boolean | null;
-  current_value?: number | string | null;
-  target_pct?: number | null;
-  [key: string]: unknown;
+    is_bank_account?: boolean | null;
+    current_value?: number | string | null;
+    target_pct?: number | null;
+    [key: string]: unknown;
 };
 
 export type RegroupedAllocationTarget<Row extends AllocationTargetRow> = Row & {
-  current_pct: number;
-  diff: number | null;
-  action: "buy" | "sell" | "ok" | null;
+    current_pct: number;
+    diff: number | null;
+    action: "buy" | "sell" | "ok" | null;
 };
 
 export function regroupTargets<Row extends AllocationTargetRow>(
-  rows: readonly Row[] | null | undefined,
-  group: AllocationGroup = "all",
+    rows: readonly Row[] | null | undefined,
+    group: AllocationGroup = "all",
 ): RegroupedAllocationTarget<Row>[] {
-  const kept = (rows || []).filter((r) => inGroup(r.is_bank_account, group));
-  const groupTotal = kept.reduce(
-    (s, r) => s + (Number(r.current_value) || 0),
-    0,
-  );
-  return kept.map((r) => {
-    const current_pct =
-      groupTotal > 0 ? ((Number(r.current_value) || 0) / groupTotal) * 100 : 0;
-    const target_pct = r.target_pct;
-    let diff: number | null = null;
-    let action: "buy" | "sell" | "ok" | null = null;
-    if (target_pct != null) {
-      diff = current_pct - target_pct;
-      action = diff < -2 ? "buy" : diff > 2 ? "sell" : "ok";
-    }
-    return { ...r, current_pct, diff, action };
-  });
+    const kept = (rows || []).filter((r) => inGroup(r.is_bank_account, group));
+    const groupTotal = kept.reduce(
+        (s, r) => s + (Number(r.current_value) || 0),
+        0,
+    );
+    return kept.map((r) => {
+        const current_pct =
+            groupTotal > 0
+                ? ((Number(r.current_value) || 0) / groupTotal) * 100
+                : 0;
+        const target_pct = r.target_pct;
+        let diff: number | null = null;
+        let action: "buy" | "sell" | "ok" | null = null;
+        if (target_pct != null) {
+            diff = current_pct - target_pct;
+            action = diff < -2 ? "buy" : diff > 2 ? "sell" : "ok";
+        }
+        return { ...r, current_pct, diff, action };
+    });
 }
