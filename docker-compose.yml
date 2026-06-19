@@ -15,8 +15,8 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     environment:
-      POSTGRES_DB: finnet
-      POSTGRES_USER: finnet
+      POSTGRES_DB: fininzen
+      POSTGRES_USER: fininzen
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     command:
       - postgres
@@ -33,7 +33,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U finnet -d finnet"]
+      test: ["CMD-SHELL", "pg_isready -U fininzen -d fininzen"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -74,14 +74,14 @@ services:
       DJANGO_DEBUG: "0"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DATABASE_URL: postgres://finnet:${POSTGRES_PASSWORD:-change-me}@postgres:5432/finnet?sslmode=disable
+      DATABASE_URL: postgres://fininzen:${POSTGRES_PASSWORD:-change-me}@postgres:5432/fininzen?sslmode=disable
       REDIS_URL: redis://redis:6379/0
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
     ports:
       - "8000:8000"
     command:
       - gunicorn
-      - finnet.wsgi:application
+      - fininzen.wsgi:application
       - --bind
       - 0.0.0.0:8000
       - --workers

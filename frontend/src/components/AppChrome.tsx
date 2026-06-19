@@ -87,7 +87,7 @@ export function Sidebar({ tab, setTab, T, navItems, isDemo }: SidebarProps) {
                         color: "var(--fg)",
                     }}
                 >
-                    Finnet
+                    Fininzen
                 </div>
             </div>
             {isDemo && (
@@ -241,7 +241,7 @@ export function AppHeader() {
                         color: "var(--fg)",
                     }}
                 >
-                    Finnet
+                    Fininzen
                 </div>
             </div>
             <div

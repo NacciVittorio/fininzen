@@ -1,0 +1,24 @@
+[Unit]
+Description=Fininzen Django application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fininzen
+Group=fininzen
+WorkingDirectory=/opt/fininzen
+EnvironmentFile=/etc/fininzen.env
+ExecStartPre=/bin/bash /opt/fininzen/scripts/rotate_logs.sh
+ExecStart=/opt/fininzen/venv/bin/gunicorn fininzen.wsgi:application --bind 127.0.0.1:8000 --workers 2 --max-requests 1000 --max-requests-jitter 100 --access-logfile /opt/fininzen/logs/gunicorn_access.log --error-logfile /opt/fininzen/logs/gunicorn_error.log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ReadWritePaths=/opt/fininzen
+
+[Install]
+WantedBy=multi-user.target

@@ -15,7 +15,7 @@ from ..services import (
     asset_current_value_eur,
 )
 from decimal import Decimal
-from finnet.mixins import ViewAsMixin, _effective_user
+from fininzen.mixins import ViewAsMixin, _effective_user
 
 
 logger = logging.getLogger(__name__)

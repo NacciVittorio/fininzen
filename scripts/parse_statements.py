@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Parse bank statements (CSV, XLSX, PDF) and generate finnet-compatible import CSVs.
+Parse bank statements (CSV, XLSX, PDF) and generate fininzen-compatible import CSVs.
 Categories are assigned by keyword matching.
 
 Outputs:
@@ -31,7 +31,7 @@ except ImportError:
 
 # ─── CATEGORY MAPPING ────────────────────────────────────────────────────────
 # Format: (keywords_tuple) -> "Category Name" (matched case-insensitively)
-# Category names must match exactly what's in finnet.
+# Category names must match exactly what's in fininzen.
 
 EXPENSE_KEYWORD_MAP = [
     # Food & Dining > Groceries
@@ -252,7 +252,7 @@ SKIP_PATTERNS = [
     "AMUNDI",
     # ETF / titoli su Fineco → portfolio module
     "COMPRAVENDITA TITOLI",
-    # Bonifici a se stesso → da gestire nel modulo Transfer di finnet
+    # Bonifici a se stesso → da gestire nel modulo Transfer di fininzen
     "NACCI VITTORIO",  # TR: "Outgoing/Incoming transfer for/from NACCI VITTORIO"
     "VITTORIO NACCI",  # Fineco: "Beneficiario: Vittorio Nacci"
 ]
@@ -559,7 +559,7 @@ def write_csv(rows, output_path, label, skipped):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Parse bank statements into finnet-compatible import CSVs."
+        description="Parse bank statements into fininzen-compatible import CSVs."
     )
     parser.add_argument(
         "--input-dir",
@@ -597,5 +597,5 @@ if __name__ == "__main__":
         f"\n✓ Totale: {total} transazioni  categorie: {matched}/{total} ({matched / total * 100:.0f}%)"
     )
     print(
-        "\nNote: i 'transfer' esclusi vanno inseriti manualmente nel modulo Transfer di finnet."
+        "\nNote: i 'transfer' esclusi vanno inseriti manualmente nel modulo Transfer di fininzen."
     )

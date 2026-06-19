@@ -25,8 +25,8 @@ con `BACKUP_ENC_PASSPHRASE` (vedi sotto).
 
 ```bash
 apt install -y postgresql postgresql-client openssl
-sudo -u postgres psql -c "CREATE USER finnet WITH PASSWORD 'CHANGE_ME';"
-sudo -u postgres psql -c "CREATE DATABASE finnet OWNER finnet;"
+sudo -u postgres psql -c "CREATE USER fininzen WITH PASSWORD 'CHANGE_ME';"
+sudo -u postgres psql -c "CREATE DATABASE fininzen OWNER fininzen;"
 ```
 
 Genera una chiave di cifratura a 32 byte (base64):
@@ -35,10 +35,10 @@ Genera una chiave di cifratura a 32 byte (base64):
 python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 ```
 
-In `/etc/finnet.env` aggiungi (vedi anche `.env.example`):
+In `/etc/fininzen.env` aggiungi (vedi anche `.env.example`):
 
 ```bash
-DATABASE_URL=postgres://finnet:CHANGE_ME@127.0.0.1:5432/finnet
+DATABASE_URL=postgres://fininzen:CHANGE_ME@127.0.0.1:5432/fininzen
 FIELD_ENCRYPTION_KEYS=<chiave-base64-32-byte>
 # opzionale ma raccomandato: cifra i dump a riposo
 BACKUP_ENC_PASSPHRASE=<passphrase-lunga-random>
@@ -51,29 +51,29 @@ cifra, le altre restano valide per la decifratura (rotazione chiavi).
 
 ```bash
 # 1. App in manutenzione, ferma i worker
-systemctl stop finnet
+systemctl stop fininzen
 
 # 2. Backup del SQLite di origine + integrity check (NON copiare a caldo: usa .backup)
-sqlite3 /opt/finnet/db.sqlite3 ".backup '/var/backups/finnet/pre_pg_$(date +%F).sqlite3'"
-sqlite3 /var/backups/finnet/pre_pg_*.sqlite3 "PRAGMA integrity_check;"   # deve dire: ok
+sqlite3 /opt/fininzen/db.sqlite3 ".backup '/var/backups/fininzen/pre_pg_$(date +%F).sqlite3'"
+sqlite3 /var/backups/fininzen/pre_pg_*.sqlite3 "PRAGMA integrity_check;"   # deve dire: ok
 
 # 3. Crea lo schema sul Postgres VUOTO (carica le env con DATABASE_URL + chiave)
-set -a; source /etc/finnet.env; set +a
-/opt/finnet/venv/bin/python manage.py migrate
+set -a; source /etc/fininzen.env; set +a
+/opt/fininzen/venv/bin/python manage.py migrate
 
 # 4. Copia i dati attraverso l'ORM (cifra in scrittura). Prima un dry-run:
-/opt/finnet/venv/bin/python manage.py migrate_sqlite_to_postgres \
-    --sqlite-path /var/backups/finnet/pre_pg_*.sqlite3 --dry-run
+/opt/fininzen/venv/bin/python manage.py migrate_sqlite_to_postgres \
+    --sqlite-path /var/backups/fininzen/pre_pg_*.sqlite3 --dry-run
 # poi l'esecuzione reale:
-/opt/finnet/venv/bin/python manage.py migrate_sqlite_to_postgres \
-    --sqlite-path /var/backups/finnet/pre_pg_*.sqlite3 --apply
+/opt/fininzen/venv/bin/python manage.py migrate_sqlite_to_postgres \
+    --sqlite-path /var/backups/fininzen/pre_pg_*.sqlite3 --apply
 
 # 5. Audit integrità di dominio sul nuovo DB
-/opt/finnet/venv/bin/python manage.py audit_domain_integrity
+/opt/fininzen/venv/bin/python manage.py audit_domain_integrity
 
 # 6. Riavvia e smoke test
-systemctl start finnet
-/opt/finnet/scripts/smoke_test.sh https://finnet.nacci.eu
+systemctl start fininzen
+/opt/fininzen/scripts/smoke_test.sh https://fininzen.nacci.eu
 ```
 
 Il comando preserva le primary key, usa `bulk_create`/`bulk_update` (niente
@@ -98,10 +98,10 @@ manage.py migrate_sqlite_to_postgres --sqlite-path <legacy.sqlite3> --verify-onl
 Lo switch fallisce? Il SQLite originale resta intatto:
 
 ```bash
-systemctl stop finnet
-# Rimuovi DATABASE_URL/POSTGRES_* da /etc/finnet.env (torna a SQLite)
+systemctl stop fininzen
+# Rimuovi DATABASE_URL/POSTGRES_* da /etc/fininzen.env (torna a SQLite)
 # e rimuovi FIELD_ENCRYPTION_KEYS solo se torni completamente a SQLite in DEBUG
-systemctl start finnet
+systemctl start fininzen
 ```
 
 Tieni il SQLite originale finché la validazione su Postgres non è completa.

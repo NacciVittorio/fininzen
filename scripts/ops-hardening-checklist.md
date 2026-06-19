@@ -1,4 +1,4 @@
-# Finnet Ops Hardening Checklist
+# Fininzen Ops Hardening Checklist
 
 Use this as the deploy-side checklist for the review items that cannot be fully
 enabled from repository code alone.
@@ -12,7 +12,7 @@ enabled from repository code alone.
 - Enable one edge guard:
   - build Caddy with `github.com/mholt/caddy-ratelimit` and uncomment the
     `rate_limit` block in `Caddyfile`, or
-  - install the fail2ban jail described in `scripts/finnet-fail2ban.md`.
+  - install the fail2ban jail described in `scripts/fininzen-fail2ban.md`.
 
 ## Backups
 
@@ -26,14 +26,14 @@ enabled from repository code alone.
 - Configure worker recycling, for example `--max-requests 1000
   --max-requests-jitter 100`, in the systemd unit or process manager.
 - Keep the existing log rotation hook enabled before server start.
-- The repo ships a reference unit in `deploy/systemd/finnet.service`.
+- The repo ships a reference unit in `deploy/systemd/fininzen.service`.
 
 ## Price Refresh
 
 - Do not refresh prices from Django startup hooks.
 - Schedule `venv/bin/python manage.py refresh_asset_prices` from cron or a
   systemd timer. Run it outside peak request windows.
-- The repo ships a reference timer in `deploy/systemd/finnet-refresh-prices.timer`.
+- The repo ships a reference timer in `deploy/systemd/fininzen-refresh-prices.timer`.
 
 ## Docker Reference
 

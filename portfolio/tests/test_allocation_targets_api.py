@@ -2,7 +2,7 @@ import pytest
 from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import Client
-from finnet.models import DataAccessGrant
+from fininzen.models import DataAccessGrant
 from portfolio.models import AllocationTarget, Asset, InvestmentType
 
 

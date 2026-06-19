@@ -1,4 +1,4 @@
-# Finnet — Tracking App
+# Fininzen — Tracking App
 
 App personale per tracciare spese quotidiane e portafoglio investimenti (ETF, azioni, asset illiquidi).
 
@@ -30,7 +30,7 @@ avvia solo l'infrastruttura con Docker e punta Django a essa via `DATABASE_URL`:
 
 ```bash
 docker compose up -d postgres redis
-export DATABASE_URL=postgres://finnet:change-me@localhost:5432/finnet
+export DATABASE_URL=postgres://fininzen:change-me@localhost:5432/fininzen
 ```
 
 In produzione il deploy è bare-metal (gunicorn sotto systemd dietro Caddy): vedi
@@ -72,10 +72,10 @@ just backend             # solo Django (porta 8000)
 just frontend            # solo Vite (porta 5173)
 just makemigrations      # crea nuove migrations dopo modifiche ai modelli
 just migrate             # applica migrations pendenti
-just migrate-prod        # applica migrations in produzione caricando /etc/finnet.env
+just migrate-prod        # applica migrations in produzione caricando /etc/fininzen.env
 just collectstatic-prod  # raccoglie file statici Django in produzione
 just build-frontend-prod # build frontend production con npm ci
-just deploy-prod main    # aggiorna /opt/finnet, migra, raccoglie statici e builda frontend
+just deploy-prod main    # aggiorna /opt/fininzen, migra, raccoglie statici e builda frontend
 just reset-db            # ⚠️ cancella tutto e riparte da zero
 just shell               # shell interattiva Django
 just showmigrations      # controlla stato migrations

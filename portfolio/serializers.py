@@ -3,7 +3,7 @@ portfolio/serializers.py — Serializzatori per il portafoglio.
 """
 
 from rest_framework import serializers
-from finnet.utils import serializer_user
+from fininzen.utils import serializer_user
 from .models import (
     AllocationTarget,
     Asset,

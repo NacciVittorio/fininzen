@@ -55,8 +55,8 @@ export function DataExportSection({ accordionProps }) {
       const today = new Date().toISOString().slice(0, 10);
       const fallback =
         type === "all"
-          ? `finnet_export_${today}.zip`
-          : `finnet_${type}_${today}.csv`;
+          ? `fininzen_export_${today}.zip`
+          : `fininzen_${type}_${today}.csv`;
       const filename = match ? match[1] : fallback;
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");

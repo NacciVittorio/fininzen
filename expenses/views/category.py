@@ -12,7 +12,7 @@ from ..models import (
 from ..serializers import (
     CategorySerializer,
 )
-from finnet.mixins import (
+from fininzen.mixins import (
     ViewAsMixin,
     _effective_user,
 )

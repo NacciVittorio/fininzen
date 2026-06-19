@@ -18,7 +18,7 @@ from ..prices import (
 from ..services import (
     create_asset_with_initial_balance,
 )
-from finnet.mixins import ViewAsMixin
+from fininzen.mixins import ViewAsMixin
 
 
 from .asset_mixins import (

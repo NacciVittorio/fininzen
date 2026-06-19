@@ -2,15 +2,15 @@
 set -euo pipefail
 
 BRANCH="${1:-main}"
-APP_ROOT="/opt/finnet"
+APP_ROOT="/opt/fininzen"
 CADDYFILE="/etc/caddy/Caddyfile"
 SYSTEMD_DIR="/etc/systemd/system"
 FAIL2BAN_FILTER_DIR="/etc/fail2ban/filter.d"
 FAIL2BAN_JAIL_DIR="/etc/fail2ban/jail.d"
-ENV_FILE="/etc/finnet.env"
-PUBLIC_URL="${FINNET_PUBLIC_URL:-https://finnet.nacci.eu}"
-SMOKE_ATTEMPTS="${FINNET_SMOKE_ATTEMPTS:-20}"
-BACKUP_DIR="${FINNET_BACKUP_DIR:-/var/backups/finnet}"
+ENV_FILE="/etc/fininzen.env"
+PUBLIC_URL="${FININZEN_PUBLIC_URL:-https://fininzen.nacci.eu}"
+SMOKE_ATTEMPTS="${FININZEN_SMOKE_ATTEMPTS:-20}"
+BACKUP_DIR="${FININZEN_BACKUP_DIR:-/var/backups/fininzen}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 if [[ -z "$BRANCH" || "$BRANCH" == -* || "$BRANCH" == *".."* || "$BRANCH" == *"@{"* ]]; then
@@ -33,23 +33,23 @@ PG_CONN="${DATABASE_URL:-}"
 if [[ -z "$PG_CONN" ]]; then
     export PGHOST="${POSTGRES_HOST:-localhost}"
     export PGPORT="${POSTGRES_PORT:-5432}"
-    export PGUSER="${POSTGRES_USER:-finnet}"
+    export PGUSER="${POSTGRES_USER:-fininzen}"
     export PGPASSWORD="${POSTGRES_PASSWORD:-}"
-    export PGDATABASE="${POSTGRES_DB:-finnet}"
+    export PGDATABASE="${POSTGRES_DB:-fininzen}"
 fi
-PG_TARGET=(-d "${PG_CONN:-${PGDATABASE:-finnet}}")
+PG_TARGET=(-d "${PG_CONN:-${PGDATABASE:-fininzen}}")
 DB_BACKUP="${BACKUP_DIR}/db_${TIMESTAMP}.dump"
 
 # Capture current commit for rollback before pulling.
-PREV_REV="$(su - finnet -c "cd ${APP_ROOT} && git rev-parse HEAD")"
+PREV_REV="$(su - fininzen -c "cd ${APP_ROOT} && git rev-parse HEAD")"
 echo "deploy: previous revision = ${PREV_REV}"
 
 rollback() {
     local exit_code=$?
     trap - ERR
     echo "deploy: failure detected, rolling back to ${PREV_REV}" >&2
-    systemctl stop finnet || true
-    su - finnet -c "cd ${APP_ROOT} && git reset --hard && git checkout --detach ${PREV_REV}" || true
+    systemctl stop fininzen || true
+    su - fininzen -c "cd ${APP_ROOT} && git reset --hard && git checkout --detach ${PREV_REV}" || true
     if [[ -f "$DB_BACKUP" ]]; then
         echo "deploy: restoring Postgres from ${DB_BACKUP}" >&2
         restore_src="$DB_BACKUP"
@@ -65,19 +65,19 @@ rollback() {
         cp -a "${CADDYFILE}.bak" "$CADDYFILE" || true
         systemctl reload caddy || true
     fi
-    su - finnet -c "cd ${APP_ROOT} && just install-backend && just collectstatic-prod && just build-frontend-prod" || true
-    systemctl restart finnet || true
+    su - fininzen -c "cd ${APP_ROOT} && just install-backend && just collectstatic-prod && just build-frontend-prod" || true
+    systemctl restart fininzen || true
     exit "$exit_code"
 }
 trap rollback ERR
 
-su - finnet -c "cd ${APP_ROOT} && git fetch origin '${BRANCH}' && git reset --hard && git checkout -B '${BRANCH}' FETCH_HEAD"
+su - fininzen -c "cd ${APP_ROOT} && git fetch origin '${BRANCH}' && git reset --hard && git checkout -B '${BRANCH}' FETCH_HEAD"
 caddy validate --config "${APP_ROOT}/Caddyfile" --adapter caddyfile
 if [[ -f "$CADDYFILE" ]]; then
     cp -a "$CADDYFILE" "${CADDYFILE}.bak"
 fi
 mkdir -p "$BACKUP_DIR"
-systemctl stop finnet || true
+systemctl stop fininzen || true
 # Custom-format dump (restorable with pg_restore). Encrypt at rest when a
 # passphrase is configured — defense in depth, since the dump still holds
 # plaintext amounts/dates even though sensitive text fields are app-encrypted.
@@ -90,22 +90,22 @@ if [[ -n "${BACKUP_ENC_PASSPHRASE:-}" ]]; then
 fi
 # Run migrations before integrity audits so schema-dependent checks do not hit
 # fields that were introduced in the same release.
-su - finnet -c "cd ${APP_ROOT} && just install-backend && just migrate-prod && just audit-integrity-prod && just audit-integrity-check-prod && just collectstatic-prod && just build-frontend-prod"
+su - fininzen -c "cd ${APP_ROOT} && just install-backend && just migrate-prod && just audit-integrity-prod && just audit-integrity-check-prod && just collectstatic-prod && just build-frontend-prod"
 install -m 0644 "${APP_ROOT}/Caddyfile" "$CADDYFILE"
-install -m 0644 "${APP_ROOT}/deploy/systemd/finnet.service" "${SYSTEMD_DIR}/finnet.service"
-install -m 0644 "${APP_ROOT}/deploy/systemd/finnet-refresh-prices.service" "${SYSTEMD_DIR}/finnet-refresh-prices.service"
-install -m 0644 "${APP_ROOT}/deploy/systemd/finnet-refresh-prices.timer" "${SYSTEMD_DIR}/finnet-refresh-prices.timer"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen.service" "${SYSTEMD_DIR}/fininzen.service"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.service" "${SYSTEMD_DIR}/fininzen-refresh-prices.service"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.timer" "${SYSTEMD_DIR}/fininzen-refresh-prices.timer"
 if [[ -d "$FAIL2BAN_FILTER_DIR" && -d "$FAIL2BAN_JAIL_DIR" ]]; then
-    install -m 0644 "${APP_ROOT}/deploy/fail2ban/filter.d/finnet-auth.conf" "${FAIL2BAN_FILTER_DIR}/finnet-auth.conf"
-    install -m 0644 "${APP_ROOT}/deploy/fail2ban/jail.d/finnet-auth.conf" "${FAIL2BAN_JAIL_DIR}/finnet-auth.conf"
+    install -m 0644 "${APP_ROOT}/deploy/fail2ban/filter.d/fininzen-auth.conf" "${FAIL2BAN_FILTER_DIR}/fininzen-auth.conf"
+    install -m 0644 "${APP_ROOT}/deploy/fail2ban/jail.d/fininzen-auth.conf" "${FAIL2BAN_JAIL_DIR}/fininzen-auth.conf"
 fi
 caddy validate --config "$CADDYFILE" --adapter caddyfile
 systemctl daemon-reload
 systemctl enable --now caddy
-systemctl enable finnet
-systemctl enable --now finnet-refresh-prices.timer
+systemctl enable fininzen
+systemctl enable --now fininzen-refresh-prices.timer
 systemctl reload caddy
-systemctl restart finnet
+systemctl restart fininzen
 systemctl restart fail2ban || true
 "${APP_ROOT}/scripts/smoke_test.sh" "$PUBLIC_URL" "$SMOKE_ATTEMPTS"
 trap - ERR

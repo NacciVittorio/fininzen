@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
 from .models import Category, Expense
-from finnet.utils import parse_optional_bool
+from fininzen.utils import parse_optional_bool
 from expenses.views.helpers import _parse_import_amount
 
 logger = logging.getLogger(__name__)

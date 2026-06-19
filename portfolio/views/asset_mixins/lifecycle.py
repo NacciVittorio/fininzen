@@ -17,8 +17,8 @@ from ...services import (
     move_asset_position,
 )
 from decimal import Decimal
-from finnet.mixins import require_view_as_full
-from finnet.throttles import ResetRateThrottle
+from fininzen.mixins import require_view_as_full
+from fininzen.throttles import ResetRateThrottle
 
 
 logger = logging.getLogger(__name__)

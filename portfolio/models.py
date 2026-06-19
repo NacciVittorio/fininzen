@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from decimal import Decimal, ROUND_HALF_UP
 
-from finnet.fields import EncryptedTextField
+from fininzen.fields import EncryptedTextField
 
 
 # Helper unitario per il quantize a centesimi (CRIT-05): tutti i campi monetari

@@ -121,7 +121,7 @@ export default function LoginView() {
               letterSpacing: 0,
             }}
           >
-            Finnet
+            Fininzen
           </div>
           <div style={{ fontSize: 12, color: "var(--fg-soft)", marginTop: 4 }}>
             {mode === "login" ? T("login_title") : T("register_title")}

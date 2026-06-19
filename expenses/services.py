@@ -13,7 +13,7 @@ from django.db import IntegrityError
 from django.db.models import F
 from django.utils import timezone
 
-from finnet import crypto
+from fininzen import crypto
 
 from .models import (
     Budget,
@@ -348,7 +348,7 @@ def seed_demo_for_user(user, Asset, InvestmentType, *, month_key=None):
         ensure_default_contribution_sources,
         transfer_between_accounts,
     )
-    from finnet.models import DemoSeedState
+    from fininzen.models import DemoSeedState
     from portfolio.models import FireSettings
     from expenses.models import RecurringExpense
 

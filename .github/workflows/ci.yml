@@ -24,19 +24,19 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: finnet_test
-          POSTGRES_USER: finnet
-          POSTGRES_PASSWORD: finnet
+          POSTGRES_DB: fininzen_test
+          POSTGRES_USER: fininzen
+          POSTGRES_PASSWORD: fininzen
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U finnet -d finnet_test"
+          --health-cmd "pg_isready -U fininzen -d fininzen_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
     env:
-      DATABASE_URL: postgres://finnet:finnet@127.0.0.1:5432/finnet_test
-      DJANGO_SECRET_KEY: ci-secret-key-for-finnet-tests-with-more-than-50-characters
+      DATABASE_URL: postgres://fininzen:fininzen@127.0.0.1:5432/fininzen_test
+      DJANGO_SECRET_KEY: ci-secret-key-for-fininzen-tests-with-more-than-50-characters
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
     steps:
       - uses: actions/checkout@v4
@@ -71,20 +71,20 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: finnet
-          POSTGRES_PASSWORD: finnet
-          POSTGRES_DB: finnet
+          POSTGRES_USER: fininzen
+          POSTGRES_PASSWORD: fininzen
+          POSTGRES_DB: fininzen
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U finnet"
+          --health-cmd "pg_isready -U fininzen"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
       # pytest runs with DEBUG on (the prod gating is skipped for pytest/manage),
       # so DATABASE_URL alone routes both `migrate` and the suite at Postgres.
-      DATABASE_URL: postgres://finnet:finnet@127.0.0.1:5432/finnet
+      DATABASE_URL: postgres://fininzen:fininzen@127.0.0.1:5432/fininzen
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -130,7 +130,7 @@ jobs:
     # CI instead of silently drifting into production.
     runs-on: ubuntu-latest
     env:
-      DJANGO_SECRET_KEY: ci-secret-key-for-finnet-tests-with-more-than-50-characters
+      DJANGO_SECRET_KEY: ci-secret-key-for-fininzen-tests-with-more-than-50-characters
       DJANGO_DEBUG: "1"
     steps:
       - uses: actions/checkout@v4

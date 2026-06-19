@@ -19,13 +19,13 @@ from ..models import (
 from ..serializers import (
     ExpenseSerializer,
 )
-from finnet.mixins import (
+from fininzen.mixins import (
     ViewAsMixin,
     _effective_user,
     require_view_as_full,
 )
-from finnet.accounting import accounting_month_range, get_user_accounting_start_day
-from finnet.throttles import ResetRateThrottle
+from fininzen.accounting import accounting_month_range, get_user_accounting_start_day
+from fininzen.throttles import ResetRateThrottle
 from ..services import (
     seed_demo_for_user,
     track_description_suggestion,

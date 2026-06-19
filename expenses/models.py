@@ -11,7 +11,7 @@ un semplice CharField perché così l'utente può:
 from django.conf import settings
 from django.db import models
 
-from finnet.fields import BlindIndexField, EncryptedTextField
+from fininzen.fields import BlindIndexField, EncryptedTextField
 
 
 class Category(models.Model):
