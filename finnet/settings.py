@@ -14,6 +14,7 @@ import os
 import sys
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlparse
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.signals import connection_created
 
@@ -147,17 +148,126 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "finnet.wsgi.application"
 
-# Database: SQLite locale in sviluppo, percorso dedicato configurabile in produzione.
-DATABASES = {
-    "default": {
+
+# Database: Postgres in produzione (via DATABASE_URL o POSTGRES_*), SQLite come
+# default per sviluppo/test. La produzione è bloccata sotto se non usa Postgres.
+def _apply_pool(cfg):
+    """Abilita il connection pool nativo di psycopg3 quando DB_POOL è impostato.
+
+    Off di default e di proposito: con worker gunicorn *sync* (una connessione per
+    worker alla volta) le connessioni persistenti (CONN_MAX_AGE) coprono già il caso
+    comune, e un pool non dimensionato rischia di esaurire `max_connections` di
+    Postgres — ogni processo worker possiede il proprio pool. Si abilita
+    deliberatamente dopo il sizing: `max_size × n_worker` deve restare sotto il
+    `max_connections` del server. Django richiede CONN_MAX_AGE=0 quando è il pool a
+    gestire il ciclo di vita delle connessioni, quindi lo forziamo qui.
+
+    Tuning via env: DB_POOL_MIN / DB_POOL_MAX / DB_POOL_TIMEOUT.
+    """
+    if os.environ.get("DB_POOL", "").strip().lower() not in ("1", "true", "yes", "on"):
+        return cfg
+    pool_cfg = {}
+    if os.environ.get("DB_POOL_MIN"):
+        pool_cfg["min_size"] = int(os.environ["DB_POOL_MIN"])
+    if os.environ.get("DB_POOL_MAX"):
+        pool_cfg["max_size"] = int(os.environ["DB_POOL_MAX"])
+    if os.environ.get("DB_POOL_TIMEOUT"):
+        pool_cfg["timeout"] = float(os.environ["DB_POOL_TIMEOUT"])
+    options = dict(cfg.get("OPTIONS") or {})
+    options["pool"] = pool_cfg or True
+    cfg["OPTIONS"] = options
+    cfg["CONN_MAX_AGE"] = 0  # obbligatorio con il pool psycopg
+    return cfg
+
+
+def _parse_database_url(url):
+    """Minimal postgres:// URL parser (no extra dependency)."""
+    parsed = urlparse(url)
+    scheme = parsed.scheme.lower()
+    if scheme not in ("postgres", "postgresql"):
+        raise ImproperlyConfigured(
+            f"DATABASE_URL: schema non supportato '{scheme}://' "
+            "(usa postgres:// o postgresql://)."
+        )
+    if not parsed.path or parsed.path == "/":
+        raise ImproperlyConfigured("DATABASE_URL deve includere il nome database.")
+    cfg = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": unquote(parsed.hostname or ""),
+        "PORT": str(parsed.port or ""),
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+    }
+    options = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if options:
+        cfg["OPTIONS"] = options
+    return _apply_pool(cfg)
+
+
+def _build_default_database():
+    db_url = os.environ.get("DATABASE_URL", "").strip()
+    if db_url:
+        return _parse_database_url(db_url)
+    pg_host = os.environ.get("POSTGRES_HOST") or os.environ.get("PGHOST")
+    pg_name = os.environ.get("POSTGRES_DB") or os.environ.get("PGDATABASE")
+    if pg_host or pg_name:
+        cfg = {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": pg_name or "finnet",
+            "USER": os.environ.get("POSTGRES_USER") or os.environ.get("PGUSER", ""),
+            "PASSWORD": (
+                os.environ.get("POSTGRES_PASSWORD") or os.environ.get("PGPASSWORD", "")
+            ),
+            "HOST": pg_host or "localhost",
+            "PORT": os.environ.get("POSTGRES_PORT") or os.environ.get("PGPORT", ""),
+            "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        }
+        sslmode = os.environ.get("POSTGRES_SSLMODE") or os.environ.get("PGSSLMODE")
+        if sslmode:
+            cfg["OPTIONS"] = {"sslmode": sslmode}
+        return _apply_pool(cfg)
+    # Default: SQLite file (dev/test).
+    return {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": Path(os.environ.get("DB_PATH", BASE_DIR / "db.sqlite3")),
         "OPTIONS": {"timeout": 30},
     }
-}
+
+
+DATABASES = {"default": _build_default_database()}
+DEFAULT_DB_IS_POSTGRES = DATABASES["default"]["ENGINE"].endswith("postgresql")
+
+# Field-level encryption keys (AES-256-GCM). Comma-separated base64 32-byte keys;
+# the first is the primary (used to encrypt), any others are kept for decryption
+# during key rotation. Empty in dev/test → encrypted fields store plaintext.
+# Generate one with:
+#   python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
+_field_keys_raw = os.environ.get("FIELD_ENCRYPTION_KEYS", "").strip()
+if not _field_keys_raw:
+    _field_keys_raw = os.environ.get("FIELD_ENCRYPTION_KEY", "").strip()
+FIELD_ENCRYPTION_KEYS = [k.strip() for k in _field_keys_raw.split(",") if k.strip()]
+
+# Fail closed for the running server (not maintenance commands / tests): production
+# must use Postgres and must have an encryption key, or we refuse to boot.
+if not _is_management_cmd and not DEBUG:
+    if not DEFAULT_DB_IS_POSTGRES:
+        raise ImproperlyConfigured(
+            "SECURITY: la produzione (DEBUG=False) richiede PostgreSQL. "
+            "Imposta DATABASE_URL=postgres://... oppure le variabili POSTGRES_*."
+        )
+    if not FIELD_ENCRYPTION_KEYS:
+        raise ImproperlyConfigured(
+            "SECURITY: FIELD_ENCRYPTION_KEYS non impostato in produzione. "
+            "I campi sensibili verrebbero salvati in chiaro. Genera una chiave a "
+            "32 byte base64 e impostala prima di avviare."
+        )
+
 # SQLite tuning: WAL gives concurrent readers + single writer, much better
 # than the default rollback journal under E2E load. Applied via signal
 # because sqlite3.connect() init_command only accepts a single statement.
+# No-op on Postgres (the handler early-returns for non-sqlite vendors).
 
 
 def _apply_sqlite_pragmas(sender, connection, **kwargs):

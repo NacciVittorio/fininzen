@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# backup_offsite.sh — Replica off-site dei backup SQLite di Finnet.
+# backup_offsite.sh — Replica off-site dei backup Postgres di Finnet.
 #
 # CRIT-08 (CODE_REVIEW.md): il backup locale al VPS è single-point-of-failure
 # in scenari di ransomware, FS corruption o perdita del provider. Questo script
@@ -53,9 +53,12 @@ if [[ ! -d "$BACKUP_DIR" ]]; then
 fi
 
 # Conta i backup presenti — se 0, lo script di backup locale non è ancora girato.
-mapfile -t BACKUPS < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name '*.sqlite3*' -print)
+# Cerca i dump Postgres (custom-format, eventualmente cifrati .enc) prodotti da
+# deploy.sh / pg_dump, non più i vecchi file .sqlite3.
+mapfile -t BACKUPS < <(find "$BACKUP_DIR" -maxdepth 1 -type f \
+    \( -name '*.dump' -o -name '*.dump.enc' \) -print)
 if [[ ${#BACKUPS[@]} -eq 0 ]]; then
-    fail "Nessun backup in $BACKUP_DIR — il job locale ha fallito?"
+    fail "Nessun backup Postgres (*.dump/*.dump.enc) in $BACKUP_DIR — il job locale ha fallito?"
 fi
 
 log "Off-site sync: ${#BACKUPS[@]} file da $BACKUP_DIR → $OFFSITE_RSYNC_TARGET"

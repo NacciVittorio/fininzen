@@ -21,6 +21,21 @@ just doctor
 just install
 ```
 
+L'ambiente di sviluppo usa un `venv/` Python locale (gestito da `just install`) — niente Nix/devenv.
+
+### Database locale (opzionale: parità con la produzione)
+
+Di default lo sviluppo gira su SQLite. Per replicare la produzione (PostgreSQL + Redis)
+avvia solo l'infrastruttura con Docker e punta Django a essa via `DATABASE_URL`:
+
+```bash
+docker compose up -d postgres redis
+export DATABASE_URL=postgres://finnet:change-me@localhost:5432/finnet
+```
+
+In produzione il deploy è bare-metal (gunicorn sotto systemd dietro Caddy): vedi
+[wiki/DEPLOY.md](/wiki/DEPLOY.md). Docker serve **solo** come infrastruttura locale.
+
 ## Avvio
 
 Il progetto si avvia con `just start`. `Ctrl+C` ferma Django e Vite.

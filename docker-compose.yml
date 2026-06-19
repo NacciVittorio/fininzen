@@ -1,0 +1,95 @@
+# Local development infrastructure.
+#
+# Postgres + Redis are exposed on localhost so Django can run from the host venv
+# against them (prod-parity). The `django` service is OPTIONAL — it runs the full
+# app in a container for parity testing; enable it with the `full` profile:
+#   docker compose up -d postgres redis    # infra only (default dev flow)
+#   docker compose --profile full up -d    # + containerized Django
+#
+# Production does NOT use this file: it is bare-metal gunicorn under systemd
+# behind Caddy (see wiki/DEPLOY.md).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: finnet
+      POSTGRES_USER: finnet
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_connections=30
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finnet -d finnet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - volatile-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: full containerized app for parity testing. `docker compose up` by
+  # default starts only postgres + redis; add `--profile full` to include this.
+  django:
+    build: .
+    profiles: ["full"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DATABASE_URL: postgres://finnet:${POSTGRES_PASSWORD:-change-me}@postgres:5432/finnet?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+    ports:
+      - "8000:8000"
+    command:
+      - gunicorn
+      - finnet.wsgi:application
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "2"
+      - --max-requests
+      - "1000"
+      - --max-requests-jitter
+      - "100"
+
+volumes:
+  postgres_data:

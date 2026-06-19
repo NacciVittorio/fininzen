@@ -1,6 +1,12 @@
 # Guida Deploy — VPS Ubuntu 24.04
 
-Stack: Django 6.0 + Gunicorn · React 19 (build statica) · Caddy · systemd · SQLite
+Stack: Django 6.0 + Gunicorn · React 19 (build statica) · Caddy · systemd · PostgreSQL
+
+> **⚠️ Database: la produzione ora richiede PostgreSQL.** L'app si rifiuta di
+> avviarsi con `DEBUG=0` su SQLite o senza `FIELD_ENCRYPTION_KEYS`. Le sezioni
+> SQLite qui sotto restano valide solo per lo **sviluppo locale**. Per la
+> migrazione dei dati esistenti e la nuova procedura di backup/restore vedi
+> **[POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md)**.
 
 ## 1. Primo accesso SSH
 

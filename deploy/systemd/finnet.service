@@ -1,0 +1,24 @@
+[Unit]
+Description=Finnet Django application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=finnet
+Group=finnet
+WorkingDirectory=/opt/finnet
+EnvironmentFile=/etc/finnet.env
+ExecStartPre=/bin/bash /opt/finnet/scripts/rotate_logs.sh
+ExecStart=/opt/finnet/venv/bin/gunicorn finnet.wsgi:application --bind 127.0.0.1:8000 --workers 2 --max-requests 1000 --max-requests-jitter 100 --access-logfile /opt/finnet/logs/gunicorn_access.log --error-logfile /opt/finnet/logs/gunicorn_error.log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ReadWritePaths=/opt/finnet
+
+[Install]
+WantedBy=multi-user.target
