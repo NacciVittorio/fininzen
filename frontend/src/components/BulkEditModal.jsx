@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import Modal from "./Modal";
-import CategorySelect from "./CategorySelect";
-import Icon from "./ui/Icons";
 import { SegmentedControl } from "./ui";
+import {
+  CategoryWithKeep,
+  Field,
+  SelectWithKeep,
+  TextOrClear,
+} from "./bulkEdit/BulkEditFields";
+import { BulkEditPreviewPanel } from "./bulkEdit/BulkEditPreviewPanel";
+import {
+  bulkEditReducer,
+  FIELD_ERROR_MAP,
+  formatBulkTemplate,
+  initialBulkEditState,
+  selectIdFromState,
+} from "./bulkEdit/bulkEditModel";
 import { useApp } from "../context/useApp";
 import { useFormatters } from "../utils/useFormatters";
-
-function format(template, vars) {
-  return Object.entries(vars || {}).reduce(
-    (acc, [k, v]) => acc.replace(`{${k}}`, String(v)),
-    template,
-  );
-}
 
 /**
  * Bulk-edit modal — Iter 2 design.
@@ -30,59 +35,6 @@ function format(template, vars) {
  * Verify lives in a 3-state SegmentedControl (Mantieni / ✓ / ○).
  */
 
-const KEEP = "__keep__";
-const CLEAR = "__clear__";
-
-const initialState = () => ({
-  verified: "keep", // "keep" | "on" | "off"
-  date: "", // "" = keep
-  description: { value: "", cleared: false },
-  notes: { value: "", cleared: false },
-  category: KEEP,
-  account: KEEP,
-  from_account: KEEP,
-  to_account: KEEP,
-});
-
-function reducer(state, action) {
-  switch (action.type) {
-    case "SET":
-      return { ...state, [action.field]: action.value };
-    case "SET_TEXT_VALUE":
-      return {
-        ...state,
-        [action.field]: { value: action.value, cleared: false },
-      };
-    case "TOGGLE_TEXT_CLEARED":
-      return {
-        ...state,
-        [action.field]: {
-          value: state[action.field].value,
-          cleared: !state[action.field].cleared,
-        },
-      };
-    default:
-      return state;
-  }
-}
-
-const FIELD_ERROR_MAP = {
-  category_direction_mismatch: "category",
-  category_not_found: "category",
-  invalid_category: "category",
-  account_not_bank: "account",
-  invalid_account: "account",
-  invalid_date: "date",
-  same_account_transfer: "to_account",
-};
-
-function selectIdFromState(value) {
-  // "__keep__" → omit; "__clear__" → null; "" → null; numeric string → Number.
-  if (value === KEEP) return undefined;
-  if (value === CLEAR || value === "") return null;
-  return Number(value);
-}
-
 export default function BulkEditModal({ onClose }) {
   const {
     T,
@@ -100,7 +52,11 @@ export default function BulkEditModal({ onClose }) {
   } = useApp();
   const { formatEur } = useFormatters();
 
-  const [fields, dispatch] = useReducer(reducer, undefined, initialState);
+  const [fields, dispatch] = useReducer(
+    bulkEditReducer,
+    undefined,
+    initialBulkEditState,
+  );
   const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
@@ -200,7 +156,7 @@ export default function BulkEditModal({ onClose }) {
       transfer: "cf_bulk_kind_transfer",
     }[cfSelectionKind] || "cf_bulk_kind_outcome",
   );
-  const title = format(T("cf_bulk_edit_title_kind"), {
+  const title = formatBulkTemplate(T("cf_bulk_edit_title_kind"), {
     count: cfSelectedCount,
     kind: kindLabel,
   });
@@ -327,7 +283,7 @@ export default function BulkEditModal({ onClose }) {
           </>
         )}
 
-        <PreviewPanel
+        <BulkEditPreviewPanel
           hasAnyChange={hasAnyChange}
           previewOk={previewOk}
           loading={cfBulkLoading}
@@ -379,335 +335,5 @@ export default function BulkEditModal({ onClose }) {
         </div>
       </div>
     </Modal>
-  );
-}
-
-// ── Internal components ─────────────────────────────────────────────────────
-
-function Field({ label, error, children }) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: 11,
-          color: error ? "var(--danger)" : "var(--fg-soft)",
-          marginBottom: 6,
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: 0.2,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          borderRadius: 10,
-          border: error ? "1px solid var(--danger)" : "1px solid transparent",
-          background: error
-            ? "var(--danger-soft, rgba(220, 38, 38, 0.06))"
-            : "transparent",
-          padding: error ? 8 : 0,
-          transition: "border-color 0.15s, background 0.15s",
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function TextOrClear({ fieldKey, state, dispatch, placeholder, T }) {
-  const { value, cleared } = state;
-  return (
-    <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {cleared ? (
-          <div
-            data-testid={`cf-bulk-field-cleared-${fieldKey}`}
-            style={{
-              background: "var(--card-inset, rgba(0,0,0,0.04))",
-              border: "1px dashed var(--rule)",
-              color: "var(--fg-soft)",
-              padding: "10px 12px",
-              borderRadius: 10,
-              fontSize: 14,
-              fontStyle: "italic",
-            }}
-          >
-            {T("cf_bulk_clear_value")}
-          </div>
-        ) : (
-          <input
-            className="inp"
-            data-testid={`cf-bulk-field-text-${fieldKey}`}
-            value={value}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_VALUE",
-                field: fieldKey,
-                value: e.target.value,
-              })
-            }
-            placeholder={placeholder}
-            style={{ fontStyle: value === "" ? "italic" : "normal" }}
-          />
-        )}
-      </div>
-      <button
-        type="button"
-        data-testid={`cf-bulk-field-remove-${fieldKey}`}
-        onClick={() =>
-          dispatch({ type: "TOGGLE_TEXT_CLEARED", field: fieldKey })
-        }
-        aria-pressed={cleared}
-        title={T("cf_bulk_remove_value_btn")}
-        style={{
-          padding: "0 10px",
-          borderRadius: 8,
-          border: cleared ? "1px solid var(--accent)" : "1px solid var(--rule)",
-          background: cleared ? "var(--accent-soft)" : "transparent",
-          color: cleared ? "var(--accent-deep)" : "var(--fg-soft)",
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          fontFamily: "inherit",
-          fontSize: 13,
-          fontWeight: 600,
-        }}
-      >
-        <Icon name="trash" size={14} aria-hidden="true" />
-        <span>{T("cf_bulk_remove_value_btn")}</span>
-      </button>
-    </div>
-  );
-}
-
-function SelectWithKeep({
-  fieldKey,
-  value,
-  onChange,
-  options,
-  placeholder,
-  T,
-}) {
-  return (
-    <select
-      className="inp"
-      data-testid={`cf-bulk-field-select-${fieldKey}`}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value={KEEP}>{T("cf_bulk_keep_value")}</option>
-      <option value={CLEAR}>{T("cf_bulk_clear_value")}</option>
-      <option value="" disabled>
-        ──────────
-      </option>
-      <option value="">{placeholder}</option>
-      {options.map((opt) => (
-        <option key={opt.id} value={opt.id}>
-          {opt.name}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function CategoryWithKeep({ value, onChange, categories, T }) {
-  // Keep / Clear / pick — implemented as two top-level pills that wrap the
-  // existing CategorySelect (which doesn't itself know about Keep/Clear).
-  // Selecting a concrete category from the dropdown moves the state to that
-  // numeric id; the pills reflect that by visually deactivating.
-  const isKeep = value === KEEP;
-  const isClear = value === CLEAR;
-  const concrete = !isKeep && !isClear ? value : "";
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 6 }}>
-        <button
-          type="button"
-          data-testid="cf-bulk-cat-keep"
-          onClick={() => onChange(KEEP)}
-          style={pillStyle(isKeep)}
-        >
-          {T("cf_bulk_keep_value")}
-        </button>
-        <button
-          type="button"
-          data-testid="cf-bulk-cat-clear"
-          onClick={() => onChange(CLEAR)}
-          style={pillStyle(isClear)}
-        >
-          {T("cf_bulk_clear_value")}
-        </button>
-      </div>
-      {!isKeep && !isClear && (
-        <CategorySelect
-          value={concrete}
-          onChange={(v) => onChange(v)}
-          categoryType="all"
-          placeholder={T("no_category")}
-          categories={categories}
-        />
-      )}
-      {(isKeep || isClear) && (
-        <button
-          type="button"
-          data-testid="cf-bulk-cat-pick"
-          onClick={() => onChange("")}
-          style={{
-            ...pillStyle(false),
-            justifyContent: "space-between",
-            color: "var(--fg-soft)",
-          }}
-        >
-          <span>{T("cf_bulk_field_category")}…</span>
-          <Icon name="chevronDown" size={14} aria-hidden="true" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function pillStyle(active) {
-  return {
-    flex: 1,
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: active ? "1px solid var(--accent)" : "1px solid var(--rule)",
-    background: active ? "var(--accent-soft)" : "transparent",
-    color: active ? "var(--accent-deep)" : "var(--fg)",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontSize: 13,
-    fontWeight: active ? 700 : 500,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-  };
-}
-
-function PreviewPanel({
-  hasAnyChange,
-  previewOk,
-  loading,
-  preview,
-  rejectedRows,
-  missingIds,
-  formatEur,
-  T,
-}) {
-  if (!hasAnyChange) {
-    return (
-      <div
-        style={{
-          padding: "10px 12px",
-          background: "var(--card-inset)",
-          borderRadius: 8,
-          fontSize: 13,
-          color: "var(--fg-soft)",
-        }}
-      >
-        {T("cf_bulk_no_changes_yet")}
-      </div>
-    );
-  }
-  const total = preview?.total_selected ?? 0;
-  const amount = preview?.total_amount ?? "0";
-  return (
-    <div
-      aria-live="polite"
-      data-testid="cf-bulk-preview-panel"
-      style={{
-        padding: "10px 12px",
-        background: previewOk ? "var(--accent-soft)" : "var(--card-inset)",
-        border: `1px solid ${previewOk ? "var(--accent)" : "var(--rule)"}`,
-        borderRadius: 10,
-        fontSize: 13,
-        opacity: loading ? 0.7 : 1,
-        transition: "opacity 0.2s",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          minHeight: 32,
-        }}
-      >
-        <span
-          style={{
-            color: previewOk ? "var(--accent-deep)" : "var(--fg)",
-            fontWeight: 600,
-            minWidth: 0,
-          }}
-        >
-          {previewOk
-            ? format(T("cf_bulk_preview_summary"), {
-                count: total,
-                amount: formatEur(amount),
-              })
-            : T("cf_bulk_preview_live")}
-        </span>
-        <span
-          aria-hidden={!loading}
-          style={{
-            flex: "0 0 auto",
-            fontSize: 12,
-            color: "var(--fg-soft)",
-            textAlign: "right",
-            visibility: loading ? "visible" : "hidden",
-          }}
-        >
-          {T("cf_bulk_preview_calculating")}
-        </span>
-      </div>
-      {rejectedRows.length > 0 && (
-        <details
-          data-testid="cf-bulk-preview-rejected"
-          style={{ marginTop: 6, fontSize: 12, color: "var(--fg-soft)" }}
-        >
-          <summary
-            style={{
-              cursor: "pointer",
-              color: "var(--danger)",
-              fontWeight: 600,
-            }}
-          >
-            {format(T("cf_bulk_rejected_rows"), {
-              count: rejectedRows.length,
-            })}{" "}
-            · {T("cf_bulk_rejected_show")}
-          </summary>
-          <ul
-            style={{
-              margin: "6px 0 0 0",
-              paddingLeft: 18,
-              maxHeight: 120,
-              overflowY: "auto",
-            }}
-          >
-            {rejectedRows.slice(0, 50).map((r) => (
-              <li key={r.id}>
-                <code style={{ fontSize: 11 }}>{r.id}</code> — {r.reason}
-              </li>
-            ))}
-            {rejectedRows.length > 50 && (
-              <li style={{ fontStyle: "italic" }}>
-                … +{rejectedRows.length - 50}
-              </li>
-            )}
-          </ul>
-        </details>
-      )}
-      {missingIds.length > 0 && (
-        <div style={{ marginTop: 6, fontSize: 12, color: "var(--fg-soft)" }}>
-          {format(T("cf_bulk_missing_rows"), { count: missingIds.length })}
-        </div>
-      )}
-    </div>
   );
 }
