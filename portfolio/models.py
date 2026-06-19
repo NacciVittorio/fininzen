@@ -10,6 +10,8 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from decimal import Decimal, ROUND_HALF_UP
 
+from finnet.fields import EncryptedTextField
+
 
 # Helper unitario per il quantize a centesimi (CRIT-05): tutti i campi monetari
 # del portafoglio hanno decimal_places=2 e i calcoli intermedi su shares×prezzo
@@ -44,14 +46,18 @@ class InvestmentType(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
         ordering = ["name"]
         verbose_name = "Tipo investimento"
         verbose_name_plural = "Tipi investimento"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(tax_rate__gte=0),
+                name="investmenttype_tax_rate_non_negative",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -64,8 +70,6 @@ class ContributionSource(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -100,6 +104,12 @@ class Asset(models.Model):
         (CONTRIBUTION_SOURCE_INHERIT, "Eredita dal tipo"),
         (CONTRIBUTION_SOURCE_ENABLED, "Abilitata"),
         (CONTRIBUTION_SOURCE_DISABLED, "Disabilitata"),
+    ]
+    TAX_CMP = "CMP"
+    TAX_CRYPTO = "CRYPTO"
+    TAX_CHOICES = [
+        (TAX_CMP, "Costo medio ponderato"),
+        (TAX_CRYPTO, "Crypto FIFO"),
     ]
 
     name = models.CharField(max_length=200)
@@ -154,7 +164,7 @@ class Asset(models.Model):
         default=Decimal("0"),
     )
     opening_balance_date = models.DateField(null=True, blank=True)
-    notes = models.TextField(blank=True, default="")
+    notes = EncryptedTextField(blank=True, default="")
     source_account = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
@@ -197,6 +207,7 @@ class Asset(models.Model):
         blank=True,
         validators=[MinValueValidator(Decimal("0"))],
     )
+    tax = models.CharField(max_length=12, choices=TAX_CHOICES, default=TAX_CMP)
     balance_as_of = models.DateField(null=True, blank=True)
     last_price_update = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -205,14 +216,47 @@ class Asset(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
         ordering = ["-current_value"]
         verbose_name = "Asset"
         verbose_name_plural = "Asset"
+        indexes = [
+            # Hot path: ogni lista/aggregazione filtra owner + is_archived=False
+            # (default dei viewset, ~9 call-site). Indice parziale: indicizza solo
+            # gli asset attivi (≈99%), più piccolo e caldo del caso comune. Postgres
+            # applica la WHERE; su SQLite Django lo crea comunque (guadagno minore).
+            models.Index(
+                fields=["owner"],
+                condition=models.Q(is_archived=False),
+                name="asset_active_by_owner_idx",
+            ),
+        ]
+        constraints = [
+            # NOTE: invested_capital/current_value(_eur) NON sono qui di proposito.
+            # I conti bancari in scoperto rendono questi campi legittimamente negativi
+            # (recompute_from_transactions, ramo MANUAL: "do not clamp to 0"), quindi
+            # un CheckConstraint li romperebbe — l'audit ha trovato righe negative reali.
+            models.CheckConstraint(
+                condition=models.Q(shares__isnull=True) | models.Q(shares__gte=0),
+                name="asset_shares_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(price_per_share__isnull=True)
+                    | models.Q(price_per_share__gte=0)
+                ),
+                name="asset_price_per_share_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(tax_rate_override__isnull=True)
+                    | models.Q(tax_rate_override__gte=0)
+                ),
+                name="asset_tax_rate_override_non_negative",
+            ),
+        ]
 
     def __str__(self):
         type_name = self.investment_type.name if self.investment_type else "N/A"
@@ -300,16 +344,24 @@ class Asset(models.Model):
                     cash_in += amount
                 else:
                     cash_out += amount
-                rate = _historical_rate(tx.date)
-                if rate is None:
-                    eur_complete = False
-                elif eur_complete:
+                if tx.gross_amount_eur is not None:
                     signed = (
-                        amount
+                        tx.gross_amount_eur
                         if tx.transaction_type == AssetTransaction.CASH_IN
-                        else -amount
+                        else -tx.gross_amount_eur
                     )
-                    running_cost_eur += signed * rate
+                    running_cost_eur += signed
+                else:
+                    rate = _historical_rate(tx.date)
+                    if rate is None:
+                        eur_complete = False
+                    elif eur_complete:
+                        signed = (
+                            amount
+                            if tx.transaction_type == AssetTransaction.CASH_IN
+                            else -amount
+                        )
+                        running_cost_eur += signed * rate
             adjustments = sum(
                 (
                     tx.price_per_share
@@ -337,11 +389,14 @@ class Asset(models.Model):
                 if tx.transaction_type == AssetTransaction.BUY:
                     running_shares += tx.shares
                     running_cost += tx.shares * tx.price_per_share
-                    rate = _historical_rate(tx.date)
-                    if rate is None:
-                        eur_complete = False
-                    elif eur_complete:
-                        running_cost_eur += tx.shares * tx.price_per_share * rate
+                    if tx.gross_amount_eur is not None:
+                        running_cost_eur += tx.gross_amount_eur
+                    else:
+                        rate = _historical_rate(tx.date)
+                        if rate is None:
+                            eur_complete = False
+                        elif eur_complete:
+                            running_cost_eur += tx.shares * tx.price_per_share * rate
                 elif tx.transaction_type == AssetTransaction.SELL:
                     if running_shares > 0:
                         avg_cost = running_cost / running_shares
@@ -401,8 +456,6 @@ class AssetContributionSource(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
     asset = models.ForeignKey(
         Asset,
@@ -489,6 +542,31 @@ class AssetTransaction(models.Model):
         validators=[MinValueValidator(Decimal("0"))],
     )
     tax_amount_is_manual = models.BooleanField(default=False)
+    fx_rate_to_eur = models.DecimalField(
+        max_digits=18,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    gross_amount_eur = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    fee_eur = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    tax_amount_eur = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     notes = models.CharField(max_length=255, blank=True, default="")
     contribution_source = models.ForeignKey(
         ContributionSource,
@@ -517,8 +595,6 @@ class AssetTransaction(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     @property
@@ -598,6 +674,14 @@ class AssetTransaction(models.Model):
                 ),
                 name="unique_pac_occ_owner",
             ),
+            models.CheckConstraint(
+                condition=models.Q(fee__gte=0),
+                name="assettransaction_fee_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(tax_amount__gte=0),
+                name="assettransaction_tax_amount_non_negative",
+            ),
         ]
 
     def __str__(self):
@@ -640,8 +724,6 @@ class AssetPriceHistory(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -721,8 +803,6 @@ class RecurringInvestmentPlan(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -766,8 +846,6 @@ class PortfolioSnapshot(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
     total_value = models.DecimalField(
         max_digits=15, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
@@ -817,8 +895,6 @@ class FXRateHistory(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -851,8 +927,6 @@ class AllocationTarget(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -861,6 +935,10 @@ class AllocationTarget(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["owner", "investment_type"], name="unique_allocation_owner_type"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(target_percent__gte=0),
+                name="allocationtarget_target_percent_non_negative",
             ),
         ]
 
@@ -886,8 +964,6 @@ class DashboardSummary(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -925,8 +1001,6 @@ class FireSettings(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
     user_age = models.PositiveSmallIntegerField(default=30)
     retirement_age = models.PositiveSmallIntegerField(default=65)

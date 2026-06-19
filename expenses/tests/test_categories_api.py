@@ -115,12 +115,16 @@ def test_delete_category_simple(client, cat_a):
     assert not Category.objects.filter(pk=cat_a.id).exists()
 
 
-def test_delete_category_delete_subcategories(client, cat_a, cat_b):
+def test_delete_category_delete_subcategories(client, cat_a, cat_b, test_user):
     sub = Category.objects.create(
-        name="Bus", category_type=Category.EXPENSE, parent=cat_a
+        name="Bus", category_type=Category.EXPENSE, parent=cat_a, owner=test_user
     )
     Expense.objects.create(
-        description="Bus ticket", amount=2, category=sub, date=date(2026, 4, 1)
+        description="Bus ticket",
+        amount=2,
+        category=sub,
+        date=date(2026, 4, 1),
+        owner=test_user,
     )
 
     res = client.delete(
@@ -134,9 +138,9 @@ def test_delete_category_delete_subcategories(client, cat_a, cat_b):
     assert not Expense.objects.filter(description="Bus ticket").exists()
 
 
-def test_delete_category_reassign_subcategories(client, cat_a, cat_b):
+def test_delete_category_reassign_subcategories(client, cat_a, cat_b, test_user):
     sub = Category.objects.create(
-        name="Taxi", category_type=Category.EXPENSE, parent=cat_a
+        name="Taxi", category_type=Category.EXPENSE, parent=cat_a, owner=test_user
     )
 
     res = client.delete(
@@ -149,12 +153,20 @@ def test_delete_category_reassign_subcategories(client, cat_a, cat_b):
     assert sub.parent_id == cat_b.id
 
 
-def test_delete_category_delete_expenses(client, cat_a):
+def test_delete_category_delete_expenses(client, cat_a, test_user):
     Expense.objects.create(
-        description="Lunch", amount=15, category=cat_a, date=date(2026, 4, 1)
+        description="Lunch",
+        amount=15,
+        category=cat_a,
+        date=date(2026, 4, 1),
+        owner=test_user,
     )
     Expense.objects.create(
-        description="Dinner", amount=30, category=cat_a, date=date(2026, 4, 2)
+        description="Dinner",
+        amount=30,
+        category=cat_a,
+        date=date(2026, 4, 2),
+        owner=test_user,
     )
 
     res = client.delete(
@@ -166,9 +178,13 @@ def test_delete_category_delete_expenses(client, cat_a):
     assert not Expense.objects.filter(category=cat_a).exists()
 
 
-def test_delete_category_reassign_expenses(client, cat_a, cat_b):
+def test_delete_category_reassign_expenses(client, cat_a, cat_b, test_user):
     exp = Expense.objects.create(
-        description="Gym", amount=50, category=cat_a, date=date(2026, 4, 1)
+        description="Gym",
+        amount=50,
+        category=cat_a,
+        date=date(2026, 4, 1),
+        owner=test_user,
     )
 
     res = client.delete(
@@ -181,10 +197,14 @@ def test_delete_category_reassign_expenses(client, cat_a, cat_b):
     assert exp.category_id == cat_b.id
 
 
-def test_delete_category_null_expenses(client, cat_a):
+def test_delete_category_null_expenses(client, cat_a, test_user):
     # Default behaviour (no body): expenses survive with category=None (SET_NULL)
     exp = Expense.objects.create(
-        description="Pizza", amount=12, category=cat_a, date=date(2026, 4, 1)
+        description="Pizza",
+        amount=12,
+        category=cat_a,
+        date=date(2026, 4, 1),
+        owner=test_user,
     )
 
     res = client.delete(

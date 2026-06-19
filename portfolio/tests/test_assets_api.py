@@ -130,6 +130,7 @@ def test_patch_asset_custom_contribution_sources(client, asset, test_user):
 def test_delete_asset_also_deletes_transactions(client, asset):
     AssetTransaction.objects.create(
         asset=asset,
+        owner=asset.owner,
         transaction_type=AssetTransaction.BUY,
         date="2026-01-01",
         shares=Decimal("5.000000"),

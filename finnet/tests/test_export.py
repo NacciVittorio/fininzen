@@ -192,10 +192,10 @@ def test_export_transactions_returns_csv(client, buy_tx, bank_cash_in_tx):
     assert "Main Bank" not in asset_names
 
 
-def test_export_transactions_includes_legacy_tx_without_owner(client, etf_asset):
+def test_export_transactions_includes_owned_tx(client, etf_asset):
     AssetTransaction.objects.create(
         asset=etf_asset,
-        owner=None,
+        owner=etf_asset.owner,
         shares=Decimal("1.000000"),
         price_per_share=Decimal("100.0000"),
         transaction_type=AssetTransaction.BUY,

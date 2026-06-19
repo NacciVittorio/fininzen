@@ -577,6 +577,10 @@ class AccountView(APIView):
         username = request.user.username
         with transaction.atomic():
             request.user.delete()
+            from portfolio.models import DashboardSummary, FireSettings
+
+            DashboardSummary.objects.filter(owner_id=user_id).delete()
+            FireSettings.objects.filter(owner_id=user_id).delete()
         logger.warning(
             "AccountView DELETE: deleted user_id=%s username=%s", user_id, username
         )

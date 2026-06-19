@@ -34,10 +34,16 @@ def test_history_illiquid_asset_constant_fallback(client, illiquid_asset):
 
 def test_history_illiquid_with_price_history(client, illiquid_asset):
     AssetPriceHistory.objects.create(
-        asset=illiquid_asset, date=date(2026, 4, 1), close=Decimal("240000.0000")
+        asset=illiquid_asset,
+        date=date(2026, 4, 1),
+        close=Decimal("240000.0000"),
+        owner=illiquid_asset.owner,
     )
     AssetPriceHistory.objects.create(
-        asset=illiquid_asset, date=date(2026, 4, 3), close=Decimal("260000.0000")
+        asset=illiquid_asset,
+        date=date(2026, 4, 3),
+        close=Decimal("260000.0000"),
+        owner=illiquid_asset.owner,
     )
 
     res = client.get(
@@ -76,7 +82,7 @@ def test_history_liquid_asset_with_price_history(client, itype, test_user):
         owner=test_user,
     )
     AssetPriceHistory.objects.create(
-        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000")
+        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000"), owner=test_user
     )
 
     res = client.get(
@@ -89,10 +95,16 @@ def test_history_liquid_asset_with_price_history(client, itype, test_user):
 
 def test_history_respects_date_range(client, illiquid_asset):
     AssetPriceHistory.objects.create(
-        asset=illiquid_asset, date=date(2026, 1, 1), close=Decimal("200000.0000")
+        asset=illiquid_asset,
+        date=date(2026, 1, 1),
+        close=Decimal("200000.0000"),
+        owner=illiquid_asset.owner,
     )
     AssetPriceHistory.objects.create(
-        asset=illiquid_asset, date=date(2026, 3, 1), close=Decimal("300000.0000")
+        asset=illiquid_asset,
+        date=date(2026, 3, 1),
+        close=Decimal("300000.0000"),
+        owner=illiquid_asset.owner,
     )
 
     # Request only Feb
@@ -116,7 +128,10 @@ def test_history_applies_fx_conversion_for_non_eur_asset(client, usd_asset, test
         owner=test_user,
     )
     AssetPriceHistory.objects.create(
-        asset=usd_asset, date=date(2026, 4, 1), close=Decimal("1100.0000")
+        asset=usd_asset,
+        date=date(2026, 4, 1),
+        close=Decimal("1100.0000"),
+        owner=test_user,
     )
 
     res = client.get(
@@ -146,7 +161,10 @@ def test_history_manual_asset_zero_before_first_price_history(client, illiquid_a
     Previously _price_at() would forward-extrapolate from the first known price, inflating
     the chart for the entire queried range even before the asset existed."""
     AssetPriceHistory.objects.create(
-        asset=illiquid_asset, date=date(2026, 4, 1), close=Decimal("250000.0000")
+        asset=illiquid_asset,
+        date=date(2026, 4, 1),
+        close=Decimal("250000.0000"),
+        owner=illiquid_asset.owner,
     )
 
     # Query a range that starts BEFORE the first price-history point
@@ -191,7 +209,7 @@ def test_history_ticker_asset_zero_before_first_buy(client, itype, test_user):
         owner=test_user,
     )
     AssetPriceHistory.objects.create(
-        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000")
+        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000"), owner=test_user
     )
 
     # Query from 3 months before the BUY
@@ -235,10 +253,16 @@ def test_history_manual_step_function_no_interpolation(
     )
     # Simula rebuild_manual_history: CASH_IN jan, CASH_OUT mag
     AssetPriceHistory.objects.create(
-        asset=asset, date=date(2026, 1, 27), close=Decimal("1635.00")
+        asset=asset,
+        date=date(2026, 1, 27),
+        close=Decimal("1635.00"),
+        owner=test_user,
     )
     AssetPriceHistory.objects.create(
-        asset=asset, date=date(2026, 5, 9), close=Decimal("749.40")
+        asset=asset,
+        date=date(2026, 5, 9),
+        close=Decimal("749.40"),
+        owner=test_user,
     )
 
     res = client.get(
@@ -289,10 +313,10 @@ def test_history_auto_asset_uses_last_known_close(client, itype, test_user):
         owner=test_user,
     )
     AssetPriceHistory.objects.create(
-        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000")
+        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000"), owner=test_user
     )
     AssetPriceHistory.objects.create(
-        asset=a, date=date(2026, 4, 3), close=Decimal("120.0000")
+        asset=a, date=date(2026, 4, 3), close=Decimal("120.0000"), owner=test_user
     )
 
     res = client.get(
@@ -322,10 +346,10 @@ def test_history_auto_asset_ignores_non_positive_close(client, itype, test_user)
         owner=test_user,
     )
     AssetPriceHistory.objects.create(
-        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000")
+        asset=a, date=date(2026, 4, 1), close=Decimal("100.0000"), owner=test_user
     )
     AssetPriceHistory.objects.create(
-        asset=a, date=date(2026, 4, 2), close=Decimal("0.0000")
+        asset=a, date=date(2026, 4, 2), close=Decimal("0.0000"), owner=test_user
     )
 
     res = client.get(

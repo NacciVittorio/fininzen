@@ -256,20 +256,34 @@ def _principal_derived_qs(tx: AssetTransaction):
     return tx.derived_txs.filter(derived_kind=AssetTransaction.DERIVED_PRINCIPAL)
 
 
-def tax_lot_state_for_asset(
+def _verified_tax_lot_transactions(
     asset: Asset,
     *,
     through_date=None,
     exclude_tx: AssetTransaction | None = None,
-) -> tuple[Decimal, Decimal]:
+):
     txs = asset.transactions.filter(is_verified=True)
     if through_date is not None:
         txs = txs.filter(date__lte=through_date)
     if exclude_tx and exclude_tx.pk:
         txs = txs.exclude(pk=exclude_tx.pk)
+    return txs.order_by("date", "created_at", "pk")
+
+
+def _cmp_tax_lot_state_for_asset(
+    asset: Asset,
+    *,
+    through_date=None,
+    exclude_tx: AssetTransaction | None = None,
+) -> tuple[Decimal, Decimal]:
+    txs = _verified_tax_lot_transactions(
+        asset,
+        through_date=through_date,
+        exclude_tx=exclude_tx,
+    )
     running_shares = Decimal("0")
     running_tax_cost = Decimal("0")
-    for prev in txs.order_by("date", "created_at", "pk"):
+    for prev in txs:
         if prev.transaction_type == AssetTransaction.BUY:
             running_shares += prev.shares
             running_tax_cost += prev.shares * prev.price_per_share
@@ -285,6 +299,84 @@ def tax_lot_state_for_asset(
     )
 
 
+def _fifo_lots_for_asset(
+    asset: Asset,
+    *,
+    through_date=None,
+    exclude_tx: AssetTransaction | None = None,
+) -> list[tuple[Decimal, Decimal]]:
+    txs = _verified_tax_lot_transactions(
+        asset,
+        through_date=through_date,
+        exclude_tx=exclude_tx,
+    )
+    lots: list[tuple[Decimal, Decimal]] = []
+    for prev in txs:
+        if prev.transaction_type == AssetTransaction.BUY:
+            if prev.shares <= 0:
+                continue
+            gross_cost = prev.shares * prev.price_per_share + Decimal(prev.fee or 0)
+            unit_cost = gross_cost / prev.shares
+            lots.append((prev.shares, unit_cost))
+            continue
+        if prev.transaction_type != AssetTransaction.SELL:
+            continue
+        remaining_to_sell = prev.shares
+        new_lots: list[tuple[Decimal, Decimal]] = []
+        for lot_shares, lot_unit_cost in lots:
+            if remaining_to_sell <= 0:
+                new_lots.append((lot_shares, lot_unit_cost))
+                continue
+            consumed = min(lot_shares, remaining_to_sell)
+            remaining_to_sell -= consumed
+            residual = lot_shares - consumed
+            if residual > 0:
+                new_lots.append((residual, lot_unit_cost))
+        lots = new_lots
+    return lots
+
+
+def _fifo_tax_lot_state_for_asset(
+    asset: Asset,
+    *,
+    through_date=None,
+    exclude_tx: AssetTransaction | None = None,
+) -> tuple[Decimal, Decimal]:
+    lots = _fifo_lots_for_asset(
+        asset,
+        through_date=through_date,
+        exclude_tx=exclude_tx,
+    )
+    running_shares = sum((shares for shares, _ in lots), Decimal("0"))
+    running_tax_cost = sum(
+        (shares * unit_cost for shares, unit_cost in lots),
+        Decimal("0"),
+    )
+    return (
+        max(running_shares, Decimal("0")),
+        max(running_tax_cost, Decimal("0")),
+    )
+
+
+def tax_lot_state_for_asset(
+    asset: Asset,
+    *,
+    through_date=None,
+    exclude_tx: AssetTransaction | None = None,
+) -> tuple[Decimal, Decimal]:
+    if asset.tax == Asset.TAX_CRYPTO:
+        return _fifo_tax_lot_state_for_asset(
+            asset,
+            through_date=through_date,
+            exclude_tx=exclude_tx,
+        )
+    return _cmp_tax_lot_state_for_asset(
+        asset,
+        through_date=through_date,
+        exclude_tx=exclude_tx,
+    )
+
+
 def remaining_tax_cost_basis(asset: Asset) -> Decimal:
     _, tax_cost = tax_lot_state_for_asset(
         asset,
@@ -296,6 +388,20 @@ def remaining_tax_cost_basis(asset: Asset) -> Decimal:
 def tax_cost_basis_for_sell(asset: Asset, sell_tx: AssetTransaction) -> Decimal:
     if sell_tx.transaction_type != AssetTransaction.SELL or not sell_tx.is_verified:
         return Decimal("0")
+    if asset.tax == Asset.TAX_CRYPTO:
+        cost_basis = Decimal("0")
+        remaining_to_sell = sell_tx.shares
+        for lot_shares, lot_unit_cost in _fifo_lots_for_asset(
+            asset,
+            through_date=sell_tx.date,
+            exclude_tx=sell_tx,
+        ):
+            if remaining_to_sell <= 0:
+                break
+            consumed = min(lot_shares, remaining_to_sell)
+            cost_basis += consumed * lot_unit_cost
+            remaining_to_sell -= consumed
+        return cost_basis
     running_shares, running_tax_cost = tax_lot_state_for_asset(
         asset,
         through_date=sell_tx.date,
@@ -338,11 +444,13 @@ def _sync_parent_tax_amount(asset: Asset, tx: AssetTransaction) -> None:
     if tx.transaction_type == AssetTransaction.SELL:
         tx.tax_amount = _effective_sell_tax(asset, tx)
         tx.save(update_fields=["tax_amount"])
+        _sync_transaction_eur_snapshot(tx)
         return
     if tx.tax_amount or tx.tax_amount_is_manual:
         tx.tax_amount = Decimal("0")
         tx.tax_amount_is_manual = False
         tx.save(update_fields=["tax_amount", "tax_amount_is_manual"])
+        _sync_transaction_eur_snapshot(tx)
 
 
 def resync_asset_tax(asset: Asset) -> int:
@@ -393,6 +501,59 @@ def resync_asset_tax(asset: Asset) -> int:
     return changed
 
 
+def _historical_fx_rate_for_transaction(tx: AssetTransaction) -> Decimal | None:
+    currency = (tx.asset.currency or "EUR").upper()
+    if currency == "EUR":
+        return Decimal("1")
+    owner = tx.owner or tx.asset.owner
+    from .fx import fetch_historical_exchange_rate, get_historical_exchange_rate
+    from .models import FXRateHistory
+
+    rate = get_historical_exchange_rate(currency, tx.date, owner=owner)
+    if rate is not None:
+        return Decimal(rate)
+    rate = fetch_historical_exchange_rate(currency, tx.date)
+    if rate is None:
+        return None
+    if owner is not None:
+        FXRateHistory.objects.update_or_create(
+            owner=owner,
+            from_currency=currency,
+            to_currency="EUR",
+            date=tx.date,
+            defaults={"rate": rate},
+        )
+    return Decimal(rate)
+
+
+def _sync_transaction_eur_snapshot(tx: AssetTransaction) -> None:
+    rate = _historical_fx_rate_for_transaction(tx)
+    if rate is None:
+        if tx.is_verified:
+            currency = (tx.asset.currency or "EUR").upper()
+            raise ValueError(
+                f"Historical FX rate unavailable for {currency}/EUR on {tx.date}"
+            )
+        tx.fx_rate_to_eur = None
+        tx.gross_amount_eur = None
+        tx.fee_eur = None
+        tx.tax_amount_eur = None
+    else:
+        gross_native = tx.shares * tx.price_per_share
+        tx.fx_rate_to_eur = rate
+        tx.gross_amount_eur = _q2(gross_native * rate)
+        tx.fee_eur = _q2(Decimal(tx.fee or 0) * rate)
+        tx.tax_amount_eur = _q2(Decimal(tx.tax_amount or 0) * rate)
+    tx.save(
+        update_fields=[
+            "fx_rate_to_eur",
+            "gross_amount_eur",
+            "fee_eur",
+            "tax_amount_eur",
+        ]
+    )
+
+
 def _sync_derived_cash_movement(
     parent: AssetTransaction,
     *,
@@ -433,10 +594,11 @@ def _sync_derived_cash_movement(
                 "owner",
             ]
         )
+        _sync_transaction_eur_snapshot(existing)
         touched.add(old_asset)
         touched.add(account)
         return touched
-    AssetTransaction.objects.create(
+    created = AssetTransaction.objects.create(
         asset=account,
         transaction_type=transaction_type,
         date=parent.date,
@@ -448,6 +610,7 @@ def _sync_derived_cash_movement(
         is_verified=parent.is_verified,
         owner=owner,
     )
+    _sync_transaction_eur_snapshot(created)
     touched.add(account)
     return touched
 
@@ -598,8 +761,9 @@ def generate_recurring_investments(user, year: int, month: int) -> dict:
                     is_verified=plan.generated_transactions_verified,
                     owner=user,
                 )
+                _sync_transaction_eur_snapshot(tx)
                 _recompute_asset_locked(plan.asset)
-                AssetTransaction.objects.create(
+                cash_tx = AssetTransaction.objects.create(
                     asset=plan.source_account,
                     transaction_type=AssetTransaction.CASH_OUT,
                     date=execution_date,
@@ -610,6 +774,7 @@ def generate_recurring_investments(user, year: int, month: int) -> dict:
                     is_verified=plan.generated_transactions_verified,
                     owner=user,
                 )
+                _sync_transaction_eur_snapshot(cash_tx)
                 _refresh_manual_asset(plan.source_account)
             created += 1
             items.append(
@@ -723,7 +888,7 @@ def create_asset_with_initial_balance(
             asset.is_liquid = asset.investment_type.is_liquid_default
             asset.save(update_fields=["is_liquid"])
         if initial_balance is not None:
-            AssetTransaction.objects.create(
+            tx = AssetTransaction.objects.create(
                 asset=asset,
                 transaction_type=AssetTransaction.CASH_IN,
                 date=date_cls.today(),
@@ -733,6 +898,7 @@ def create_asset_with_initial_balance(
                 is_verified=True,
                 owner=owner,
             )
+            _sync_transaction_eur_snapshot(tx)
             _refresh_manual_asset(asset)
     _post_asset_save(asset)
     return asset
@@ -897,6 +1063,7 @@ def create_transaction(
 
     with transaction.atomic():
         tx = serializer.save(asset=asset, owner=owner)
+        _sync_transaction_eur_snapshot(tx)
         _recompute_asset_locked(asset)
         if asset.tracking_type == Asset.MANUAL:
             _refresh_manual_asset(asset)
@@ -1064,6 +1231,7 @@ def patch_transaction(
         _get_bank_account(dest_account_pk, effective_owner)
     with transaction.atomic():
         updated_tx = serializer.save(owner=effective_owner)
+        _sync_transaction_eur_snapshot(updated_tx)
         _recompute_asset_locked(asset)
         new_amount = _q2(updated_tx.shares * updated_tx.price_per_share)
         cash_types = {
@@ -1274,7 +1442,7 @@ def realize_manual_asset(
         dst = Asset.objects.select_for_update().get(pk=dst.pk)
         value_delta = sale_price - Decimal(asset_locked.current_value or 0)
         if value_delta != 0:
-            AssetTransaction.objects.create(
+            adjustment_tx = AssetTransaction.objects.create(
                 asset=asset_locked,
                 transaction_type=AssetTransaction.ADJUSTMENT,
                 date=today,
@@ -1284,6 +1452,7 @@ def realize_manual_asset(
                 is_verified=True,
                 owner=owner,
             )
+            _sync_transaction_eur_snapshot(adjustment_tx)
         tx = AssetTransaction.objects.create(
             asset=asset_locked,
             transaction_type=AssetTransaction.CASH_OUT,
@@ -1296,6 +1465,7 @@ def realize_manual_asset(
             is_verified=True,
             owner=owner,
         )
+        _sync_transaction_eur_snapshot(tx)
         touched = _sync_derived_cash_movement(
             tx,
             kind=AssetTransaction.DERIVED_PRINCIPAL,
@@ -1523,6 +1693,7 @@ def transfer_between_accounts(
 
     Ritorna {"from_balance", "to_balance"} + eventuale "warning: insufficient_balance".
     """
+    owner = owner or from_account.owner
     if amount <= 0:
         raise ValueError("Transfer amount must be greater than zero")
     for account in (from_account, to_account):
@@ -1548,7 +1719,8 @@ def transfer_between_accounts(
             is_verified=is_verified,
             owner=owner,
         )
-        AssetTransaction.objects.create(
+        _sync_transaction_eur_snapshot(cash_out)
+        cash_in = AssetTransaction.objects.create(
             asset=to_account,
             transaction_type=AssetTransaction.CASH_IN,
             date=tx_date,
@@ -1559,6 +1731,7 @@ def transfer_between_accounts(
             is_verified=is_verified,
             owner=owner,
         )
+        _sync_transaction_eur_snapshot(cash_in)
         _refresh_manual_asset(from_account)
         _refresh_manual_asset(to_account)
 

@@ -4,7 +4,14 @@ from finnet.mixins import _effective_user
 def serializer_user(serializer):
     request = serializer.context.get("request")
     if request:
-        return _effective_user(request)
+        user = _effective_user(request)
+        # AnonymousUser is truthy, so callers' `if user` guards would wrongly
+        # try to scope querysets by it (e.g. during OpenAPI schema generation,
+        # where the introspection request carries no authenticated user).
+        # Normalise the unauthenticated case to None.
+        if user is not None and getattr(user, "is_authenticated", False):
+            return user
+        return None
     instance = getattr(serializer, "instance", None)
     return getattr(instance, "owner", None)
 

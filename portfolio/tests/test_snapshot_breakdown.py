@@ -6,19 +6,24 @@ from portfolio.models import Asset, InvestmentType, PortfolioSnapshot
 
 
 @pytest.fixture
-def itype_etf(db):
-    return InvestmentType.objects.create(name="ETF", supports_ticker=True)
-
-
-@pytest.fixture
-def itype_bank(db):
+def itype_etf(db, test_user):
     return InvestmentType.objects.create(
-        name="Banca", is_bank_account=True, supports_ticker=False
+        name="ETF", supports_ticker=True, owner=test_user
     )
 
 
 @pytest.fixture
-def asset_etf(itype_etf):
+def itype_bank(db, test_user):
+    return InvestmentType.objects.create(
+        name="Banca",
+        is_bank_account=True,
+        supports_ticker=False,
+        owner=test_user,
+    )
+
+
+@pytest.fixture
+def asset_etf(itype_etf, test_user):
     return Asset.objects.create(
         name="VWCE",
         ticker="",
@@ -26,11 +31,12 @@ def asset_etf(itype_etf):
         is_liquid=True,
         current_value=Decimal("1000.00"),
         invested_capital=Decimal("900.00"),
+        owner=test_user,
     )
 
 
 @pytest.fixture
-def asset_bank(itype_bank):
+def asset_bank(itype_bank, test_user):
     return Asset.objects.create(
         name="Conto",
         ticker="",
@@ -38,6 +44,7 @@ def asset_bank(itype_bank):
         is_liquid=True,
         current_value=Decimal("500.00"),
         invested_capital=Decimal("500.00"),
+        owner=test_user,
     )
 
 
@@ -74,8 +81,9 @@ def test_snapshot_breakdown_uses_current_value_eur(db, test_user, usd_asset):
     assert breakdown_sum == pytest.approx(float(snap.total_value), rel=1e-3)
 
 
-def test_snapshot_breakdown_fields(db, asset_etf, asset_bank):
+def test_snapshot_breakdown_fields(db, asset_etf, asset_bank, test_user):
     snap = PortfolioSnapshot.objects.create(
+        owner=test_user,
         total_value=Decimal("1500.00"),
         liquid_value=Decimal("1500.00"),
         illiquid_value=Decimal("0.00"),

@@ -40,7 +40,10 @@ def test_invalid_date_format_returns_400(client, asset_with_ticker):
 
 def test_exact_match_in_cache(client, asset_with_ticker):
     AssetPriceHistory.objects.create(
-        asset=asset_with_ticker, date=date(2026, 1, 10), close=Decimal("100.0000")
+        asset=asset_with_ticker,
+        date=date(2026, 1, 10),
+        close=Decimal("100.0000"),
+        owner=asset_with_ticker.owner,
     )
 
     res = client.get(
@@ -54,10 +57,16 @@ def test_exact_match_in_cache(client, asset_with_ticker):
 
 def test_uses_latest_known_price_without_interpolation(client, asset_with_ticker):
     AssetPriceHistory.objects.create(
-        asset=asset_with_ticker, date=date(2026, 1, 1), close=Decimal("100.0000")
+        asset=asset_with_ticker,
+        date=date(2026, 1, 1),
+        close=Decimal("100.0000"),
+        owner=asset_with_ticker.owner,
     )
     AssetPriceHistory.objects.create(
-        asset=asset_with_ticker, date=date(2026, 1, 11), close=Decimal("110.0000")
+        asset=asset_with_ticker,
+        date=date(2026, 1, 11),
+        close=Decimal("110.0000"),
+        owner=asset_with_ticker.owner,
     )
 
     # Day 6 keeps the latest known NAV instead of using the future quote.
@@ -70,7 +79,10 @@ def test_uses_latest_known_price_without_interpolation(client, asset_with_ticker
 
 def test_date_before_first_quote_returns_404(client, asset_with_ticker):
     AssetPriceHistory.objects.create(
-        asset=asset_with_ticker, date=date(2026, 1, 11), close=Decimal("110.0000")
+        asset=asset_with_ticker,
+        date=date(2026, 1, 11),
+        close=Decimal("110.0000"),
+        owner=asset_with_ticker.owner,
     )
 
     with patch("portfolio.prices.backfill_price_history", return_value=0):
@@ -81,7 +93,7 @@ def test_date_before_first_quote_returns_404(client, asset_with_ticker):
     assert res.status_code == 404
 
 
-def test_no_cache_returns_404(client, itype):
+def test_no_cache_returns_404(client, itype, test_user):
     # Asset with ticker but empty price history; mock backfill to avoid network call
     a = Asset.objects.create(
         name="Fake",
@@ -90,6 +102,7 @@ def test_no_cache_returns_404(client, itype):
         is_liquid=True,
         invested_capital=Decimal("100.00"),
         current_value=Decimal("100.00"),
+        owner=test_user,
     )
     with patch("portfolio.prices.backfill_price_history", return_value=None):
         res = client.get(f"/api/portfolio/{a.id}/historical-price/?date=2026-01-10")

@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import IntegrityError, transaction
 
 from portfolio.models import Asset, AssetPriceHistory, AssetTransaction, InvestmentType
 from expenses.models import Category, Expense
@@ -109,37 +110,33 @@ def test_audit_domain_integrity_accepts_fee_and_tax_derived_rows(db, test_user):
     call_command("audit_domain_integrity")
 
 
-def test_audit_domain_integrity_rejects_ownerless_asset(db):
-    Asset.objects.create(name="Ownerless")
+def test_schema_rejects_ownerless_asset(db):
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            Asset.objects.create(name="Ownerless")
 
-    with pytest.raises(CommandError, match="Domain-integrity violations"):
-        call_command("audit_domain_integrity")
 
-
-def test_audit_domain_integrity_repairs_inferable_owners(db, test_user):
+def test_schema_rejects_ownerless_child_rows(db, test_user):
     inv_type = InvestmentType.objects.create(name="ETF", owner=test_user)
     asset = Asset.objects.create(
         name="Owned", investment_type=inv_type, owner=test_user
     )
-    tx = AssetTransaction.objects.create(
-        asset=asset,
-        transaction_type=AssetTransaction.BUY,
-        date=date(2026, 1, 1),
-        shares=Decimal("1"),
-        price_per_share=Decimal("100"),
-    )
-    point = AssetPriceHistory.objects.create(
-        asset=asset,
-        date=date(2026, 1, 1),
-        close=Decimal("100"),
-    )
-
-    call_command("audit_domain_integrity", apply=True)
-
-    tx.refresh_from_db()
-    point.refresh_from_db()
-    assert tx.owner == test_user
-    assert point.owner == test_user
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            AssetTransaction.objects.create(
+                asset=asset,
+                transaction_type=AssetTransaction.BUY,
+                date=date(2026, 1, 1),
+                shares=Decimal("1"),
+                price_per_share=Decimal("100"),
+            )
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            AssetPriceHistory.objects.create(
+                asset=asset,
+                date=date(2026, 1, 1),
+                close=Decimal("100"),
+            )
 
 
 def test_audit_domain_integrity_rejects_shadow_verification_mismatch(db, test_user):

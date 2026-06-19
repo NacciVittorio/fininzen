@@ -11,6 +11,8 @@ un semplice CharField perché così l'utente può:
 from django.conf import settings
 from django.db import models
 
+from finnet.fields import BlindIndexField, EncryptedTextField
+
 
 class Category(models.Model):
     """
@@ -38,8 +40,6 @@ class Category(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -102,8 +102,6 @@ class Expense(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -173,21 +171,25 @@ class ExpenseDescriptionSuggestion(models.Model):
         on_delete=models.CASCADE,
         related_name="description_suggestions",
     )
-    text = models.CharField(max_length=200)
+    # Encrypted at rest. `text_bidx` is the deterministic blind index that backs
+    # exact-match lookups (track_description_suggestion) and the uniqueness
+    # constraint, since the ciphertext itself is randomized and unqueryable.
+    text = EncryptedTextField()
+    text_bidx = BlindIndexField(source_field="text")
     last_used_at = models.DateTimeField(auto_now=True)
     use_count = models.PositiveIntegerField(default=1)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["owner", "category", "text"],
+                fields=["owner", "category", "text_bidx"],
                 name="unique_description_suggestion_per_owner_category_text",
             ),
         ]
         indexes = [
             models.Index(fields=["owner", "category", "-last_used_at"]),
         ]
-        ordering = ["-last_used_at", "-use_count", "text"]
+        ordering = ["-last_used_at", "-use_count", "id"]
 
     def __str__(self):
         return f"{self.category_id}:{self.text}"
@@ -203,8 +205,6 @@ class Budget(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
@@ -242,7 +242,7 @@ class RecurringExpense(models.Model):
         (FREQUENCY_YEARLY, "Yearly"),
     ]
 
-    description = models.CharField(max_length=200)
+    description = EncryptedTextField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(
         Category,
@@ -277,12 +277,12 @@ class RecurringExpense(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
 
     class Meta:
-        ordering = ["description"]
+        # `description` is encrypted (randomized ciphertext), so it can't drive a
+        # meaningful ORDER BY. Sort by start date (newest first) instead.
+        ordering = ["-start_date", "id"]
         verbose_name = "Spesa Ricorrente"
         verbose_name_plural = "Spese Ricorrenti"
         indexes = [

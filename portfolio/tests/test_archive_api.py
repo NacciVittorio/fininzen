@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pytest
+from django.db import IntegrityError, transaction
 from portfolio.models import Asset, InvestmentType
 
 
@@ -73,16 +74,17 @@ def test_archive_auto_asset_with_positive_shares_is_blocked(client, asset):
     assert asset.is_archived is False
 
 
-def test_archive_auto_asset_with_negative_shares_is_blocked(client, asset):
-    Asset.objects.filter(pk=asset.pk).update(shares=Decimal("-1.000000"))
+def test_auto_asset_negative_shares_rejected_by_db(asset):
+    # Le quote negative non possono più esistere: il CHECK constraint
+    # asset_shares_non_negative le rifiuta alla radice. Questa è una garanzia più
+    # forte del 409 del guard di archive — che resta coperto per il caso non-zero
+    # da test_archive_auto_asset_with_positive_shares_is_blocked. Verifichiamo che
+    # nemmeno una update() raw (che bypassa i validator DRF) possa introdurle.
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            Asset.objects.filter(pk=asset.pk).update(shares=Decimal("-1.000000"))
     asset.refresh_from_db()
-    res = client.post(f"/api/portfolio/{asset.id}/archive/")
-    assert res.status_code == 409
-    body = res.json()
-    assert body["error"] == "non_zero_shares"
-    assert body["shares"] == "-1.000000"
-    asset.refresh_from_db()
-    assert asset.is_archived is False
+    assert asset.shares != Decimal("-1.000000")
 
 
 def test_archive_auto_asset_with_zero_shares_succeeds(client, asset):

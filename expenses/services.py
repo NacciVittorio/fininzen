@@ -13,6 +13,8 @@ from django.db import IntegrityError
 from django.db.models import F
 from django.utils import timezone
 
+from finnet import crypto
+
 from .models import (
     Budget,
     Category,
@@ -250,11 +252,14 @@ def track_description_suggestion(expense: Expense) -> None:
         expense.category_id,
         text,
     )
+    # `text` is encrypted (randomized), so we match on its deterministic blind
+    # index. The unique constraint is on (owner, category, text_bidx), so
+    # get_or_create keeps its atomic race-safety.
     suggestion, created = ExpenseDescriptionSuggestion.objects.get_or_create(
         owner=expense.owner,
         category=expense.category,
-        text=text,
-        defaults={"use_count": 1},
+        text_bidx=crypto.blind_index(text),
+        defaults={"text": text, "use_count": 1},
     )
     if not created:
         ExpenseDescriptionSuggestion.objects.filter(pk=suggestion.pk).update(
