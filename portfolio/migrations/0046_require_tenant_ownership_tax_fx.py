@@ -5,7 +5,6 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import migrations, models
-import django.db.models.deletion
 
 
 OWNER_REQUIRED_MODELS = [
@@ -115,100 +114,9 @@ class Migration(migrations.Migration):
                 blank=True, decimal_places=2, max_digits=15, null=True
             ),
         ),
-        migrations.AlterField(
-            model_name="allocationtarget",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="asset",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="assetcontributionsource",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="assetpricehistory",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="assettransaction",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="contributionsource",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="dashboardsummary",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="firesettings",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="fxratehistory",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="investmenttype",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="portfoliosnapshot",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="recurringinvestmentplan",
-            name="owner",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
+        # NOTE: the owner FK CASCADE ALTERs that previously lived here moved to
+        # 0047. Deleting orphan InvestmentType rows above queues deferred FK
+        # trigger events on portfolio_investmenttype; PostgreSQL then rejects
+        # ALTER TABLE on that table in the same transaction. A separate migration
+        # commits the purge first, clearing the trigger queue.
     ]
