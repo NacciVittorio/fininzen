@@ -10,7 +10,7 @@ import {
   parseFlexibleDecimal,
   isValidAmount,
   filterAmountInput,
-} from "../utils/formatters.js";
+} from "../utils/formatters";
 
 // Default IT formatters used by tests that previously imported formatEur*
 // directly. The direct exports were removed to force all view code through

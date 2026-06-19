@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { AppProvider, AppContext } from "../context/AppContext.jsx";
+import { AppProvider } from "../context/AppProvider";
+import { AppContext } from "../context/AppContext";
 
 function jsonResponse(data, { ok = true, status = 200 } = {}) {
   return {

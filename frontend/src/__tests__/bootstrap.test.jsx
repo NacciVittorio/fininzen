@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import App from "../App";
-import { AppProvider } from "../context/AppContext";
+import { AppProvider } from "../context/AppProvider";
 import { useApp } from "../context/useApp";
 
 function deferred() {
