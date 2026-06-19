@@ -1,0 +1,160 @@
+name: CI
+
+# HIGH-32 / NEW-HIGH-02: gate every push and PR on lint + the full test suite,
+# so the 5 red tests that previously only surfaced on a manual run can't merge
+# silently again. Mirrors `just lint test` (ruff + prettier + pytest + vitest).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (PostgreSQL + ruff + pytest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: finnet_test
+          POSTGRES_USER: finnet
+          POSTGRES_PASSWORD: finnet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finnet -d finnet_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://finnet:finnet@127.0.0.1:5432/finnet_test
+      DJANGO_SECRET_KEY: ci-secret-key-for-finnet-tests-with-more-than-50-characters
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: Migration drift check
+        # Fail if a model change has no matching migration. The SQLite→Postgres
+        # cutover runs `manage.py migrate` against an empty Postgres, so a model
+        # field without a migration produces a schema the app's ORM can't write
+        # to. Catch that here instead of during the maintenance window.
+        run: python manage.py makemigrations --check --dry-run
+      - name: Pytest (SQLite)
+        run: pytest -c pytest.ini --cov-fail-under=75
+
+  backend-postgres:
+    name: Backend on Postgres (migrate + pytest)
+    # Production runs on PostgreSQL with AES-256-GCM field encryption; this job
+    # exercises the suite against the real engine so Postgres-only behaviour
+    # (sequences, JSON/array SQL, the encrypted columns) is covered before merge.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: finnet
+          POSTGRES_PASSWORD: finnet
+          POSTGRES_DB: finnet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finnet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # pytest runs with DEBUG on (the prod gating is skipped for pytest/manage),
+      # so DATABASE_URL alone routes both `migrate` and the suite at Postgres.
+      DATABASE_URL: postgres://finnet:finnet@127.0.0.1:5432/finnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Schema migrates cleanly on Postgres
+        run: python manage.py migrate --noinput
+      - name: Pytest (Postgres)
+        run: pytest -c pytest.ini --cov-fail-under=75
+
+  frontend:
+    name: Frontend (prettier + vitest + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Prettier check
+        run: npm run lint
+      - name: Vitest
+        run: npm test
+      - name: Production build
+        run: npm run build
+
+  api-contract:
+    name: API contract (OpenAPI schema + typed client are in sync)
+    # Regenerate the committed OpenAPI schema and the generated TS types, then
+    # fail if either differs from what's checked in. This makes a serializer
+    # change that isn't reflected in frontend/openapi.json + schema.d.ts break
+    # CI instead of silently drifting into production.
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-secret-key-for-finnet-tests-with-more-than-50-characters
+      DJANGO_DEBUG: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          npm ci --prefix frontend
+      - name: Regenerate OpenAPI schema
+        run: python manage.py spectacular --format openapi-json --file frontend/openapi.json
+      - name: Regenerate typed client
+        run: npm run generate:api --prefix frontend
+      - name: Fail if schema or types are stale
+        run: |
+          if ! git diff --exit-code frontend/openapi.json frontend/src/api/schema.d.ts; then
+            echo "::error::OpenAPI schema or generated types are out of date. Run 'just schema && npm run generate:api --prefix frontend' and commit the result."
+            exit 1
+          fi
