@@ -1,13 +1,14 @@
 import { BottomSheet, SheetTitle } from "../../components/ui";
 import type { Translator } from "../../types";
 
-export type ArchiveBlockedModal = {
-    type: string;
-    assetName: string;
-    shares: string;
-    currentValue: string;
-    currency: string;
-};
+export type ArchiveBlockedModal =
+    | { type: "shares"; assetName: string; shares: string }
+    | {
+          type: "balance";
+          assetName: string;
+          currentValue: string;
+          currency: string;
+      };
 
 export default function ArchiveBlockedSheet({
     archiveBlockedModal,
