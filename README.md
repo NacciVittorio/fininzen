@@ -4,8 +4,8 @@ App personale per tracciare spese quotidiane e portafoglio investimenti (ETF, az
 
 **Stack:**
 
-- Backend: Django + Django REST Framework + SQLite
-- Frontend: React (Vite)
+- Backend: Django + Django REST Framework su PostgreSQL (SQLite per i test locali rapidi)
+- Frontend: React + TypeScript (Vite)
 - Prezzi: yfinance (Yahoo Finance non ufficiale) + Borsa Italiana/FIDA, con fonte selezionabile Auto/Yahoo/Borsa per asset
 
 ## Installazione
@@ -85,6 +85,9 @@ just test-frontend       # solo vitest
 just test-e2e            # solo Playwright
 just lint                # ruff + prettier
 just format              # ruff format + prettier write
+just schema              # rigenera lo schema OpenAPI (frontend/openapi.json)
+just hooks               # installa i git pre-commit hook
+just hooks-run           # esegue tutti i pre-commit hook sull'intero albero
 ```
 
 > I comandi con ⚠️ sono distruttivi e non chiedono conferma.

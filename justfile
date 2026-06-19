@@ -98,6 +98,12 @@ lint:
     {{venv_python}} -m ruff check .
     npm run lint --prefix {{frontend_dir}}
 
+# Regenerate the committed OpenAPI schema from the DRF views. The frontend
+# typed client (npm run generate:api) is derived from this file, so run it
+# after changing serializers/views. CI fails if the committed schema is stale.
+schema:
+    DJANGO_DEBUG=1 {{venv_python}} manage.py spectacular --format openapi-json --file {{frontend_dir}}/openapi.json
+
 format:
     {{venv_python}} -m ruff format .
     npm run format --prefix {{frontend_dir}}

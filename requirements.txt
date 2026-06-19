@@ -47,3 +47,13 @@ webauthn==2.7.1
 ruff==0.15.15
 pre-commit==4.4.0
 sentry-sdk==2.62.0
+drf-spectacular==0.29.0
+# drf-spectacular transitive deps
+uritemplate==4.2.0
+inflection==0.5.1
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==2026.5.1
+attrs==26.1.0
+PyYAML==6.0.3

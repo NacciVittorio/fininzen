@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     "rest_framework",  # Django REST Framework: standard per API REST con Django
     "rest_framework_simplejwt",  # JWT authentication
     "rest_framework_simplejwt.token_blacklist",  # revoca refresh token dopo rotation
+    "drf_spectacular",  # OpenAPI schema generation -> typed frontend client
     "corsheaders",  # permette al frontend React (porta 3000) di chiamare il backend (porta 8000)
     "finnet",  # app principale: modelli condivisi (DataAccessGrant)
     "expenses",  # nostra app per la gestione delle spese
@@ -292,6 +293,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.ScopedRateThrottle",
     ],
@@ -305,6 +307,18 @@ REST_FRAMEWORK = {
         "account": "10/minute",
         "reset": "5/minute",
     },
+}
+
+# drf-spectacular: single source of truth for the API contract. The committed
+# OpenAPI schema (just schema) is consumed by the frontend codegen to produce
+# typed API clients, so backend changes surface as frontend build breaks.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Finnet API",
+    "DESCRIPTION": "Wealth-management API (expenses + portfolio).",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api",
+    "COMPONENT_SPLIT_REQUEST": True,
 }
 
 SIMPLE_JWT = {

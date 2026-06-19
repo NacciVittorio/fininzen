@@ -8,6 +8,7 @@ così il frontend sa sempre che le chiamate API iniziano con /api/.
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from finnet.export_views import ExportView
 from finnet.views import (
     TokenObtainPairView,
@@ -62,4 +63,18 @@ urlpatterns = [
     path("api/portfolio/", include("portfolio.urls")),
     # Data export (Feature F)
     path("api/export/", ExportView.as_view()),
+    # OpenAPI schema (source of truth for the frontend typed client).
+    # The raw schema is always available for codegen; the Swagger UI is dev-only.
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    *(
+        [
+            path(
+                "api/docs/",
+                SpectacularSwaggerView.as_view(url_name="schema"),
+                name="swagger-ui",
+            )
+        ]
+        if settings.DEBUG
+        else []
+    ),
 ]

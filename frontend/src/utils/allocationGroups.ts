@@ -2,14 +2,18 @@
 // The axis is the InvestmentType.is_bank_account flag (exposed by the API on
 // both /portfolio/summary/ by_type rows and /portfolio/allocation-targets/).
 
-export const ALLOC_GROUPS = ["all", "investments", "accounts"];
+export const ALLOC_GROUPS = ["all", "investments", "accounts"] as const;
+export type AllocationGroup = (typeof ALLOC_GROUPS)[number];
 
 // Sub-cent values are treated as zero so €0 container accounts (e.g. a pension
 // account whose value lives in linked funds) don't clutter the charts.
 const EPS = 0.005;
 
 // True if a row belongs to the selected group.
-export function inGroup(isBankAccount, group) {
+export function inGroup(
+  isBankAccount: boolean | null | undefined,
+  group: AllocationGroup,
+): boolean {
   if (group === "investments") return !isBankAccount;
   if (group === "accounts") return !!isBankAccount;
   return true; // "all"
@@ -19,7 +23,22 @@ export function inGroup(isBankAccount, group) {
 // ~zero rows, and compute each row's share (%) of the group total. Generic over
 // the accessors so it works for by_type, currency, etc.
 // Returns [{ row, value, pct }] sorted by value desc.
-export function groupRows(rows, { group = "all", getIsBank, getValue } = {}) {
+type GroupRowsOptions<Row> = {
+  group?: AllocationGroup;
+  getIsBank: (row: Row) => boolean | null | undefined;
+  getValue: (row: Row) => number;
+};
+
+export type GroupedRow<Row> = {
+  row: Row;
+  value: number;
+  pct: number;
+};
+
+export function groupRows<Row>(
+  rows: readonly Row[] | null | undefined,
+  { group = "all", getIsBank, getValue }: GroupRowsOptions<Row>,
+): GroupedRow<Row>[] {
   const kept = (rows || [])
     .filter((r) => inGroup(getIsBank(r), group))
     .filter((r) => Math.abs(getValue(r)) > EPS);
@@ -37,7 +56,23 @@ export function groupRows(rows, { group = "all", getIsBank, getValue } = {}) {
 // group's current total, plus diff/action vs the stored target. Mirrors the
 // backend thresholds in portfolio/views.py (±2%). Rows with a target but no
 // holdings are kept (a 0% holding against a target is meaningful — "buy").
-export function regroupTargets(rows, group = "all") {
+export type AllocationTargetRow = {
+  is_bank_account?: boolean | null;
+  current_value?: number | string | null;
+  target_pct?: number | null;
+  [key: string]: unknown;
+};
+
+export type RegroupedAllocationTarget<Row extends AllocationTargetRow> = Row & {
+  current_pct: number;
+  diff: number | null;
+  action: "buy" | "sell" | "ok" | null;
+};
+
+export function regroupTargets<Row extends AllocationTargetRow>(
+  rows: readonly Row[] | null | undefined,
+  group: AllocationGroup = "all",
+): RegroupedAllocationTarget<Row>[] {
   const kept = (rows || []).filter((r) => inGroup(r.is_bank_account, group));
   const groupTotal = kept.reduce(
     (s, r) => s + (Number(r.current_value) || 0),
@@ -47,8 +82,8 @@ export function regroupTargets(rows, group = "all") {
     const current_pct =
       groupTotal > 0 ? ((Number(r.current_value) || 0) / groupTotal) * 100 : 0;
     const target_pct = r.target_pct;
-    let diff = null;
-    let action = null;
+    let diff: number | null = null;
+    let action: "buy" | "sell" | "ok" | null = null;
     if (target_pct != null) {
       diff = current_pct - target_pct;
       action = diff < -2 ? "buy" : diff > 2 ? "sell" : "ok";
