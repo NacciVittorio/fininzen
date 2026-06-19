@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
 Parse bank statements (CSV, XLSX, PDF) and generate finnet-compatible import CSVs.
-Categories from user nacci@nacciindustries.com, assigned by keyword matching.
+Categories are assigned by keyword matching.
 
 Outputs:
-  - EstrattiConto/import_traderepublic.csv
-  - EstrattiConto/import_fineco.csv
-  - EstrattiConto/import_buddybank.csv
+  - import_traderepublic.csv
+  - import_fineco.csv
+  - import_buddybank.csv
 """
 
+import argparse
 import csv
 import re
 from datetime import datetime
@@ -30,7 +31,7 @@ except ImportError:
 
 # ─── CATEGORY MAPPING ────────────────────────────────────────────────────────
 # Format: (keywords_tuple) -> "Category Name" (matched case-insensitively)
-# Category names must match exactly what's in finnet (nacci@nacciindustries.com).
+# Category names must match exactly what's in finnet.
 
 EXPENSE_KEYWORD_MAP = [
     # Food & Dining > Groceries
@@ -282,10 +283,10 @@ def assign_category(description, category_type):
 # ─── PARSERS ─────────────────────────────────────────────────────────────────
 
 
-def parse_traderepublic():
+def parse_traderepublic(input_path):
     rows = []
     skipped = {"transfers": 0, "trading": 0, "zero": 0}
-    input_path = Path("EstrattiConto/TradeRepublic.csv")
+    input_path = Path(input_path)
 
     with open(input_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -337,10 +338,10 @@ def parse_traderepublic():
     return rows, skipped
 
 
-def parse_fineco():
+def parse_fineco(input_path):
     rows = []
     skipped = {"transfers": 0, "zero": 0}
-    input_path = Path("EstrattiConto/Fineco.xlsx")
+    input_path = Path(input_path)
 
     wb = openpyxl.load_workbook(input_path, data_only=True)
     ws = wb.active
@@ -396,10 +397,10 @@ def parse_fineco():
     return rows, skipped
 
 
-def parse_buddybank():
+def parse_buddybank(input_path):
     rows = []
     skipped = {"transfers": 0, "zero": 0, "no_amount": 0}
-    input_path = Path("EstrattiConto/BuddyBank.pdf")
+    input_path = Path(input_path)
 
     italian_months = {
         "gennaio": 1,
@@ -557,17 +558,38 @@ def write_csv(rows, output_path, label, skipped):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Parse bank statements into finnet-compatible import CSVs."
+    )
+    parser.add_argument(
+        "--input-dir",
+        default=".",
+        help="Directory containing TradeRepublic.csv, Fineco.xlsx, and BuddyBank.pdf.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=".",
+        help="Directory where import_*.csv files will be written.",
+    )
+    args = parser.parse_args()
+    input_dir = Path(args.input_dir)
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     print("Parsing bank statements...\n")
 
-    tr_rows, tr_skip = parse_traderepublic()
-    fin_rows, fin_skip = parse_fineco()
-    bb_rows, bb_skip = parse_buddybank()
+    tr_rows, tr_skip = parse_traderepublic(input_dir / "TradeRepublic.csv")
+    fin_rows, fin_skip = parse_fineco(input_dir / "Fineco.xlsx")
+    bb_rows, bb_skip = parse_buddybank(input_dir / "BuddyBank.pdf")
 
     write_csv(
-        tr_rows, "EstrattiConto/import_traderepublic.csv", "TradeRepublic", tr_skip
+        tr_rows,
+        output_dir / "import_traderepublic.csv",
+        "TradeRepublic",
+        tr_skip,
     )
-    write_csv(fin_rows, "EstrattiConto/import_fineco.csv", "Fineco", fin_skip)
-    write_csv(bb_rows, "EstrattiConto/import_buddybank.csv", "BuddyBank", bb_skip)
+    write_csv(fin_rows, output_dir / "import_fineco.csv", "Fineco", fin_skip)
+    write_csv(bb_rows, output_dir / "import_buddybank.csv", "BuddyBank", bb_skip)
 
     total = len(tr_rows) + len(fin_rows) + len(bb_rows)
     matched = sum(1 for r in tr_rows + fin_rows + bb_rows if r.get("category_name"))

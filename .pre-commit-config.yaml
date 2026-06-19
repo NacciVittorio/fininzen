@@ -1,0 +1,51 @@
+# Shared git pre-commit hooks. Mirrors CI's lint stage (ruff + prettier) and
+# adds basic hygiene + secret guards. Replaces the hooks formerly declared in
+# devenv.nix (Nix is no longer the dev environment).
+#
+# Setup:  just hooks       (runs `pre-commit install`)
+# Run all: just hooks-run   (runs `pre-commit run --all-files`)
+minimum_pre_commit_version: "4.0.0"
+
+# Generated artifacts: never let a hook reformat these, or they drift from what
+# the codegen (just schema / npm run generate:api) produces and the CI
+# api-contract job fails.
+exclude: '^frontend/(openapi\.json|src/api/schema\.d\.ts)$'
+
+repos:
+  # ---- Python: lint + format (same engine/version as requirements.txt) ----
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.15
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # ---- Frontend: prettier via the project's own pinned binary ----
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier (frontend/src)
+        entry: frontend/node_modules/.bin/prettier --write
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx|js|jsx|css|json)$
+
+  # ---- Basic hygiene ----
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: detect-private-key
+
+  # ---- Secret guard ----
+  - repo: https://github.com/sirwart/ripsecrets
+    rev: v0.1.11
+    hooks:
+      - id: ripsecrets

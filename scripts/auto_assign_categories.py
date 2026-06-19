@@ -1,37 +1,13 @@
 #!/usr/bin/env python3
 """
 Auto-assign categories to bank statement CSVs based on description keywords.
-Uses the category mapping from the finnet database.
+Uses category names by default; category IDs can be supplied with a JSON map.
 """
 
 import csv
+import argparse
+import json
 from pathlib import Path
-
-# Categoria ID mapping (dal database)
-EXPENSE_CATEGORIES = {
-    "Groceries": 12,  # Food & Dining > Groceries
-    "Restaurants": 13,  # Food & Dining > Restaurants
-    "Food": 11,  # Food & Dining (parent)
-    "Transport": 23,  # Transportation (parent)
-    "Fuel": 24,  # Transportation > Fuel
-    "Public Transport": 26,  # Transportation > Public Transport
-    "Entertainment": 40,  # Entertainment & Leisure (parent)
-    "Shopping": 18,  # Shopping (parent)
-    "Clothes": 19,  # Shopping > Clothes
-    "Subscriptions": 29,  # Subscriptions (parent)
-    "Digital Services": 30,  # Subscriptions > Digital Services
-    "Health": 33,  # Health & Wellness (parent)
-    "Other": 14,  # Food & Dining > Other
-    "Taxes": 53,  # Taxes & Fees (parent)
-}
-
-INCOME_CATEGORIES = {
-    "Salary": 57,  # Salary
-    "Interests": 28,  # Interests
-    "Gifts": 58,  # Gifts
-    "Refunds": 59,  # Refunds
-    "Cashback": 61,  # Cashback
-}
 
 # Mapping dei keyword alle categorie
 EXPENSE_KEYWORDS = {
@@ -111,16 +87,14 @@ INCOME_KEYWORDS = {
 def infer_category(description, category_type):
     """
     Infer category from description.
-    Returns (category_name, category_id) or (None, None) if not found.
+    Returns category_name or None if not found.
     """
     desc_upper = str(description).upper()
 
     if category_type == "expense":
         keywords_dict = EXPENSE_KEYWORDS
-        categories = EXPENSE_CATEGORIES
     else:
         keywords_dict = INCOME_KEYWORDS
-        categories = INCOME_CATEGORIES
 
     # Search for keyword matches
     best_match = None
@@ -132,15 +106,13 @@ def infer_category(description, category_type):
         if best_match:
             break
 
-    if best_match:
-        return best_match, categories.get(best_match)
-
-    return None, None
+    return best_match
 
 
-def process_csv(input_path, output_path):
+def process_csv(input_path, output_path, category_ids=None):
     """Add category_id and category_name columns to CSV."""
     rows = []
+    category_ids = category_ids or {}
 
     with open(input_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -148,8 +120,8 @@ def process_csv(input_path, output_path):
             desc = row["description"]
             cat_type = row["category_type"]
 
-            # Infer category
-            cat_name, cat_id = infer_category(desc, cat_type)
+            cat_name = infer_category(desc, cat_type)
+            cat_id = category_ids.get(cat_type, {}).get(cat_name or "")
 
             row["category_name"] = cat_name or ""
             row["category_id"] = cat_id or ""
@@ -175,36 +147,59 @@ def process_csv(input_path, output_path):
             writer.writerow({k: row.get(k, "") for k in fieldnames})
 
     # Stats
-    matched = sum(1 for r in rows if r.get("category_id"))
+    matched = sum(1 for r in rows if r.get("category_name"))
     total = len(rows)
     pct = (matched / total * 100) if total > 0 else 0
 
     return matched, total, pct
 
 
-if __name__ == "__main__":
-    print("Auto-assigning categories to import CSVs...\n")
+def _output_path_for(input_path, output_dir):
+    input_path = Path(input_path)
+    parent = Path(output_dir) if output_dir else input_path.parent
+    return parent / f"{input_path.stem}_categorized{input_path.suffix}"
 
-    files = [
-        (
-            "EstrattiConto/import_traderepublic.csv",
-            "EstrattiConto/import_traderepublic_categorized.csv",
+
+def _load_category_map(path):
+    if not path:
+        return {}
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return {
+        "expense": data.get("expense", {}),
+        "income": data.get("income", {}),
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Auto-assign finnet category names to import CSVs."
+    )
+    parser.add_argument("inputs", nargs="+", help="Input import CSV files.")
+    parser.add_argument(
+        "--output-dir",
+        help="Optional directory for categorized CSV files. Defaults to each input directory.",
+    )
+    parser.add_argument(
+        "--category-map",
+        help=(
+            "Optional JSON map for category IDs, shaped as "
+            '{"expense": {"Groceries": 12}, "income": {"Salary": 57}}.'
         ),
-        (
-            "EstrattiConto/import_fineco.csv",
-            "EstrattiConto/import_fineco_categorized.csv",
-        ),
-        (
-            "EstrattiConto/import_buddybank.csv",
-            "EstrattiConto/import_buddybank_categorized.csv",
-        ),
-    ]
+    )
+    args = parser.parse_args()
+    category_ids = _load_category_map(args.category_map)
+    if args.output_dir:
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
+    print("Auto-assigning categories to import CSVs...\n")
 
     total_all = 0
     matched_all = 0
 
-    for input_path, output_path in files:
-        matched, total, pct = process_csv(input_path, output_path)
+    for input_path in args.inputs:
+        output_path = _output_path_for(input_path, args.output_dir)
+        matched, total, pct = process_csv(input_path, output_path, category_ids)
         total_all += total
         matched_all += matched
 
@@ -215,4 +210,3 @@ if __name__ == "__main__":
 
     overall_pct = (matched_all / total_all * 100) if total_all > 0 else 0
     print(f"\n✓ Total: {matched_all}/{total_all} ({overall_pct:.1f}%) categorized")
-    print("\nFile categorizzati disponibili in EstrattiConto/import_*_categorized.csv")
