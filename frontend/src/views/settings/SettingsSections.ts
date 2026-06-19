@@ -1,14 +1,14 @@
 export {
-  AccordionSection,
-  SETTINGS_GROUP_META,
-  SettingsRoot,
-  SettingsSectionHeader,
+    AccordionSection,
+    SETTINGS_GROUP_META,
+    SettingsRoot,
+    SettingsSectionHeader,
 } from "./SettingsNavigation";
 export { AllocationTargetInput } from "./AllocationTargetInput";
 export { FireSettingsSection } from "./FireSettingsSection";
 export {
-  BiometricLockCard,
-  SharingSection,
-  TabSwipeCard,
-  UserSection,
+    BiometricLockCard,
+    SharingSection,
+    TabSwipeCard,
+    UserSection,
 } from "./AccountSections";
