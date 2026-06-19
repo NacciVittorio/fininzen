@@ -1,6 +1,12 @@
 # Guida Deploy — VPS Ubuntu 24.04
 
-Stack: Django 6.0 + Gunicorn · React 19 (build statica) · Caddy · systemd · SQLite
+Stack: Django 6.0 + Gunicorn · React 19 (build statica) · Caddy · systemd · PostgreSQL
+
+> **⚠️ Database: la produzione ora richiede PostgreSQL.** L'app si rifiuta di
+> avviarsi con `DEBUG=0` su SQLite o senza `FIELD_ENCRYPTION_KEYS`. Le sezioni
+> SQLite qui sotto restano valide solo per lo **sviluppo locale**. Per la
+> migrazione dei dati esistenti e la nuova procedura di backup/restore vedi
+> **[POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md)**.
 
 ## 1. Primo accesso SSH
 
@@ -50,11 +56,11 @@ apt update && apt install -y caddy
 
 ## 4. Utente dedicato per l'app
 
-Non eseguire l'app come root. Creiamo un utente `finnet`:
+Non eseguire l'app come root. Creiamo un utente `fininzen`:
 
 ```bash
-useradd -m -s /bin/bash finnet
-usermod -aG finnet finnet
+useradd -m -s /bin/bash fininzen
+usermod -aG fininzen fininzen
 ```
 
 ## 5. Upload del codice sul VPS
@@ -65,13 +71,13 @@ Il codice viene clonato direttamente da GitHub sul VPS. Per un repo privato serv
 
 ```bash
 # Genera una chiave SSH dedicata (come root)
-mkdir -p /home/finnet/.ssh
-ssh-keygen -t ed25519 -C "finnet-vps" -f /home/finnet/.ssh/deploy_key -N ""
-chown -R finnet:finnet /home/finnet/.ssh
-chmod 700 /home/finnet/.ssh
+mkdir -p /home/fininzen/.ssh
+ssh-keygen -t ed25519 -C "fininzen-vps" -f /home/fininzen/.ssh/deploy_key -N ""
+chown -R fininzen:fininzen /home/fininzen/.ssh
+chmod 700 /home/fininzen/.ssh
 
 # Mostra la chiave pubblica — copiala
-cat /home/finnet/.ssh/deploy_key.pub
+cat /home/fininzen/.ssh/deploy_key.pub
 ```
 
 ### 5b. Aggiungi la Deploy Key su GitHub
@@ -84,7 +90,7 @@ cat /home/finnet/.ssh/deploy_key.pub
 ### 5c. Configura SSH per usare la deploy key
 
 ```bash
-su - finnet
+su - fininzen
 cat > ~/.ssh/config << 'EOF'
 Host github.com
   IdentityFile ~/.ssh/deploy_key
@@ -95,12 +101,12 @@ EOF
 ### 5d. Clona il repository
 
 ```bash
-mkdir -p /opt/finnet
-chown finnet:finnet /opt/finnet
+mkdir -p /opt/fininzen
+chown fininzen:fininzen /opt/fininzen
 
-# Ancora come utente finnet
-su - finnet
-git clone git@github.com:NacciVittorio/finnet.git /opt/finnet
+# Ancora come utente fininzen
+su - fininzen
+git clone git@github.com:NacciVittorio/fininzen.git /opt/fininzen
 exit  # torna a root
 ```
 
@@ -109,12 +115,12 @@ exit  # torna a root
 Copia il template versionato e modifica i valori specifici del server:
 
 ```bash
-cp /opt/finnet/.env.example /etc/finnet.env
-vi /etc/finnet.env
-less /etc/finnet.env
+cp /opt/fininzen/.env.example /etc/fininzen.env
+vi /etc/fininzen.env
+less /etc/fininzen.env
 ```
 
-Imposta `DJANGO_SECRET_KEY`. Se usi un dominio diverso da `finnet.nacci.eu`,
+Imposta `DJANGO_SECRET_KEY`. Se usi un dominio diverso da `fininzen.nacci.eu`,
 aggiorna anche `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`,
 `CSRF_TRUSTED_ORIGINS` e `Caddyfile`.
 
@@ -129,15 +135,15 @@ Copia l'output e incollalo come valore di `DJANGO_SECRET_KEY`.
 Proteggi il file:
 
 ```bash
-chmod 600 /etc/finnet.env
-chown finnet:finnet /etc/finnet.env
+chmod 600 /etc/fininzen.env
+chown fininzen:fininzen /etc/fininzen.env
 ```
 
 ## 7. Setup Backend e Frontend (virtualenv + dipendenze)
 
 ```bash
-su - finnet
-cd /opt/finnet
+su - fininzen
+cd /opt/fininzen
 
 just install
 ```
@@ -145,8 +151,8 @@ just install
 ## 8. Migrazione database, statici e build frontend
 
 ```bash
-su - finnet
-cd /opt/finnet
+su - fininzen
+cd /opt/fininzen
 just migrate-prod
 just collectstatic-prod
 just build-frontend-prod
@@ -160,45 +166,45 @@ Se hai già dati nel tuo `db.sqlite3` locale, copialo sul VPS dal **Mac**:
 
 ```bash
 rsync -avz \
-  /path/locale/finnet/db.sqlite3 \
-  root@<VPS_IP>:/opt/finnet/db.sqlite3
+  /path/locale/fininzen/db.sqlite3 \
+  root@<VPS_IP>:/opt/fininzen/db.sqlite3
 
 # Correggi i permessi
-ssh root@<VPS_IP> "chown finnet:finnet /opt/finnet/db.sqlite3 && chmod 640 /opt/finnet/db.sqlite3"
+ssh root@<VPS_IP> "chown fininzen:fininzen /opt/fininzen/db.sqlite3 && chmod 640 /opt/fininzen/db.sqlite3"
 ```
 
 > Se preferisci partire da zero con il database vuoto, salta questo passaggio.
 
 ## 11. Servizio systemd per Gunicorn
 
-Assicurati di essere root (se sei ancora come `finnet`, esegui `exit` prima).
+Assicurati di essere root (se sei ancora come `fininzen`, esegui `exit` prima).
 
 Crea il file di servizio:
 
 ```bash
-vi /etc/systemd/system/finnet.service
+vi /etc/systemd/system/fininzen.service
 ```
 
 Contenuto:
 
 ```ini
 [Unit]
-Description=finnet — Django via Gunicorn
+Description=fininzen — Django via Gunicorn
 After=network.target
 
 [Service]
-User=finnet
-Group=finnet
-WorkingDirectory=/opt/finnet
-EnvironmentFile=/etc/finnet.env
-Environment="STATIC_ROOT=/opt/finnet/staticfiles"
-ExecStartPre=/opt/finnet/scripts/rotate_logs.sh
-ExecStart=/opt/finnet/venv/bin/gunicorn finnet.wsgi \
+User=fininzen
+Group=fininzen
+WorkingDirectory=/opt/fininzen
+EnvironmentFile=/etc/fininzen.env
+Environment="STATIC_ROOT=/opt/fininzen/staticfiles"
+ExecStartPre=/opt/fininzen/scripts/rotate_logs.sh
+ExecStart=/opt/fininzen/venv/bin/gunicorn fininzen.wsgi \
     --bind 127.0.0.1:8000 \
     --workers 2 \
     --timeout 120 \
-    --access-logfile /opt/finnet/logs/gunicorn_access.log \
-    --error-logfile /opt/finnet/logs/gunicorn_error.log
+    --access-logfile /opt/fininzen/logs/gunicorn_access.log \
+    --error-logfile /opt/fininzen/logs/gunicorn_error.log
 Restart=always
 RestartSec=5s
 
@@ -218,7 +224,7 @@ MemoryDenyWriteExecute=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
 # SQLite WAL crea db.sqlite3-wal e db.sqlite3-shm accanto al database.
-ReadWritePaths=/opt/finnet
+ReadWritePaths=/opt/fininzen
 
 [Install]
 WantedBy=multi-user.target
@@ -226,26 +232,26 @@ WantedBy=multi-user.target
 
 Verifica il file di servizio:
 ```bash
-less /etc/systemd/system/finnet.service
+less /etc/systemd/system/fininzen.service
 ```
 
 Crea le cartelle richieste da Gunicorn, `collectstatic` e backup:
 
 ```bash
-mkdir -p /opt/finnet/backups
-mkdir -p /opt/finnet/logs
-mkdir -p /opt/finnet/staticfiles
+mkdir -p /opt/fininzen/backups
+mkdir -p /opt/fininzen/logs
+mkdir -p /opt/fininzen/staticfiles
 
-chown -R finnet:finnet /opt/finnet/backups
-chown -R finnet:finnet /opt/finnet/logs
-chown -R finnet:finnet /opt/finnet/staticfiles
+chown -R fininzen:fininzen /opt/fininzen/backups
+chown -R fininzen:fininzen /opt/fininzen/logs
+chown -R fininzen:fininzen /opt/fininzen/staticfiles
 
 systemctl daemon-reload
-systemctl enable finnet
-systemctl start finnet
+systemctl enable fininzen
+systemctl start fininzen
 
 # Verifica che parta
-systemctl status finnet
+systemctl status fininzen
 ```
 
 ## 13. Configurare Caddy
@@ -272,7 +278,7 @@ systemctl stop caddy
 pgrep -af caddy
 
 # Arresto graceful dell'eventuale istanza avviata fuori da systemd.
-caddy stop --config /opt/finnet/Caddyfile 2>/dev/null || true
+caddy stop --config /opt/fininzen/Caddyfile 2>/dev/null || true
 
 # Fallback: esegui solo per gli eventuali PID rimasti.
 kill -TERM <PID_ORFANO>
@@ -285,8 +291,8 @@ Installa il `Caddyfile` versionato e avvia esclusivamente il
 [servizio systemd](https://caddyserver.com/docs/running#linux-service):
 
 ```bash
-caddy validate --config /opt/finnet/Caddyfile --adapter caddyfile
-install -m 0644 /opt/finnet/Caddyfile /etc/caddy/Caddyfile
+caddy validate --config /opt/fininzen/Caddyfile --adapter caddyfile
+install -m 0644 /opt/fininzen/Caddyfile /etc/caddy/Caddyfile
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 systemctl enable --now caddy
 systemctl reload caddy
@@ -305,14 +311,14 @@ Dovresti vedere il login dell'app. Le API rispondono su `http://<VPS_IP>/api/`.
 Per controllare i log in tempo reale:
 
 ```bash
-journalctl -u finnet -f          # log gunicorn
-tail -f /opt/finnet/logs/gunicorn_error.log
+journalctl -u fininzen -f          # log gunicorn
+tail -f /opt/fininzen/logs/gunicorn_error.log
 ```
 
 Verifica anche 20 risposte pubbliche consecutive per HTML, manifest e asset:
 
 ```bash
-/opt/finnet/scripts/smoke_test.sh https://finnet.nacci.eu 20
+/opt/fininzen/scripts/smoke_test.sh https://fininzen.nacci.eu 20
 ```
 
 ## Backup automatico del database
@@ -324,12 +330,12 @@ che esegue una copia consistente leggendo via il driver.
 Crea lo script di backup:
 
 ```bash
-cat > /opt/finnet/scripts/backup_db.sh << 'EOF'
+cat > /opt/fininzen/scripts/backup_db.sh << 'EOF'
 #!/bin/bash
 set -euo pipefail
 
-DB="/opt/finnet/db.sqlite3"
-BACKUP_DIR="/opt/finnet/backups"
+DB="/opt/fininzen/db.sqlite3"
+BACKUP_DIR="/opt/fininzen/backups"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 DEST="$BACKUP_DIR/db.sqlite3.backup.$STAMP"
 
@@ -350,18 +356,18 @@ fi
 find "$BACKUP_DIR" -name 'db.sqlite3.backup.*' -mtime +7 -delete \
     || echo "backup_db: cleanup older backups failed"
 EOF
-chmod +x /opt/finnet/scripts/backup_db.sh
-chown finnet:finnet /opt/finnet/scripts/backup_db.sh
+chmod +x /opt/fininzen/scripts/backup_db.sh
+chown fininzen:fininzen /opt/fininzen/scripts/backup_db.sh
 ```
 
-Aggiungi al crontab di `finnet`:
+Aggiungi al crontab di `fininzen`:
 
 ```bash
-crontab -u finnet -e
+crontab -u fininzen -e
 ```
 
 ```cron
-0 3 * * * /opt/finnet/scripts/backup_db.sh >> /opt/finnet/logs/backup.log 2>&1
+0 3 * * * /opt/fininzen/scripts/backup_db.sh >> /opt/fininzen/logs/backup.log 2>&1
 ```
 
 Questo fa un backup ogni notte alle 3:00 con `sqlite3 .backup` (consistente),
@@ -375,12 +381,12 @@ verifica l'integrità del file prodotto e mantiene gli ultimi 7 giorni.
 
 Lo script `scripts/backup_offsite.sh` spinge i backup su un secondo host (via
 `rsync` SSH) o su uno storage S3-compatible (via `rclone`). Configura in
-`/etc/finnet.env`:
+`/etc/fininzen.env`:
 
 ```bash
-OFFSITE_RSYNC_TARGET="finnet-backup@altro.vps.example:/srv/finnet-backups/"
+OFFSITE_RSYNC_TARGET="fininzen-backup@altro.vps.example:/srv/fininzen-backups/"
 # In alternativa, con rclone:
-# OFFSITE_RSYNC_TARGET="rclone:my-s3-bucket:finnet-backups/"
+# OFFSITE_RSYNC_TARGET="rclone:my-s3-bucket:fininzen-backups/"
 OFFSITE_RSYNC_OPTS="--archive --compress --delete-after --bwlimit=2M"
 OFFSITE_ALERT_EMAIL="ops@example.com"   # opzionale: alert su failure
 ```
@@ -388,10 +394,10 @@ OFFSITE_ALERT_EMAIL="ops@example.com"   # opzionale: alert su failure
 Schedula 15 minuti dopo il backup locale:
 
 ```cron
-15 3 * * * /opt/finnet/scripts/backup_offsite.sh >> /opt/finnet/logs/offsite.log 2>&1
+15 3 * * * /opt/fininzen/scripts/backup_offsite.sh >> /opt/fininzen/logs/offsite.log 2>&1
 ```
 
-Per `rsync` SSH genera una coppia di chiavi dedicata in `/var/lib/finnet/.ssh/`
+Per `rsync` SSH genera una coppia di chiavi dedicata in `/var/lib/fininzen/.ssh/`
 con il flag `command=`/`restrict` nell'`authorized_keys` del lato remoto, in
 modo che la chiave possa solo ricevere i file di backup.
 
@@ -407,8 +413,8 @@ manda mail.
 Ogni volta che fai un `git push` dal Mac, aggiorna il VPS così:
 
 ```bash
-su - finnet
-cd /opt/finnet
+su - fininzen
+cd /opt/fininzen
 just deploy-prod main
 exit
 ```
@@ -416,7 +422,7 @@ exit
 Se preferisci passare dal wrapper root:
 
 ```bash
-/opt/finnet/scripts/deploy.sh main
+/opt/fininzen/scripts/deploy.sh main
 ```
 
 Il wrapper valida e installa `/etc/caddy/Caddyfile`, ricarica Caddy tramite
@@ -441,26 +447,26 @@ apt install -y redis-server
 systemctl enable --now redis-server
 
 # 2. installa il client Python (non è in requirements.txt — opzionale)
-sudo -u finnet /opt/finnet/venv/bin/pip install redis
+sudo -u fininzen /opt/fininzen/venv/bin/pip install redis
 
 # 3. esporta REDIS_URL nel service file di gunicorn
-#    /etc/systemd/system/finnet.service → [Service] → Environment=
+#    /etc/systemd/system/fininzen.service → [Service] → Environment=
 Environment=REDIS_URL=redis://127.0.0.1:6379/0
 
 systemctl daemon-reload
-systemctl restart finnet
+systemctl restart fininzen
 ```
 
-`finnet/settings.py` configura automaticamente `CACHES["default"]` su Redis quando `REDIS_URL` è impostato (nessuna modifica al codice).
+`fininzen/settings.py` configura automaticamente `CACHES["default"]` su Redis quando `REDIS_URL` è impostato (nessuna modifica al codice).
 
 **Difesa in profondità**: il throttling DRF è applicativo. Per `/api/auth/*` è consigliabile affiancarlo a un rate-limit a livello di reverse proxy (Caddy `rate_limit`) o a `fail2ban` sui log nginx/caddy per bloccare temporaneamente gli IP che superano una soglia.
 
 
 
-root@ubuntu:/opt/finnet/scripts# sudo cat /etc/sudoers | grep -A2 finnet
-finnet ALL=(ALL) NOPASSWD: /bin/systemctl restart finnet
-finnet ALL=(ALL) NOPASSWD: /bin/systemctl reload caddy
-root@ubuntu:/opt/finnet/scripts# sudo visudo -c
+root@ubuntu:/opt/fininzen/scripts# sudo cat /etc/sudoers | grep -A2 fininzen
+fininzen ALL=(ALL) NOPASSWD: /bin/systemctl restart fininzen
+fininzen ALL=(ALL) NOPASSWD: /bin/systemctl reload caddy
+root@ubuntu:/opt/fininzen/scripts# sudo visudo -c
 /etc/sudoers: parsed OK
 /etc/sudoers.d/90-cloud-init-users: parsed OK
 /etc/sudoers.d/README: parsed OK

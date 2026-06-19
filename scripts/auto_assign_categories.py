@@ -173,7 +173,7 @@ def _load_category_map(path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Auto-assign finnet category names to import CSVs."
+        description="Auto-assign fininzen category names to import CSVs."
     )
     parser.add_argument("inputs", nargs="+", help="Input import CSV files.")
     parser.add_argument(

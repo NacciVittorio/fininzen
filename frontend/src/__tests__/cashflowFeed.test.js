@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { translations, createT } from "../i18n";
+import {
+  buildAssetTxQueryParams,
+  buildCashflowQueryParams,
+} from "../context/feedQueryModel";
 
 describe("CF feed i18n keys", () => {
   const CF_KEYS = [
@@ -116,50 +120,28 @@ describe("CF type filter logic", () => {
 
 describe("CF verified filter logic", () => {
   function buildParams(verified) {
-    const params = new URLSearchParams();
-    if (verified !== null && verified !== undefined)
-      params.set("verified", verified);
-    return params.toString();
+    return buildCashflowQueryParams(
+      { verified },
+      { page: 1, pageSize: 50 },
+    ).toString();
   }
 
   it("null verified adds no param", () => {
-    expect(buildParams(null)).toBe("");
+    expect(buildParams(null)).not.toContain("verified=");
   });
 
   it("true verified adds verified=true", () => {
-    expect(buildParams(true)).toBe("verified=true");
+    expect(buildParams(true)).toContain("verified=true");
   });
 
   it("false verified adds verified=false", () => {
-    expect(buildParams(false)).toBe("verified=false");
+    expect(buildParams(false)).toContain("verified=false");
   });
 });
 
 describe("Portfolio transaction filter logic", () => {
-  function buildParams(filters) {
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    params.set("page_size", "50");
-    const portfolioTypes = ["buy", "sell", "adjustment"];
-    const requested = Array.isArray(filters.types) ? filters.types : [];
-    const effective = requested.filter((t) => portfolioTypes.includes(t));
-    params.set(
-      "type",
-      (effective.length > 0 ? effective : portfolioTypes).join(","),
-    );
-    if (filters.asset_ids?.length)
-      params.set("asset", filters.asset_ids.join(","));
-    if (filters.date_from) params.set("date_from", filters.date_from);
-    if (filters.date_to) params.set("date_to", filters.date_to);
-    if (filters.verified !== null && filters.verified !== undefined) {
-      params.set("verified", filters.verified);
-    }
-    if (filters.search?.trim()) params.set("search", filters.search.trim());
-    if (filters.ordering && filters.ordering !== "-date") {
-      params.set("ordering", filters.ordering);
-    }
-    return params.toString();
-  }
+  const buildParams = (filters) =>
+    buildAssetTxQueryParams(filters, { page: 1 }).toString();
 
   it("adds search, verified and ordering params", () => {
     const qs = buildParams({
@@ -186,6 +168,27 @@ describe("Portfolio transaction filter logic", () => {
         ordering: "-date",
       }),
     ).not.toContain("ordering=");
+  });
+
+  it("drops non-portfolio transaction types", () => {
+    expect(buildParams({ types: ["cash_in", "sell"] })).toContain("type=sell");
+  });
+});
+
+describe("CF category query mapping", () => {
+  it("separates parent and child category ids", () => {
+    const params = buildCashflowQueryParams(
+      { category_ids: [1, 2] },
+      {
+        categories: [
+          { id: 1, parent: null },
+          { id: 2, parent: 1 },
+        ],
+      },
+    );
+
+    expect(params.get("parent_category")).toBe("1");
+    expect(params.get("category")).toBe("2");
   });
 });
 

@@ -9,9 +9,8 @@ import CategorySelect from "../components/CategorySelect.jsx";
 import VerifiedToggleButton from "../components/ui/VerifiedToggleButton.jsx";
 import BottomSheet from "../components/ui/BottomSheet.jsx";
 import { PieChart } from "../components/Charts.jsx";
-import InvestmentDeepDiveSheet, {
-  buildInvestmentDeepDiveGroups,
-} from "../components/InvestmentDeepDiveSheet.jsx";
+import InvestmentDeepDiveSheet from "../components/InvestmentDeepDiveSheet";
+import { buildInvestmentDeepDiveGroups } from "../components/investmentDeepDiveModel";
 
 // Track roots so each test can properly unmount after itself
 const mounted = [];

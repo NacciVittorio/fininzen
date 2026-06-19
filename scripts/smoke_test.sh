@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${1:-https://finnet.nacci.eu}"
+BASE_URL="${1:-https://fininzen.nacci.eu}"
 ATTEMPTS="${2:-20}"
 TMP_DIR="$(mktemp -d)"
 

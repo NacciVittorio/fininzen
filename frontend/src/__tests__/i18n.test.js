@@ -2,18 +2,12 @@ import { describe, it, expect } from "vitest";
 import fs from "fs";
 import { translations, createT } from "../i18n";
 
-function duplicateKeysForLocale(source, lang) {
-  const start = source.indexOf(`  ${lang}: {`);
-  const end =
-    lang === "en"
-      ? source.indexOf("  it: {", start)
-      : source.indexOf("};", start);
-  const body = source.slice(start, end);
+function duplicateKeysForLocale(source) {
   const seen = new Set();
   const duplicates = [];
   const re = /^\s*([A-Za-z0-9_]+):/gm;
   let match;
-  while ((match = re.exec(body))) {
+  while ((match = re.exec(source))) {
     const key = match[1];
     if (seen.has(key)) duplicates.push(key);
     seen.add(key);
@@ -37,9 +31,10 @@ describe("i18n", () => {
   });
 
   it("has no duplicate keys in locale source objects", () => {
-    const source = fs.readFileSync("src/i18n.js", "utf8");
-    expect(duplicateKeysForLocale(source, "en")).toEqual([]);
-    expect(duplicateKeysForLocale(source, "it")).toEqual([]);
+    const enSource = fs.readFileSync("src/i18n/en.ts", "utf8");
+    const itSource = fs.readFileSync("src/i18n/it.ts", "utf8");
+    expect(duplicateKeysForLocale(enSource)).toEqual([]);
+    expect(duplicateKeysForLocale(itSource)).toEqual([]);
   });
 
   it("createT returns value for known key and falls back to key for unknown", () => {

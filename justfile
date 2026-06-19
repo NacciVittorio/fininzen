@@ -1,4 +1,4 @@
-# Justfile — Finnet
+# Justfile — Fininzen
 # Usa: just <comando>
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
@@ -6,8 +6,8 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 venv_python := "venv/bin/python"
 frontend_dir := "frontend"
 frontend_bin := "frontend/node_modules/.bin"
-deploy_root := "/opt/finnet"
-env_file := "/etc/finnet.env"
+deploy_root := "/opt/fininzen"
+env_file := "/etc/fininzen.env"
 
 default: doctor lint test
 
@@ -36,14 +36,14 @@ update: install
 # ── Database ─────────────────────────────────────────────────────────────────
 
 makemigrations:
-    {{venv_python}} manage.py makemigrations finnet expenses portfolio
+    {{venv_python}} manage.py makemigrations fininzen expenses portfolio
 
 migrate:
-    {{venv_python}} manage.py rename_finanza_to_finnet
+    {{venv_python}} manage.py rename_finanza_to_fininzen
     {{venv_python}} manage.py migrate
 
 migrate-prod:
-    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py rename_finanza_to_finnet && {{venv_python}} manage.py migrate
+    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py rename_finanza_to_fininzen && {{venv_python}} manage.py migrate
 
 audit-integrity-prod:
     cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py audit_domain_integrity --apply
@@ -97,6 +97,12 @@ test: test-backend test-frontend test-e2e
 lint:
     {{venv_python}} -m ruff check .
     npm run lint --prefix {{frontend_dir}}
+
+# Regenerate the committed OpenAPI schema from the DRF views. The frontend
+# typed client (npm run generate:api) is derived from this file, so run it
+# after changing serializers/views. CI fails if the committed schema is stale.
+schema:
+    DJANGO_DEBUG=1 {{venv_python}} manage.py spectacular --format openapi-json --file {{frontend_dir}}/openapi.json
 
 format:
     {{venv_python}} -m ruff format .

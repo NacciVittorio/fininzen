@@ -2,7 +2,7 @@ import { test, expect, Browser, BrowserContext, Page } from "@playwright/test";
 import { loginAsTestUser } from "./helpers/auth";
 
 // Recipient (User B) and grantor (User A). The demo user can't act as grantor
-// because IsNotDemoUser blocks all writes (finnet/permissions.py).
+// because IsNotDemoUser blocks all writes (fininzen/permissions.py).
 const TEST_USER_EMAIL = "playwright_b@test.com";
 const TEST_USER_PASS = "PlTest!999abc";
 const TEST_USER_A_EMAIL = "playwright_a@test.com";

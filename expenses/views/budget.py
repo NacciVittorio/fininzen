@@ -11,7 +11,7 @@ from ..models import (
 from ..serializers import (
     BudgetSerializer,
 )
-from finnet.mixins import (
+from fininzen.mixins import (
     ViewAsMixin,
     _effective_user,
 )

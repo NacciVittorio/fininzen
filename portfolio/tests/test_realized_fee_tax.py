@@ -11,6 +11,7 @@ from portfolio.services import (
     realize_manual_asset,
     remaining_tax_cost_basis,
     resync_asset_tax,
+    tax_cost_basis_for_sell,
 )
 from portfolio.views.transactions_feed import _portfolio_tx_realized_tax
 
@@ -224,6 +225,53 @@ def test_sell_tax_matches_broker_case_with_buy_fee(
 
     assert tx.tax_amount == Decimal("5.80")
     assert bank_account.current_value == Decimal("12287.30")
+
+
+def test_crypto_sell_uses_fifo_tax_lots(test_user):
+    inv_type = InvestmentType.objects.create(
+        name="Crypto",
+        supports_ticker=True,
+        tax_rate=Decimal("0.2600"),
+        owner=test_user,
+    )
+    asset = Asset.objects.create(
+        name="Bitcoin",
+        tracking_type=Asset.AUTO,
+        investment_type=inv_type,
+        tax=Asset.TAX_CRYPTO,
+        owner=test_user,
+    )
+    AssetTransaction.objects.create(
+        asset=asset,
+        transaction_type=AssetTransaction.BUY,
+        date=date(2026, 1, 1),
+        shares=Decimal("1"),
+        price_per_share=Decimal("100"),
+        fee=Decimal("2"),
+        is_verified=True,
+        owner=test_user,
+    )
+    AssetTransaction.objects.create(
+        asset=asset,
+        transaction_type=AssetTransaction.BUY,
+        date=date(2026, 1, 2),
+        shares=Decimal("1"),
+        price_per_share=Decimal("200"),
+        is_verified=True,
+        owner=test_user,
+    )
+    sell = AssetTransaction.objects.create(
+        asset=asset,
+        transaction_type=AssetTransaction.SELL,
+        date=date(2026, 1, 3),
+        shares=Decimal("1"),
+        price_per_share=Decimal("300"),
+        is_verified=True,
+        owner=test_user,
+    )
+
+    assert tax_cost_basis_for_sell(asset, sell) == Decimal("102")
+    assert remaining_tax_cost_basis(asset) == Decimal("200.00")
 
 
 def test_manual_sell_tax_overrides_estimated_tax(

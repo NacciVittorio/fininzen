@@ -81,7 +81,7 @@ Formato: [SemVer](https://semver.org/) — `MAJOR.MINOR.PATCH`.
 - **Cashflow feed duplica righe con parent+child category** (`expenses/cashflow.py`): `.distinct()` sul queryset finale.
 - **Portfolio import leak `str(e)` al client** (`portfolio/views.py`): `logger.exception` lato server + risposta generica.
 - **transfer/adjust-balance swallowano errori** (`portfolio/views.py`): aggiunto `logger.exception` con payload.
-- **ExportView audit log usa `request.user`** (`finnet/export_views.py`): usa `_effective_user(request)`.
+- **ExportView audit log usa `request.user`** (`fininzen/export_views.py`): usa `_effective_user(request)`.
 
 ### Changed
 - **Modal a11y + token swap** (`Modal.jsx`, `DemoModal`): `role="dialog"`, `aria-modal`, focus trap, restore focus, backdrop/shadow via token.
@@ -418,11 +418,11 @@ Formato: [SemVer](https://semver.org/) — `MAJOR.MINOR.PATCH`.
 ## [0.15.0] — 2026-05-09
 
 ### Added
-- **Log rotation startup** (retention 7gg): `finnet/apps.py` rinomina con timestamp; `fcntl` lock multi-worker. `rotate_logs.sh` per gunicorn.
+- **Log rotation startup** (retention 7gg): `fininzen/apps.py` rinomina con timestamp; `fcntl` lock multi-worker. `rotate_logs.sh` per gunicorn.
 
 ### Fixed
 - **Logout involontario refresh concorrenti**: `refreshingRef` in `apiFetch` — singola promise condivisa.
-- **Doppio refresh prezzi gunicorn**: `fcntl` exclusive lock su `/tmp/finnet_startup_refresh.lock`.
+- **Doppio refresh prezzi gunicorn**: `fcntl` exclusive lock su `/tmp/fininzen_startup_refresh.lock`.
 - **Budget Progress**: rimosso zero-padding `month`; rollup subcategory verso padre; colore barra verde/arancio/rosso.
 - **`DashboardSummary` invalidazione**: `user=None` produce warning + skip; ogni callsite forwarda owner.
 - **Monthly Net Worth**: localStorage validato; effect dipende da `year`; refresh key su mutazioni; compare mode con summary completo; mesi allineati per range; doppia call al cambio anno (ref locali); frecce limitate ad `available_years`.

@@ -18,7 +18,7 @@ from ..services import (
 )
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
-from finnet.mixins import ViewAsMixin, _effective_user
+from fininzen.mixins import ViewAsMixin, _effective_user
 
 
 from portfolio import views as _pv

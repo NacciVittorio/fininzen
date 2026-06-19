@@ -37,7 +37,7 @@ const PROD_CSP = [
 
 function cspMetaPlugin() {
   return {
-    name: 'finnet-csp-meta',
+    name: 'fininzen-csp-meta',
     apply: 'build',
     transformIndexHtml(html) {
       const tag = `<meta http-equiv="Content-Security-Policy" content="${PROD_CSP}" />`

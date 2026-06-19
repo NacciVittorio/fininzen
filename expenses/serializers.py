@@ -8,7 +8,7 @@ from .models import (
     RecurringExpense,
 )
 from portfolio.models import Asset
-from finnet.utils import serializer_user
+from fininzen.utils import serializer_user
 
 
 def _bank_accounts_for(user):

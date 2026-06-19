@@ -229,7 +229,7 @@ test.describe("Settings CSV import", () => {
                 .or(page.locator("text=Mapping colonne")),
         ).toBeVisible({ timeout: 5000 });
 
-        // Map Finnet fields to CSV column headers. The schema order is
+        // Map Fininzen fields to CSV column headers. The schema order is
         // [type, date, description, amount, category_name, linked_asset_name, is_verified],
         // so nth(N) targets the Nth field, and the option values are CSV header names.
         const selects = page.locator(".card select.inp");

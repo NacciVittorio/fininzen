@@ -12,7 +12,7 @@ saldo degli asset.
 Test fatto su una copia temporanea del database locale:
 
 ```bash
-sqlite3 db.sqlite3 ".backup '/private/tmp/finnet_dedupe_test.sqlite3'"
+sqlite3 db.sqlite3 ".backup '/private/tmp/fininzen_dedupe_test.sqlite3'"
 sqlite3 db.sqlite3 "PRAGMA integrity_check;"
 ```
 
@@ -57,14 +57,14 @@ Domain integrity OK.
 ### 1. Ferma app e crea backup consistente
 
 ```bash
-sudo systemctl stop finnet
+sudo systemctl stop fininzen
 
-cd /opt/finnet
+cd /opt/fininzen
 STAMP="$(date +%Y%m%d_%H%M%S)"
 
-sudo -u finnet mkdir -p /opt/finnet/backups
-sudo -u finnet sqlite3 /opt/finnet/db.sqlite3 ".backup '/opt/finnet/backups/db.sqlite3.before_dedupe.$STAMP'"
-sudo -u finnet sqlite3 "/opt/finnet/backups/db.sqlite3.before_dedupe.$STAMP" "PRAGMA integrity_check;"
+sudo -u fininzen mkdir -p /opt/fininzen/backups
+sudo -u fininzen sqlite3 /opt/fininzen/db.sqlite3 ".backup '/opt/fininzen/backups/db.sqlite3.before_dedupe.$STAMP'"
+sudo -u fininzen sqlite3 "/opt/fininzen/backups/db.sqlite3.before_dedupe.$STAMP" "PRAGMA integrity_check;"
 ```
 
 L'ultimo comando deve stampare:
@@ -76,7 +76,7 @@ ok
 ### 2. Verifica duplicati portfolio
 
 ```bash
-sudo -u finnet sqlite3 -header -column /opt/finnet/db.sqlite3 "
+sudo -u fininzen sqlite3 -header -column /opt/fininzen/db.sqlite3 "
 SELECT COUNT(*) AS portfolio_duplicate_groups, COALESCE(SUM(n - 1),0) AS extra_rows
 FROM (
   SELECT COUNT(*) n
@@ -100,7 +100,7 @@ portfolio_duplicate_groups  extra_rows
 ### 3. Dry-run duplicati cashflow
 
 ```bash
-sudo -u finnet /opt/finnet/venv/bin/python manage.py shell -c '
+sudo -u fininzen /opt/fininzen/venv/bin/python manage.py shell -c '
 from django.db.models import Count, Min
 from expenses.models import Expense
 
@@ -144,7 +144,7 @@ TOTAL_TO_DELETE 7 [609, 863, 2397, 2248, 1596, 2053, 2474]
 Esegui questo comando solo se il dry-run e corretto.
 
 ```bash
-sudo -u finnet /opt/finnet/venv/bin/python manage.py shell -c '
+sudo -u fininzen /opt/fininzen/venv/bin/python manage.py shell -c '
 from django.db import transaction
 from django.db.models import Count, Min
 from expenses.models import Expense
@@ -180,7 +180,7 @@ print("DELETED", deleted, details)
 ### 5. Verifica post-fix
 
 ```bash
-sudo -u finnet sqlite3 -header -column /opt/finnet/db.sqlite3 "
+sudo -u fininzen sqlite3 -header -column /opt/fininzen/db.sqlite3 "
 SELECT COUNT(*) AS expense_duplicate_groups, COALESCE(SUM(n - 1),0) AS extra_rows
 FROM (
   SELECT COUNT(*) n
@@ -218,8 +218,8 @@ portfolio_duplicate_groups  extra_rows
 ### 6. Ricalcola ledger e audit
 
 ```bash
-sudo -u finnet /opt/finnet/venv/bin/python manage.py recompute_verified_ledger --apply
-sudo -u finnet /opt/finnet/venv/bin/python manage.py audit_domain_integrity
+sudo -u fininzen /opt/fininzen/venv/bin/python manage.py recompute_verified_ledger --apply
+sudo -u fininzen /opt/fininzen/venv/bin/python manage.py audit_domain_integrity
 ```
 
 L'audit deve finire con:
@@ -232,7 +232,7 @@ Se il deploy include la versione applicativa con repair dei mirror collegati,
 puoi usare direttamente:
 
 ```bash
-sudo -u finnet /opt/finnet/venv/bin/python manage.py audit_domain_integrity --apply
+sudo -u fininzen /opt/fininzen/venv/bin/python manage.py audit_domain_integrity --apply
 ```
 
 Questo ripara anche:
@@ -244,8 +244,8 @@ Questo ripara anche:
 ### 7. Riavvia app
 
 ```bash
-sudo systemctl start finnet
-sudo systemctl status finnet --no-pager
+sudo systemctl start fininzen
+sudo systemctl status fininzen --no-pager
 ```
 
 ## Ripristino backup
@@ -254,8 +254,8 @@ Da usare solo se qualcosa va storto, sostituendo il nome del backup con quello
 creato nello step 1.
 
 ```bash
-sudo systemctl stop finnet
-sudo -u finnet sqlite3 /opt/finnet/db.sqlite3 ".restore '/opt/finnet/backups/db.sqlite3.before_dedupe.YYYYMMDD_HHMMSS'"
-sudo -u finnet sqlite3 /opt/finnet/db.sqlite3 "PRAGMA integrity_check;"
-sudo systemctl start finnet
+sudo systemctl stop fininzen
+sudo -u fininzen sqlite3 /opt/fininzen/db.sqlite3 ".restore '/opt/fininzen/backups/db.sqlite3.before_dedupe.YYYYMMDD_HHMMSS'"
+sudo -u fininzen sqlite3 /opt/fininzen/db.sqlite3 "PRAGMA integrity_check;"
+sudo systemctl start fininzen
 ```

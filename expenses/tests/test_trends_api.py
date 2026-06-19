@@ -7,7 +7,7 @@ from django.test import Client
 from django.utils import timezone
 
 from expenses.models import Category, Expense
-from finnet.models import DataAccessGrant
+from fininzen.models import DataAccessGrant
 from portfolio.models import Asset
 
 

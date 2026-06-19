@@ -18,7 +18,7 @@ from ...services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
-from finnet.utils import parse_optional_bool
+from fininzen.utils import parse_optional_bool
 
 from .._common import (
     _resolve_contribution_source,

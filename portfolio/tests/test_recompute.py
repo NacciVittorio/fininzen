@@ -6,8 +6,8 @@ from portfolio.models import Asset, AssetTransaction, InvestmentType
 
 
 @pytest.fixture
-def asset(db):
-    itype = InvestmentType.objects.create(name="ETF")
+def asset(db, test_user):
+    itype = InvestmentType.objects.create(name="ETF", owner=test_user)
     return Asset.objects.create(
         name="VUSA",
         investment_type=itype,
@@ -15,6 +15,7 @@ def asset(db):
         invested_capital=Decimal("0"),
         current_value=Decimal("0"),
         price_per_share=Decimal("100.0000"),
+        owner=test_user,
     )
 
 
@@ -26,6 +27,7 @@ def _buy(asset, shares, price, d=date(2026, 1, 1), is_verified=True):
         shares=Decimal(shares),
         price_per_share=Decimal(price),
         is_verified=is_verified,
+        owner=asset.owner,
     )
 
 
@@ -37,6 +39,7 @@ def _sell(asset, shares, price, d=date(2026, 2, 1), is_verified=True):
         shares=Decimal(shares),
         price_per_share=Decimal(price),
         is_verified=is_verified,
+        owner=asset.owner,
     )
 
 
@@ -88,6 +91,35 @@ def test_unverified_auto_transactions_do_not_affect_holdings(asset):
     assert asset.current_value == Decimal("0.00")
 
 
+def test_recompute_uses_frozen_transaction_fx_snapshot(db, test_user):
+    itype = InvestmentType.objects.create(name="ETF", owner=test_user)
+    usd_asset = Asset.objects.create(
+        name="USD ETF",
+        investment_type=itype,
+        currency="USD",
+        price_per_share=Decimal("20.0000"),
+        invested_capital=Decimal("0"),
+        current_value=Decimal("0"),
+        owner=test_user,
+    )
+    AssetTransaction.objects.create(
+        asset=usd_asset,
+        transaction_type=AssetTransaction.BUY,
+        date=date(2026, 1, 1),
+        shares=Decimal("10"),
+        price_per_share=Decimal("10"),
+        gross_amount_eur=Decimal("91.00"),
+        is_verified=True,
+        owner=test_user,
+    )
+
+    usd_asset.recompute_from_transactions()
+    usd_asset.refresh_from_db()
+
+    assert usd_asset.invested_capital == Decimal("100.00")
+    assert usd_asset.invested_capital_eur == Decimal("91.00")
+
+
 def test_sell_before_any_buy_is_a_noop(asset):
     # SELL with no prior BUY: running_shares == 0, guard skips the division.
     # Asset state must not change.
@@ -99,10 +131,10 @@ def test_sell_before_any_buy_is_a_noop(asset):
     assert asset.current_value == Decimal("0.00")
 
 
-def test_manual_tracking_cash_in_out(db):
+def test_manual_tracking_cash_in_out(db, test_user):
     from portfolio.models import Asset, AssetTransaction, InvestmentType
 
-    itype = InvestmentType.objects.create(name="Conto")
+    itype = InvestmentType.objects.create(name="Conto", owner=test_user)
     manual_asset = Asset.objects.create(
         name="Conto Risparmio",
         investment_type=itype,
@@ -110,6 +142,7 @@ def test_manual_tracking_cash_in_out(db):
         is_liquid=True,
         invested_capital=Decimal("0"),
         current_value=Decimal("0"),
+        owner=test_user,
     )
     AssetTransaction.objects.create(
         asset=manual_asset,
@@ -118,6 +151,7 @@ def test_manual_tracking_cash_in_out(db):
         shares=Decimal("1"),
         price_per_share=Decimal("1000"),
         is_verified=True,
+        owner=test_user,
     )
     AssetTransaction.objects.create(
         asset=manual_asset,
@@ -126,6 +160,7 @@ def test_manual_tracking_cash_in_out(db):
         shares=Decimal("1"),
         price_per_share=Decimal("200"),
         is_verified=True,
+        owner=test_user,
     )
     AssetTransaction.objects.create(
         asset=manual_asset,
@@ -134,6 +169,7 @@ def test_manual_tracking_cash_in_out(db):
         shares=Decimal("1"),
         price_per_share=Decimal("50"),
         is_verified=True,
+        owner=test_user,
     )
     manual_asset.recompute_from_transactions()
     manual_asset.refresh_from_db()
@@ -144,8 +180,8 @@ def test_manual_tracking_cash_in_out(db):
     assert manual_asset.shares is None
 
 
-def test_unverified_manual_transactions_do_not_affect_balance(db):
-    itype = InvestmentType.objects.create(name="Conto")
+def test_unverified_manual_transactions_do_not_affect_balance(db, test_user):
+    itype = InvestmentType.objects.create(name="Conto", owner=test_user)
     manual_asset = Asset.objects.create(
         name="Conto Risparmio",
         investment_type=itype,
@@ -153,6 +189,7 @@ def test_unverified_manual_transactions_do_not_affect_balance(db):
         is_liquid=True,
         invested_capital=Decimal("0"),
         current_value=Decimal("0"),
+        owner=test_user,
     )
     AssetTransaction.objects.create(
         asset=manual_asset,
@@ -161,6 +198,7 @@ def test_unverified_manual_transactions_do_not_affect_balance(db):
         shares=Decimal("1"),
         price_per_share=Decimal("1000"),
         is_verified=False,
+        owner=test_user,
     )
     manual_asset.recompute_from_transactions()
     manual_asset.refresh_from_db()
@@ -171,7 +209,7 @@ def test_unverified_manual_transactions_do_not_affect_balance(db):
 # ── Regression: rebuild_manual_history deve consentire saldi negativi (come recompute) ──
 
 
-def test_rebuild_manual_history_allows_negative_balance(db):
+def test_rebuild_manual_history_allows_negative_balance(db, test_user):
     """
     Se cash_out > cash_in, il saldo deve essere negativo nel price history
     (conto in rosso / scoperto). Prima del fix veniva clampato a 0.
@@ -179,13 +217,14 @@ def test_rebuild_manual_history_allows_negative_balance(db):
     from portfolio.prices import rebuild_manual_history
     from portfolio.models import AssetPriceHistory
 
-    itype = InvestmentType.objects.create(name="Bank")
+    itype = InvestmentType.objects.create(name="Bank", owner=test_user)
     asset = Asset.objects.create(
         name="Conto Scoperto",
         ticker="",
         investment_type=itype,
         tracking_type=Asset.MANUAL,
         current_value=Decimal("-300.00"),
+        owner=test_user,
     )
 
     AssetTransaction.objects.create(
@@ -195,6 +234,7 @@ def test_rebuild_manual_history_allows_negative_balance(db):
         shares=Decimal("1"),
         price_per_share=Decimal("100"),
         is_verified=True,
+        owner=test_user,
     )
     AssetTransaction.objects.create(
         asset=asset,
@@ -203,6 +243,7 @@ def test_rebuild_manual_history_allows_negative_balance(db):
         shares=Decimal("1"),
         price_per_share=Decimal("400"),
         is_verified=True,
+        owner=test_user,
     )
 
     rebuild_manual_history(asset)
@@ -213,7 +254,7 @@ def test_rebuild_manual_history_allows_negative_balance(db):
     assert entry.close == Decimal("-300")
 
 
-def test_rebuild_manual_history_applies_opening_balance_correction(db):
+def test_rebuild_manual_history_applies_opening_balance_correction(db, test_user):
     from portfolio.models import (
         Asset,
         AssetPriceHistory,
@@ -222,7 +263,7 @@ def test_rebuild_manual_history_applies_opening_balance_correction(db):
     )
     from portfolio.prices import rebuild_manual_history
 
-    itype = InvestmentType.objects.create(name="Bank")
+    itype = InvestmentType.objects.create(name="Bank", owner=test_user)
     asset = Asset.objects.create(
         name="Conto Rettificato",
         ticker="",
@@ -231,6 +272,7 @@ def test_rebuild_manual_history_applies_opening_balance_correction(db):
         opening_balance=Decimal("500.00"),
         opening_balance_date=date(2022, 1, 1),
         current_value=Decimal("0"),
+        owner=test_user,
     )
 
     AssetTransaction.objects.create(
@@ -240,6 +282,7 @@ def test_rebuild_manual_history_applies_opening_balance_correction(db):
         shares=Decimal("1"),
         price_per_share=Decimal("250"),
         is_verified=True,
+        owner=test_user,
     )
 
     asset.recompute_from_transactions()

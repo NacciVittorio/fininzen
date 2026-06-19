@@ -335,18 +335,18 @@ def test_excludes_bank_account_tx_by_default(client, asset_a, asset_b, make_tx):
     assert all(r["asset"]["is_bank_account"] is False for r in data["results"])
 
 
-def test_legacy_tx_without_owner_still_visible(client, asset_a):
-    AssetTransaction.objects.create(
-        asset=asset_a,
-        owner=None,
-        shares=Decimal("1"),
-        price_per_share=Decimal("100"),
-        transaction_type=AssetTransaction.BUY,
-        date="2026-01-01",
-    )
-    res = client.get("/api/portfolio/transactions/")
-    data = res.json()
-    assert data["count"] == 1
+def test_ownerless_transaction_is_rejected(db, asset_a):
+    from django.db import IntegrityError, transaction
+
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            AssetTransaction.objects.create(
+                asset=asset_a,
+                shares=Decimal("1"),
+                price_per_share=Decimal("100"),
+                transaction_type=AssetTransaction.BUY,
+                date="2026-01-01",
+            )
 
 
 def test_includes_bank_account_tx_when_requested(client, asset_a, asset_b, make_tx):

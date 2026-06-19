@@ -105,7 +105,7 @@ def test_import_assets_buy_with_source_account_creates_cash_out(
 ):
     existing = Asset.objects.create(
         name="Core ETF",
-        isin="IE00TESTBUY01",
+        isin="IE00TESTBUY1",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -119,7 +119,7 @@ def test_import_assets_buy_with_source_account_creates_cash_out(
     rows = [
         {
             "name": "Core ETF",
-            "isin": "IE00TESTBUY01",
+            "isin": "IE00TESTBUY1",
             "transaction_type": "buy",
             "date": "2026-04-02",
             "shares": "2",
@@ -152,7 +152,7 @@ def test_import_assets_buy_with_source_account_name(
 ):
     existing = Asset.objects.create(
         name="Core ETF",
-        isin="IE00TESTNAME1",
+        isin="IE00TESTNAM1",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -166,7 +166,7 @@ def test_import_assets_buy_with_source_account_name(
     rows = [
         {
             "name": "Core ETF",
-            "isin": "IE00TESTNAME1",
+            "isin": "IE00TESTNAM1",
             "transaction_type": "buy",
             "date": "2026-04-03",
             "shares": "2",
@@ -196,7 +196,7 @@ def test_import_assets_buy_with_debit_from_account_column(
 ):
     existing = Asset.objects.create(
         name="Core ETF",
-        isin="IE00TESTDBT01",
+        isin="IE00TESTDBT1",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -210,7 +210,7 @@ def test_import_assets_buy_with_debit_from_account_column(
     rows = [
         {
             "name": "Core ETF",
-            "isin": "IE00TESTDBT01",
+            "isin": "IE00TESTDBT1",
             "transaction_type": "buy",
             "date": "2026-04-04",
             "shares": "3",
@@ -295,7 +295,7 @@ def test_import_assets_preview_duplicates_and_selective_import(
 def test_import_assets_rounds_price_per_share_to_2_decimals(client, itype, test_user):
     existing = Asset.objects.create(
         name="Round ETF",
-        isin="IE00ROUND0001",
+        isin="IE00ROUND001",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -303,7 +303,7 @@ def test_import_assets_rounds_price_per_share_to_2_decimals(client, itype, test_
     rows = [
         {
             "name": "Round ETF",
-            "isin": "IE00ROUND0001",
+            "isin": "IE00ROUND001",
             "transaction_type": "buy",
             "date": "2026-03-15",
             "shares": "1",
@@ -324,7 +324,7 @@ def test_import_assets_rounds_price_per_share_to_2_decimals(client, itype, test_
 def test_import_assets_truncates_shares_to_6_decimals(client, itype, test_user):
     existing = Asset.objects.create(
         name="Shares ETF",
-        isin="IE00ROUND0003",
+        isin="IE00ROUND003",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -332,7 +332,7 @@ def test_import_assets_truncates_shares_to_6_decimals(client, itype, test_user):
     rows = [
         {
             "name": "Shares ETF",
-            "isin": "IE00ROUND0003",
+            "isin": "IE00ROUND003",
             "transaction_type": "buy",
             "date": "2026-03-15",
             "shares": "0.123456789",
@@ -353,7 +353,7 @@ def test_import_assets_truncates_shares_to_6_decimals(client, itype, test_user):
 def test_import_assets_supports_is_verified(client, itype, test_user):
     existing = Asset.objects.create(
         name="Verified ETF",
-        isin="IE00ROUND0004",
+        isin="IE00ROUND004",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -361,7 +361,7 @@ def test_import_assets_supports_is_verified(client, itype, test_user):
     rows = [
         {
             "name": "Verified ETF",
-            "isin": "IE00ROUND0004",
+            "isin": "IE00ROUND004",
             "transaction_type": "buy",
             "date": "2026-03-15",
             "shares": "1",
@@ -383,7 +383,7 @@ def test_import_assets_supports_is_verified(client, itype, test_user):
 def test_import_assets_duplicate_detection_uses_rounded_price(client, itype, test_user):
     existing = Asset.objects.create(
         name="Dup ETF",
-        isin="IE00ROUND0002",
+        isin="IE00ROUND002",
         tracking_type="AUTO",
         investment_type=itype,
         owner=test_user,
@@ -399,7 +399,7 @@ def test_import_assets_duplicate_detection_uses_rounded_price(client, itype, tes
     rows = [
         {
             "name": "Dup ETF",
-            "isin": "IE00ROUND0002",
+            "isin": "IE00ROUND002",
             "transaction_type": "buy",
             "date": "2026-03-15",
             "shares": "1",
@@ -419,7 +419,7 @@ def test_import_assets_duplicate_detection_uses_rounded_price(client, itype, tes
 def test_import_assets_partial_failure_does_not_block_valid(client, itype):
     existing = Asset.objects.create(
         name="Good asset",
-        isin="IE00TEST00001",
+        isin="IE00TEST0001",
         tracking_type="AUTO",
         investment_type=itype,
         owner=itype.owner,
@@ -428,7 +428,7 @@ def test_import_assets_partial_failure_does_not_block_valid(client, itype):
         {"segno": "A", "date": "2026-03-15", "shares": "1", "price_per_share": "10"},
         {
             "name": "Good asset",
-            "isin": "IE00TEST00001",
+            "isin": "IE00TEST0001",
             "segno": "A",
             "date": "2026-03-15",
             "shares": "2",
@@ -436,7 +436,7 @@ def test_import_assets_partial_failure_does_not_block_valid(client, itype):
         },
         {
             "name": "Good asset",
-            "isin": "IE00TEST00001",
+            "isin": "IE00TEST0001",
             "segno": "",
             "date": "2026-03-15",
             "shares": "1",
@@ -465,7 +465,7 @@ def test_import_assets_rejects_other_user_investment_type(client, test_user):
     other_type = InvestmentType.objects.create(name="Other", owner=other)
     other_asset = Asset.objects.create(
         name="Alien",
-        isin="IE00ALIEN0001",
+        isin="IE00ALIEN001",
         tracking_type="AUTO",
         investment_type=other_type,
         owner=other,
@@ -476,7 +476,7 @@ def test_import_assets_rejects_other_user_investment_type(client, test_user):
             "rows": [
                 {
                     "name": "Alien",
-                    "isin": "IE00ALIEN0001",
+                    "isin": "IE00ALIEN001",
                     "segno": "A",
                     "date": "2026-03-15",
                     "shares": "1",

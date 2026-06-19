@@ -19,13 +19,13 @@ from ..models import (
 from ..serializers import (
     ExpenseSerializer,
 )
-from finnet.mixins import (
+from fininzen.mixins import (
     ViewAsMixin,
     _effective_user,
     require_view_as_full,
 )
-from finnet.accounting import accounting_month_range, get_user_accounting_start_day
-from finnet.throttles import ResetRateThrottle
+from fininzen.accounting import accounting_month_range, get_user_accounting_start_day
+from fininzen.throttles import ResetRateThrottle
 from ..services import (
     seed_demo_for_user,
     track_description_suggestion,
@@ -171,18 +171,21 @@ class ExpenseViewSet(ViewAsMixin, viewsets.ModelViewSet):
             return Response([])
         q = request.query_params.get("q", "").strip()
         owner = self.get_effective_user()
-        qs = ExpenseDescriptionSuggestion.objects.filter(
-            owner=owner,
-            category_id=category_id,
+        # `text` is encrypted, so the prefix match can't run in SQL. The model
+        # caps suggestions to 10 per (owner, category), so we decrypt that small
+        # set and filter the prefix in Python — same result, no false positives.
+        texts = list(
+            ExpenseDescriptionSuggestion.objects.filter(
+                owner=owner,
+                category_id=category_id,
+            )
+            .order_by("-last_used_at", "-use_count")
+            .values_list("text", flat=True)[:20]
         )
         if q:
-            qs = qs.filter(text__istartswith=q)
-        texts = list(
-            qs.order_by("-last_used_at", "-use_count").values_list("text", flat=True)[
-                :10
-            ]
-        )
-        return Response(texts)
+            ql = q.casefold()
+            texts = [t for t in texts if t.casefold().startswith(ql)]
+        return Response(texts[:10])
 
     @action(detail=False, methods=["get"], url_path="last-account")
     def last_account(self, request):

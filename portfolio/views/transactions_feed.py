@@ -20,8 +20,8 @@ from ..services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal, ROUND_HALF_UP
-from finnet.mixins import _effective_user, require_view_as_full
-from finnet.permissions import IsNotDemoUser
+from fininzen.mixins import _effective_user, require_view_as_full
+from fininzen.permissions import IsNotDemoUser
 
 from ._common import (
     PORTFOLIO_TX_VALID_ORDERINGS,

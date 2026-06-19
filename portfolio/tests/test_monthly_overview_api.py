@@ -5,7 +5,7 @@ from decimal import Decimal
 from datetime import date
 
 from expenses.models import Category, Expense
-from finnet.models import UserProfile
+from fininzen.models import UserProfile
 from portfolio.models import (
     Asset,
     AssetPriceHistory,

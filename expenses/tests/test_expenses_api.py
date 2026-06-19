@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.test import Client
 
 from expenses.models import Category, Expense
-from finnet.models import UserProfile
+from fininzen.models import UserProfile
 from portfolio.models import Asset, AssetTransaction, InvestmentType
 
 

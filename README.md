@@ -1,11 +1,11 @@
-# Finnet — Tracking App
+# Fininzen — Tracking App
 
 App personale per tracciare spese quotidiane e portafoglio investimenti (ETF, azioni, asset illiquidi).
 
 **Stack:**
 
-- Backend: Django + Django REST Framework + SQLite
-- Frontend: React (Vite)
+- Backend: Django + Django REST Framework su PostgreSQL (SQLite per i test locali rapidi)
+- Frontend: React + TypeScript (Vite)
 - Prezzi: yfinance (Yahoo Finance non ufficiale) + Borsa Italiana/FIDA, con fonte selezionabile Auto/Yahoo/Borsa per asset
 
 ## Installazione
@@ -20,6 +20,21 @@ App personale per tracciare spese quotidiane e portafoglio investimenti (ETF, az
 just doctor
 just install
 ```
+
+L'ambiente di sviluppo usa un `venv/` Python locale (gestito da `just install`) — niente Nix/devenv.
+
+### Database locale (opzionale: parità con la produzione)
+
+Di default lo sviluppo gira su SQLite. Per replicare la produzione (PostgreSQL + Redis)
+avvia solo l'infrastruttura con Docker e punta Django a essa via `DATABASE_URL`:
+
+```bash
+docker compose up -d postgres redis
+export DATABASE_URL=postgres://fininzen:change-me@localhost:5432/fininzen
+```
+
+In produzione il deploy è bare-metal (gunicorn sotto systemd dietro Caddy): vedi
+[wiki/DEPLOY.md](/wiki/DEPLOY.md). Docker serve **solo** come infrastruttura locale.
 
 ## Avvio
 
@@ -57,10 +72,10 @@ just backend             # solo Django (porta 8000)
 just frontend            # solo Vite (porta 5173)
 just makemigrations      # crea nuove migrations dopo modifiche ai modelli
 just migrate             # applica migrations pendenti
-just migrate-prod        # applica migrations in produzione caricando /etc/finnet.env
+just migrate-prod        # applica migrations in produzione caricando /etc/fininzen.env
 just collectstatic-prod  # raccoglie file statici Django in produzione
 just build-frontend-prod # build frontend production con npm ci
-just deploy-prod main    # aggiorna /opt/finnet, migra, raccoglie statici e builda frontend
+just deploy-prod main    # aggiorna /opt/fininzen, migra, raccoglie statici e builda frontend
 just reset-db            # ⚠️ cancella tutto e riparte da zero
 just shell               # shell interattiva Django
 just showmigrations      # controlla stato migrations
@@ -70,6 +85,9 @@ just test-frontend       # solo vitest
 just test-e2e            # solo Playwright
 just lint                # ruff + prettier
 just format              # ruff format + prettier write
+just schema              # rigenera lo schema OpenAPI (frontend/openapi.json)
+just hooks               # installa i git pre-commit hook
+just hooks-run           # esegue tutti i pre-commit hook sull'intero albero
 ```
 
 > I comandi con ⚠️ sono distruttivi e non chiedono conferma.

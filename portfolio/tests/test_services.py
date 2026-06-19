@@ -30,14 +30,18 @@ from portfolio.services import (
 
 
 @pytest.fixture
-def bank_type(db):
+def bank_type(db, test_user):
     return InvestmentType.objects.create(
-        name="Bank", is_bank_account=True, is_liquid_default=True, supports_ticker=False
+        name="Bank",
+        is_bank_account=True,
+        is_liquid_default=True,
+        supports_ticker=False,
+        owner=test_user,
     )
 
 
 @pytest.fixture
-def account_a(bank_type):
+def account_a(bank_type, test_user):
     a = Asset.objects.create(
         name="Account A",
         ticker="",
@@ -46,6 +50,7 @@ def account_a(bank_type):
         is_liquid=True,
         invested_capital=Decimal("1000"),
         current_value=Decimal("1000"),
+        owner=test_user,
     )
     AssetTransaction.objects.create(
         asset=a,
@@ -54,6 +59,7 @@ def account_a(bank_type):
         shares=Decimal("1"),
         price_per_share=Decimal("1000"),
         is_verified=True,
+        owner=test_user,
     )
     a.recompute_from_transactions()
     a.refresh_from_db()
@@ -61,7 +67,7 @@ def account_a(bank_type):
 
 
 @pytest.fixture
-def account_b(bank_type):
+def account_b(bank_type, test_user):
     return Asset.objects.create(
         name="Account B",
         ticker="",
@@ -70,6 +76,7 @@ def account_b(bank_type):
         is_liquid=True,
         invested_capital=Decimal("0"),
         current_value=Decimal("0"),
+        owner=test_user,
     )
 
 
@@ -141,6 +148,7 @@ class TestDeleteAssetCascade:
             shares=Decimal("1"),
             price_per_share=Decimal("200"),
             is_verified=True,
+            owner=account_b.owner,
         )
         AssetTransaction.objects.create(
             asset=account_a,
@@ -150,6 +158,7 @@ class TestDeleteAssetCascade:
             price_per_share=Decimal("200"),
             derived_from=primary,
             is_verified=True,
+            owner=account_a.owner,
         )
         account_a.recompute_from_transactions()
         account_a.refresh_from_db()
@@ -160,7 +169,9 @@ class TestDeleteAssetCascade:
         assert account_a.current_value == Decimal("1000")
 
 
-def test_auto_asset_with_only_isin_does_not_create_manual_price_snapshot(itype):
+def test_auto_asset_with_only_isin_does_not_create_manual_price_snapshot(
+    itype, test_user
+):
     asset = Asset.objects.create(
         name="Unresolved ISIN",
         isin="QS0000061309",
@@ -169,6 +180,7 @@ def test_auto_asset_with_only_isin_does_not_create_manual_price_snapshot(itype):
         tracking_type=Asset.AUTO,
         investment_type=itype,
         current_value=Decimal("1000"),
+        owner=test_user,
     )
 
     _post_asset_save(asset)

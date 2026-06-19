@@ -12,7 +12,7 @@ from ..models import (
 from ..serializers import (
     RecurringExpenseSerializer,
 )
-from finnet.mixins import (
+from fininzen.mixins import (
     ViewAsMixin,
     _effective_user,
 )

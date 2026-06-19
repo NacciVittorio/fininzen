@@ -1,6 +1,6 @@
 # Heavy backend dependencies — why they stay, and the boundary
 
-Finnet's backend carries a heavyweight data/scraping stack relative to a CRUD
+Fininzen's backend carries a heavyweight data/scraping stack relative to a CRUD
 app. This note records **why each is kept** and **how its blast radius is
 pinned**, so the weight is a deliberate choice rather than accidental creep.
 
@@ -21,7 +21,7 @@ Only **two modules** import the heavy stack directly:
 
 ## The boundary, enforced
 
-`finnet/tests/test_dependency_boundaries.py` is a static guard: it greps the app
+`fininzen/tests/test_dependency_boundaries.py` is a static guard: it greps the app
 source and fails CI if `yfinance` / `bs4` / `curl_cffi` / `pandas` / `numpy` /
 `peewee` is imported anywhere **outside** the two allowed modules. This stops the
 heavy stack from spreading file-by-file. To add a legitimate new provider, extend
@@ -37,7 +37,7 @@ trigger a live upstream fetch.
 
 The intended end state is that **only** the out-of-band refresh job
 (`portfolio/management/commands/refresh_asset_prices.py`, driven by
-`deploy/systemd/finnet-refresh-prices.{service,timer}`) ever calls upstream, and
+`deploy/systemd/fininzen-refresh-prices.{service,timer}`) ever calls upstream, and
 views read exclusively from persisted prices. Moving the remaining lazy fetches
 behind the refresh job is a separate, larger refactor and is **not** part of the
 current "keep & justify" pass — tracked here as a follow-up.

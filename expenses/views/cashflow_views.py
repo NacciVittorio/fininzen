@@ -5,11 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from finnet.mixins import (
+from fininzen.mixins import (
     _effective_user,
     require_view_as_full,
 )
-from finnet.permissions import IsNotDemoUser
+from fininzen.permissions import IsNotDemoUser
 
 logger = logging.getLogger(__name__)
 

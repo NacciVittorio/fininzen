@@ -25,7 +25,7 @@ from ..services import (
     recurring_investment_status,
 )
 from datetime import date as date_cls
-from finnet.mixins import ViewAsMixin
+from fininzen.mixins import ViewAsMixin
 
 
 logger = logging.getLogger(__name__)
