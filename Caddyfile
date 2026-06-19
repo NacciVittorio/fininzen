@@ -1,0 +1,53 @@
+finnet.nacci.eu {
+	# Log per il debug (opzionale ma utile)
+	log {
+		output file /var/log/caddy_access.log
+	}
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# HIGH-34: edge rate-limiting for the auth surface (defense-in-depth in front
+	# of the DRF ScopedRateThrottle, which only acts once the request reaches
+	# Django). The `rate_limit` directive needs the community module — build with:
+	#   xcaddy build --with github.com/mholt/caddy-ratelimit
+	# then uncomment the block below. Without the plugin, keep this commented and
+	# rely on fail2ban (see scripts/finnet-fail2ban.md) parsing the access log.
+	#
+	# rate_limit {
+	#     zone auth {
+	#         match {
+	#             path /api/auth/*
+	#         }
+	#         key {remote_host}
+	#         events 30
+	#         window 1m
+	#     }
+	# }
+
+	handle /static/* {
+		root * /opt/finnet/staticfiles
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle /api/* {
+		reverse_proxy localhost:8000
+	}
+
+	handle {
+		root * /opt/finnet/frontend/dist
+		@frontendAssets path /assets/*
+		header @frontendAssets Cache-Control "public, max-age=31536000, immutable"
+		@frontendShell not path /assets/*
+		header @frontendShell Cache-Control "no-cache, must-revalidate"
+		try_files {path} /index.html
+		file_server
+	}
+}
