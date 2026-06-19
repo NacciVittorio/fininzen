@@ -27,6 +27,9 @@ export type TickerResult = {
     symbol?: string;
     source?: string;
     url?: string;
+    name?: string;
+    exchange?: string;
+    match_reason?: string;
     [key: string]: unknown;
 };
 
