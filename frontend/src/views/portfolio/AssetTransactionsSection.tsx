@@ -3,10 +3,12 @@ import AssetTransactionRow from "./assetTransactions/AssetTransactionRow";
 import AssetTransactionsControls from "./assetTransactions/AssetTransactionsControls";
 import AssetTransactionsFooter from "./assetTransactions/AssetTransactionsFooter";
 import AssetTransactionsSelectionBanner from "./assetTransactions/AssetTransactionsSelectionBanner";
-import { ALL_ASSET_TX_TYPES } from "./TxFiltersSheet";
 import type { NumericValue, Translator } from "../../types";
 import type { EntityId } from "../../context/feedTypes";
-import type { AssetTransactionFilters } from "../../context/feedDefaults";
+import {
+    ALL_ASSET_TX_TYPES,
+    type AssetTransactionFilters,
+} from "../../context/feedDefaults";
 import type { AssetTransactionFeedItem } from "../../context/useAssetTransactionFeed";
 import type { DecoratedDatedItem } from "../transactionFeedModel";
 
