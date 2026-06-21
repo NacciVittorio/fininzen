@@ -15,7 +15,11 @@ import type { CashflowFilters } from "./feedDefaults";
 import type { CashflowFeedItem, CashflowItemType, EntityId } from "./feedTypes";
 
 type BulkAction = "edit" | "delete";
-type BulkRequest = { action: BulkAction; patch: Record<string, unknown> };
+// patch is optional: a "delete" request carries no patch.
+export type BulkRequest = {
+    action: BulkAction;
+    patch?: Record<string, unknown>;
+};
 type BulkResponse = {
     error_codes?: string[];
     errors?: unknown[];
