@@ -14,11 +14,16 @@ import type { EntityId } from "../context/feedTypes";
 
 // ─── main ────────────────────────────────────────────────────────────────────
 
-// Asset-action callbacks are forwarded to leaf children (AssetDetailSheet,
-// buildAssetSwipeActions) whose own asset params are deliberately loose. To stay
-// assignable under strict contravariance we describe only the contract this row
-// relies on — an object carrying an id. The real handlers operate on full assets.
-export type AssetActionTarget = { id: EntityId };
+// Asset-action callbacks operate on a full Asset — this matches the upstream
+// handlers (AppContext / usePortfolioAssetActions), so the props bag spreads
+// cleanly from PortfolioView. AssetCard is the adapter to the leaf children
+// (AssetDetailSheet, buildAssetSwipeActions) which use deliberately loose asset
+// params; it casts to a minimal { id } shape when forwarding (see below).
+export type AssetActionTarget = Asset;
+
+// The structural contract the loose leaf children actually require of an asset
+// handler. A real (asset: Asset) => void is sound to forward as this.
+type LooseAssetHandler = ((asset: { id: EntityId }) => void) | undefined;
 
 type AssetCardProps = {
     a: Asset;
@@ -103,11 +108,19 @@ export default function AssetCard({
         </PrivacyValue>
     );
 
+    // Forward the (asset: Asset) => void handlers to the loose leaf children.
+    // The runtime value passed back is always this row's full asset `a`.
+    const looseOnEdit = onEdit as LooseAssetHandler;
+    const looseOnAdjust = onAdjust as LooseAssetHandler;
+    const looseOnArchive = onArchive as LooseAssetHandler;
+    const looseOnMove = onMove as LooseAssetHandler;
+    const looseOnRealize = onRealize as LooseAssetHandler;
+
     const swipeActions = buildAssetSwipeActions({
         asset: a,
-        onArchive,
+        onArchive: looseOnArchive,
         onDelete,
-        onEdit,
+        onEdit: looseOnEdit,
         onUnarchive,
         T,
     });
@@ -262,12 +275,12 @@ export default function AssetCard({
                 gain={gain}
                 gainPct={gainPct}
                 isValueHidden={isValueHidden}
-                onAdjust={onAdjust}
-                onArchive={onArchive}
+                onAdjust={looseOnAdjust}
+                onArchive={looseOnArchive}
                 onDelete={onDelete}
-                onEdit={onEdit}
-                onMove={onMove}
-                onRealize={onRealize}
+                onEdit={looseOnEdit}
+                onMove={looseOnMove}
+                onRealize={looseOnRealize}
                 onUnarchive={onUnarchive}
                 T={T}
                 masked={masked}
