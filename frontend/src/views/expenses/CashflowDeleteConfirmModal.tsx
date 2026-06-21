@@ -1,4 +1,8 @@
 import Modal from "../../components/Modal";
+import type { NumericValue, Translator } from "../../types";
+import type { CashflowFeedItem, EntityId } from "../../context/feedTypes";
+
+export type DeleteCfTarget = { item: CashflowFeedItem };
 
 export default function CashflowDeleteConfirmModal({
   deleteCfTarget,
@@ -7,6 +11,13 @@ export default function CashflowDeleteConfirmModal({
   deleteCfTx,
   T,
   formatEur,
+}: {
+  deleteCfTarget: DeleteCfTarget | null;
+  setDeleteCfTarget: (value: DeleteCfTarget | null) => void;
+  deleteCfExpense: (sourceId?: EntityId) => void | Promise<unknown>;
+  deleteCfTx: (item: CashflowFeedItem) => void | Promise<unknown>;
+  T: Translator;
+  formatEur: (value: NumericValue) => string;
 }) {
   if (!deleteCfTarget) return null;
 

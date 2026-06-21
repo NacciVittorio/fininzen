@@ -31,7 +31,7 @@ type UseTransactionFeedsArgs = {
 };
 
 type CashflowQueryOptions = { page?: number; pageSize?: number };
-type TransferEditForm = {
+export type TransferEditForm = {
     date: string;
     notes: string;
     is_verified: boolean;
