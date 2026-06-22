@@ -24,6 +24,7 @@ export { default as VerifiedToggleButton } from "./VerifiedToggleButton";
 export { default as Icon } from "./Icons";
 export { default as PullToRefresh } from "./PullToRefresh";
 export { default as SwipeRow } from "./SwipeRow";
+export type { SwipeAction } from "./SwipeRow";
 export { default as LargeTitleHeader } from "./LargeTitleHeader";
 export { default as CategoryDot } from "./CategoryDot";
 export { default as SheetTitle } from "./SheetTitle";
