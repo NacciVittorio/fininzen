@@ -35,8 +35,8 @@ type AssetCardProps = {
     onMove?: (asset: AssetActionTarget) => void;
     onUnarchive?: (id: EntityId) => void;
     T: Translator;
-    totalPortfolioValue: NumericValue;
-    priceRefreshCounter: number;
+    totalPortfolioValue?: NumericValue;
+    priceRefreshCounter?: number;
     apiFetch?: ApiFetcher;
     isValueHidden?: (section: string, key: string) => boolean;
     openSwipeId?: EntityId | null;
@@ -98,7 +98,7 @@ export default function AssetCard({
     } = useAssetCardController({
         asset: a,
         apiFetch,
-        priceRefreshCounter,
+        priceRefreshCounter: priceRefreshCounter ?? 0,
         T,
         totalPortfolioValue: Number(totalPortfolioValue ?? 0),
     });
