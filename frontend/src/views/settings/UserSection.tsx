@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import type {
-    CSSProperties,
-    Dispatch,
-    FormEvent,
-    SetStateAction,
-} from "react";
+import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from "react";
 import { BiometricLockCard, TabSwipeCard } from "./AccountSecurityCards";
 import type { Translator } from "../../types";
 import type { ViewAsAccount } from "../../context/useAuthenticatedFetch";
