@@ -8,6 +8,9 @@ Stack: Django 6.0 + Gunicorn · React 19 (build statica) · Caddy · systemd · 
 > migrazione dei dati esistenti e la nuova procedura di backup/restore vedi
 > **[POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md)**.
 
+Per un riferimento Docker containerizzato futuro, vedi
+[`deploy/docker/README.md`](deploy/docker/README.md).
+
 ## 1. Primo accesso SSH
 
 ```bash

@@ -37,8 +37,8 @@ enabled from repository code alone.
 
 ## Docker Reference
 
-- `docker-compose.yml` is the reference topology for future Proxmox/Docker:
-  PostgreSQL 16, Redis 7, Django/Gunicorn with two workers.
+- `deploy/docker/prod/compose.yml` is the reference topology for future
+  Proxmox/Docker: PostgreSQL 16, Redis 7, Django/Gunicorn with two workers.
 - Keep `DATABASE_URL` mandatory in production. SQLite is a local development
   fallback only.
 
