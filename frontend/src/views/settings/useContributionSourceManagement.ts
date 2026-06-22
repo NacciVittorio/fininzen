@@ -9,13 +9,13 @@ import { ApiRequestError, type ApiFetcher } from "../../api/client";
 import type { Translator } from "../../types";
 import { REFRESH_REASONS } from "../../utils/refreshReasons";
 
-type ContributionSourceForm = {
+export type ContributionSourceForm = {
     name: string;
     sort_order: string;
     is_active: boolean;
 };
 
-type DeleteContributionSourceFlow = {
+export type DeleteContributionSourceFlow = {
     source: ContributionSource;
     txChoice: string | null;
     txTarget: number | null;
