@@ -77,6 +77,27 @@ build-frontend-prod:
 start:
     DJANGO_PID="" VITE_PID=""; cleanup() { kill "$DJANGO_PID" "$VITE_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{frontend_dir}} -- --host 127.0.0.1 & VITE_PID=$!; wait "$DJANGO_PID" "$VITE_PID"
 
+docker-local-up:
+    docker compose -f deploy/docker/local/compose.yml up -d postgres redis
+
+docker-local-down:
+    docker compose -f deploy/docker/local/compose.yml down
+
+docker-local-logs:
+    docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
+
+docker-prod-config:
+    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml config
+
+docker-prod-build:
+    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml build web
+
+docker-prod-up:
+    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml up -d
+
+docker-prod-down:
+    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml down
+
 deploy-prod BRANCH="main":
     sudo {{deploy_root}}/scripts/deploy.sh {{quote(BRANCH)}}
 

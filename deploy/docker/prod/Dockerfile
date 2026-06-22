@@ -16,4 +16,7 @@ COPY . .
 
 EXPOSE 8000
 
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/api/health/ || exit 1
+
 CMD ["gunicorn", "fininzen.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--max-requests", "1000", "--max-requests-jitter", "100"]
