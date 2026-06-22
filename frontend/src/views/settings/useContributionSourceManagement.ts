@@ -8,6 +8,7 @@ import {
 import { ApiRequestError, type ApiFetcher } from "../../api/client";
 import type { Translator } from "../../types";
 import { REFRESH_REASONS } from "../../utils/refreshReasons";
+import type { RefreshReason } from "../../utils/refreshReasons";
 
 export type ContributionSourceForm = {
     name: string;
@@ -27,7 +28,7 @@ type UseContributionSourceManagementArgs = {
     contributionSources: ContributionSource[];
     fetchContributionSources: () => void | Promise<void>;
     isDemo: boolean;
-    refreshAfter: (reason: string) => void | Promise<void>;
+    refreshAfter: (reason: RefreshReason) => void | Promise<void>;
 };
 
 const EMPTY_FORM: ContributionSourceForm = {
@@ -137,6 +138,7 @@ export function useContributionSourceManagement({
         contributionSourceForm,
         setContributionSourceForm,
         contributionSourceError,
+        setContributionSourceError,
         deleteContributionSourceFlow,
         setDeleteContributionSourceFlow,
         openNewContributionSource,
