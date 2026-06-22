@@ -39,11 +39,10 @@ makemigrations:
     {{venv_python}} manage.py makemigrations fininzen expenses portfolio
 
 migrate:
-    {{venv_python}} manage.py rename_finanza_to_fininzen
     {{venv_python}} manage.py migrate
 
 migrate-prod:
-    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py rename_finanza_to_fininzen && {{venv_python}} manage.py migrate
+    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py migrate
 
 audit-integrity-prod:
     cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py audit_domain_integrity --apply
