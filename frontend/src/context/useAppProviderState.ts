@@ -49,7 +49,7 @@ import type {
 type EntityId = number | string;
 type DataObject = Record<string, unknown>;
 type ViewMode = "month" | "year";
-type ModalDirection = "expense" | "income";
+type ModalDirection = "expense" | "income" | "transfer";
 type AllocationChartType = "bar" | "pie";
 type SettingsCategoryType = "expense" | "income";
 type ContributionSourceMode = "inherit" | "enabled" | "disabled";
