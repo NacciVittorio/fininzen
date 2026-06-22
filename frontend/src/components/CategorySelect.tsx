@@ -46,7 +46,7 @@ export default function CategorySelect({
 }: {
     value?: string | number;
     values?: Array<string | number>;
-    onChange: (value: string) => void;
+    onChange?: (value: string) => void;
     onMultiChange?: (values: string[]) => void;
     multiple?: boolean;
     initialOpen?: boolean;
@@ -158,14 +158,14 @@ export default function CategorySelect({
             onMultiChange?.(next);
             return;
         }
-        onChange(String(cat.id));
+        onChange?.(String(cat.id));
         setOpen(false);
         setExpandedParent(null);
     };
 
     const clear = () => {
         if (multiple) onMultiChange?.([]);
-        else onChange("");
+        else onChange?.("");
         setOpen(false);
         setExpandedParent(null);
     };
