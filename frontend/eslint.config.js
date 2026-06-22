@@ -28,6 +28,8 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.es2022,
+        // Injected at build time by Vite's `define` (see vite.config.js).
+        __APP_VERSION__: "readonly",
       },
     },
     plugins: {

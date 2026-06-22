@@ -1,6 +1,5 @@
 export {
     AccordionSection,
-    SETTINGS_GROUP_META,
     SettingsRoot,
     SettingsSectionHeader,
 } from "./SettingsNavigation";

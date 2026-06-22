@@ -52,6 +52,13 @@ type ViewMode = "month" | "year";
 type ModalDirection = "expense" | "income" | "transfer";
 type AllocationChartType = "bar" | "pie";
 type SettingsCategoryType = "expense" | "income";
+// The settings category tab spans cashflow categories plus the portfolio
+// investment/account-type panels; widen beyond SettingsCategoryType for the tab.
+export type SettingsCatTab =
+    | "expense"
+    | "income"
+    | "investments"
+    | "account_types";
 type ContributionSourceMode = "inherit" | "enabled" | "disabled";
 
 export type InvestmentTypeForm = {
@@ -82,9 +89,15 @@ export type AssetForm = {
     contribution_source_ids: EntityId[];
 };
 
-type CategoryAddContext = {
+export type CategoryAddContext = {
     type: SettingsCategoryType;
     parent: EntityId | null;
+};
+
+export type CatForm = {
+    name: string;
+    color: string;
+    icon: string;
 };
 
 export type DeleteCategoryFlow = {
@@ -107,8 +120,8 @@ type TaxPropagationFlow = {
     run: (propagation: "all" | "forward") => Promise<unknown>;
 };
 
-type ResetTarget = "transactions" | "portfolio";
-type ResetResult = { deleted: number; target: ResetTarget };
+export type ResetTarget = "transactions" | "portfolio";
+export type ResetResult = { deleted: number; target: ResetTarget };
 
 export function useAppProviderState() {
     // Dashboard config — layout (order + visibility) synced server-side via the
@@ -255,7 +268,7 @@ export function useAppProviderState() {
 
     // Settings state
     const [settingsCatType, setSettingsCatType] =
-        useState<SettingsCategoryType>("expense");
+        useState<SettingsCatTab>("expense");
     const [settingsMenu, setSettingsMenu] = useState<string | null>(null);
     const [showCatAddModal, setShowCatAddModal] = useState(false);
     const [catAddContext, setCatAddContext] = useState<CategoryAddContext>({
@@ -326,7 +339,7 @@ export function useAppProviderState() {
     const [adjustAssetId, setAdjustAssetId] = useState<EntityId | null>(null);
     const [adjustForm, setAdjustForm] = useState({ new_balance: "" });
     const [adjustError, setAdjustError] = useState<string | null>(null);
-    const [catForm, setCatForm] = useState({
+    const [catForm, setCatForm] = useState<CatForm>({
         name: "",
         color: "#4f7fff",
         icon: "💰",
