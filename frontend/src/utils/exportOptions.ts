@@ -1,4 +1,5 @@
 import type { Translator } from "../types";
+import type { FeatureKey } from "../context/appContextHelpers";
 
 export type ExportType = "transactions" | "assets" | "cashflow";
 
@@ -8,7 +9,7 @@ export type ExportOption = {
 };
 
 type BuildExportOptionsArgs = {
-    isFeatureEnabled: (feature: string) => boolean;
+    isFeatureEnabled: (feature: FeatureKey) => boolean;
     T: Translator;
 };
 

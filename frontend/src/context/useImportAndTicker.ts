@@ -43,13 +43,13 @@ type UseImportAndTickerArgs = {
     setAssetForm: Dispatch<SetStateAction<AssetForm>>;
 };
 
-type CsvDuplicateRow = {
+export type CsvDuplicateRow = {
     row: number;
     include: boolean;
     [key: string]: unknown;
 };
 
-type CsvImportResponse = {
+export type CsvImportResponse = {
     imported?: number;
     skipped?: number;
     errors?: unknown[];
@@ -58,7 +58,7 @@ type CsvImportResponse = {
     [key: string]: unknown;
 };
 
-type CsvImportResult = CsvImportResponse & {
+export type CsvImportResult = CsvImportResponse & {
     errors: string[];
     warnings?: unknown[];
 };
