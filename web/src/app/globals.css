@@ -1,0 +1,11 @@
+/* Global styles. The decomposed component styles (tokens.css, styles.css) are
+   ported alongside the components in the view-migration slice. */
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
