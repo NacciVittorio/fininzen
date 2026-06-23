@@ -37,6 +37,8 @@ export function AppNav() {
                     <Link
                         key={item.href}
                         href={item.href}
+                        className="nav-item"
+                        aria-current={active ? "page" : undefined}
                         style={{
                             padding: "6px 12px",
                             borderRadius: "var(--r-pill)",
