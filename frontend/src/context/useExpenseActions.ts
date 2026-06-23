@@ -3,7 +3,7 @@ import { parseAmount, parseMoneyToString, today } from "../utils/formatters";
 import { REFRESH_REASONS } from "../utils/refreshReasons";
 import { buildExpenseForm, buildTransferForm } from "./formBuilders";
 import type { ApiFetcher } from "../api/client";
-import type { Expense } from "../api/types";
+import type { EntityId } from "./feedTypes";
 import type { Translator } from "../types";
 import type { DecimalSeparator } from "../utils/formatters";
 import type { RefreshReason } from "../utils/refreshReasons";
@@ -26,6 +26,19 @@ type ExpenseActionState = Pick<
     | "setTransferForm"
     | "setTransferWarning"
 >;
+
+// Prefill payload for opening the expense modal in edit mode. The cashflow feed
+// supplies EntityId-typed ids (number | string) sourced from a CashflowFeedItem,
+// so this is deliberately looser than the generated Expense DTO.
+export type ExpensePrefill = {
+    id?: EntityId | null;
+    description?: string | null;
+    amount?: string | number | null;
+    category?: EntityId | null;
+    date?: string | null;
+    linked_asset?: EntityId | null;
+    is_verified?: boolean | null;
+};
 
 export type ExpenseActionsOptions = ExpenseActionState & {
     T: Translator;
@@ -66,7 +79,7 @@ export function useExpenseActions({
 }: ExpenseActionsOptions) {
     // ── Expense actions ──
 
-    const openExpenseModal = (expense: Expense | null = null): void => {
+    const openExpenseModal = (expense: ExpensePrefill | null = null): void => {
         setExpError(null);
         if (expense) {
             const prefillAmount = (() => {
@@ -76,7 +89,7 @@ export function useExpenseActions({
                     ? raw.replace(".", ",")
                     : raw.replace(",", ".");
             })();
-            setEditingExpenseId(expense.id);
+            setEditingExpenseId(expense.id ?? null);
             const cat = categories.find((c) => c.id === expense.category);
             setModalDir(cat?.category_type === "income" ? "income" : "expense");
             setExpForm(

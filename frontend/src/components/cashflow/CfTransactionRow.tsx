@@ -12,6 +12,7 @@ export type CfItem = {
     source_type?: string;
     is_verified?: boolean;
     type?: string;
+    date?: string;
     category?: CfCategory | null;
     from_account?: CfAccount | null;
     to_account?: CfAccount | null;

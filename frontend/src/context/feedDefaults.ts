@@ -3,6 +3,12 @@ import type { CashflowItemType } from "./feedTypes";
 
 export type AssetTransactionFilterType = "buy" | "sell" | "adjustment";
 
+export const ALL_ASSET_TX_TYPES: AssetTransactionFilterType[] = [
+    "buy",
+    "sell",
+    "adjustment",
+];
+
 export interface CashflowFilters {
     types: CashflowItemType[];
     verified: boolean | null;

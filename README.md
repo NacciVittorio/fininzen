@@ -29,12 +29,17 @@ Di default lo sviluppo gira su SQLite. Per replicare la produzione (PostgreSQL +
 avvia solo l'infrastruttura con Docker e punta Django a essa via `DATABASE_URL`:
 
 ```bash
-docker compose up -d postgres redis
+docker compose -f deploy/docker/local/compose.yml up -d postgres redis
 export DATABASE_URL=postgres://fininzen:change-me@localhost:5432/fininzen
 ```
 
+Il materiale Docker del repo vive sotto `deploy/docker/`:
+- `deploy/docker/local/` per la dev infra
+- `deploy/docker/prod/` per il riferimento containerizzato futuro
+
 In produzione il deploy è bare-metal (gunicorn sotto systemd dietro Caddy): vedi
-[wiki/DEPLOY.md](/wiki/DEPLOY.md). Docker serve **solo** come infrastruttura locale.
+[wiki/DEPLOY.md](/wiki/DEPLOY.md). Docker serve come infrastruttura locale e
+come riferimento containerizzato futuro sotto `deploy/docker/prod/`.
 
 ## Avvio
 
