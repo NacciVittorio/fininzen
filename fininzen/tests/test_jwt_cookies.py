@@ -4,7 +4,11 @@ import pytest
 from django.contrib.auth.models import User
 from django.test import Client
 
-from fininzen.jwt_cookies import CSRF_COOKIE_NAME, REFRESH_COOKIE_NAME
+from fininzen.jwt_cookies import (
+    CSRF_COOKIE_NAME,
+    REFRESH_COOKIE_NAME,
+    REFRESH_COOKIE_PATH,
+)
 
 
 @pytest.fixture
@@ -33,6 +37,16 @@ def test_login_puts_refresh_in_cookie_not_body(password_user):
     assert res.cookies[REFRESH_COOKIE_NAME]["httponly"]
     assert CSRF_COOKIE_NAME in res.cookies
     assert not res.cookies[CSRF_COOKIE_NAME]["httponly"]  # double-submit token
+
+
+def test_refresh_cookie_is_scoped_to_configured_path(password_user):
+    # The refresh cookie must be pinned to the browser-visible auth path. If it
+    # silently defaulted to "/" (or drifted from the path the frontend calls),
+    # the browser would stop re-sending it and token refresh would break — the
+    # exact failure mode the /fininzen/api prefix introduces.
+    client = Client()
+    res = _login(client)
+    assert res.cookies[REFRESH_COOKIE_NAME]["path"] == REFRESH_COOKIE_PATH
 
 
 def test_refresh_via_cookie_with_csrf_rotates(password_user):
