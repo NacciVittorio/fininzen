@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthProvider";
+import { useApp } from "../../context/useApp";
 import LoginForm from "../../components/LoginForm";
 
 export default function LoginPage() {
-    const { status } = useAuth();
+    const { isAuthenticated } = useApp();
     const router = useRouter();
+    const [mounted, setMounted] = useState(false);
 
+    useEffect(() => setMounted(true), []);
     useEffect(() => {
-        if (status === "authenticated") router.replace("/dashboard");
-    }, [status, router]);
+        if (mounted && isAuthenticated) router.replace("/dashboard");
+    }, [mounted, isAuthenticated, router]);
 
     return <LoginForm />;
 }

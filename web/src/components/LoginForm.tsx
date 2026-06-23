@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useI18n } from "../context/I18nProvider";
-import { useAuth } from "../context/AuthProvider";
+import { useApp } from "../context/useApp";
 
 type AuthMode = "login" | "register";
 
 export default function LoginForm() {
-    const { T } = useI18n();
-    const { login, register, demoLogin } = useAuth();
+    const { T, login, register, demoLogin } = useApp();
     const [mode, setMode] = useState<AuthMode>("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

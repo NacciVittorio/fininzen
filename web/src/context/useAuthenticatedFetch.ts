@@ -2,7 +2,6 @@ import { useCallback, useRef } from "react";
 import { authHeaders, fetchWithTimeout, setAccessToken } from "../utils/api";
 import { requestTokenRefresh } from "../api/auth";
 import type { ApiFetcher } from "../api/client";
-import { useAuth } from "./AuthProvider";
 
 export type ViewAsAccount = {
     userId: number | string;
@@ -68,13 +67,4 @@ export function useAuthenticatedFetch({
         },
         [logout, viewAs],
     );
-}
-
-/**
- * App-wired authenticated fetcher: pulls `logout` from the auth context. View-as
- * (account sharing) is not ported yet, so it is always null for now.
- */
-export function useApiFetch(): ApiFetcher {
-    const { logout } = useAuth();
-    return useAuthenticatedFetch({ logout, viewAs: null });
 }

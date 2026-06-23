@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useI18n } from "../context/I18nProvider";
-import { useAuth } from "../context/AuthProvider";
+import { useApp } from "../context/useApp";
 
 // Real routes replace the old setTab + localStorage tab model. Order mirrors the
 // Vite app's NAV_ITEMS.
@@ -17,8 +16,7 @@ export const NAV_ITEMS = [
 ] as const;
 
 export function AppNav() {
-    const { T } = useI18n();
-    const { logout, user } = useAuth();
+    const { T, logout, user } = useApp();
     const pathname = usePathname();
 
     return (

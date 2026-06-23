@@ -2,8 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { I18nProvider } from "../context/I18nProvider";
-import { AuthProvider } from "../context/AuthProvider";
+import { AppProvider } from "../context/AppProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     // One QueryClient per browser session. Created lazily in state so it is not
@@ -21,11 +20,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
             }),
     );
 
+    // AppProvider is the single app context (auth, theme/i18n, data, actions),
+    // ported from the Vite SPA and made SSR-safe. It exposes the stable useApp()
+    // surface the views consume. The TanStack QueryClient wraps it so the data
+    // layer can migrate to queries/mutations incrementally underneath useApp().
     return (
         <QueryClientProvider client={queryClient}>
-            <I18nProvider>
-                <AuthProvider>{children}</AuthProvider>
-            </I18nProvider>
+            <AppProvider>{children}</AppProvider>
         </QueryClientProvider>
     );
 }
