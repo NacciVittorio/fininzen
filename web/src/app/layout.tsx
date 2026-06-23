@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import "./tokens.css";
+import "./styles.css";
 import "./globals.css";
 import { Providers } from "./providers";
 

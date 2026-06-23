@@ -1,0 +1,80 @@
+import { useCallback, useRef } from "react";
+import { authHeaders, fetchWithTimeout, setAccessToken } from "../utils/api";
+import { requestTokenRefresh } from "../api/auth";
+import type { ApiFetcher } from "../api/client";
+import { useAuth } from "./AuthProvider";
+
+export type ViewAsAccount = {
+    userId: number | string;
+    email?: string;
+    permission?: string;
+};
+
+type UseAuthenticatedFetchArgs = {
+    logout: () => void;
+    viewAs: ViewAsAccount | null;
+};
+
+export function useAuthenticatedFetch({
+    logout,
+    viewAs,
+}: UseAuthenticatedFetchArgs): ApiFetcher {
+    const refreshingRef = useRef<Promise<boolean> | null>(null);
+
+    return useCallback(
+        async (url: string, options = {}) => {
+            const viewAsHeaders = viewAs
+                ? { "X-View-As": String(viewAs.userId) }
+                : {};
+            const withAuth = (): RequestInit => {
+                const headers = new Headers(authHeaders());
+                Object.entries(viewAsHeaders).forEach(([key, value]) =>
+                    headers.set(key, value),
+                );
+                new Headers(options.headers).forEach((value, key) =>
+                    headers.set(key, value),
+                );
+                return { ...options, headers };
+            };
+
+            const response = await fetchWithTimeout(url, withAuth());
+            if (response.status !== 401) return response;
+
+            if (!refreshingRef.current) {
+                refreshingRef.current = (async () => {
+                    try {
+                        const refreshResponse = await requestTokenRefresh();
+                        if (!refreshResponse.ok) {
+                            logout();
+                            return false;
+                        }
+                        const data = (await refreshResponse.json()) as {
+                            access: string;
+                        };
+                        setAccessToken(data.access);
+                        return true;
+                    } catch {
+                        logout();
+                        return false;
+                    } finally {
+                        refreshingRef.current = null;
+                    }
+                })();
+            }
+
+            return (await refreshingRef.current)
+                ? fetchWithTimeout(url, withAuth())
+                : response;
+        },
+        [logout, viewAs],
+    );
+}
+
+/**
+ * App-wired authenticated fetcher: pulls `logout` from the auth context. View-as
+ * (account sharing) is not ported yet, so it is always null for now.
+ */
+export function useApiFetch(): ApiFetcher {
+    const { logout } = useAuth();
+    return useAuthenticatedFetch({ logout, viewAs: null });
+}
