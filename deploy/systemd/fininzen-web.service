@@ -1,0 +1,33 @@
+[Unit]
+Description=Fininzen Next.js web frontend (SSR)
+After=network-online.target fininzen.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fininzen
+Group=fininzen
+WorkingDirectory=/opt/fininzen/web
+EnvironmentFile=/etc/fininzen.env
+# NEXT_PUBLIC_API_BASE is inlined at build time (defaults to /fininzen/api in
+# src/utils/api.ts), so it is set during `npm run build`, not here. DJANGO_ORIGIN
+# is read at runtime by SSR/server components (SERVER_API_BASE) to reach Django
+# directly, skipping the Caddy hop.
+# 1 GB VPS: cap the heap so Next/Node does not contend with gunicorn/Postgres.
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DJANGO_ORIGIN=http://127.0.0.1:8000
+Environment=NODE_OPTIONS=--max-old-space-size=384
+# Requires a prior `npm ci && npm run build` in /opt/fininzen/web.
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ReadWritePaths=/opt/fininzen/web/.next
+
+[Install]
+WantedBy=multi-user.target
