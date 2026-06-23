@@ -5,11 +5,11 @@ import type { Category, InvestmentType } from "../api/types";
 import type { Translator } from "../types";
 import type { RefreshReason } from "../utils/refreshReasons";
 import type { AppProviderState } from "./useAppProviderState";
+import type { AppQueries } from "./useAppQueries";
 
 type CatalogActionState = Pick<
     AppProviderState,
     | "catAddContext"
-    | "categories"
     | "catForm"
     | "deleteCatFlow"
     | "deleteInvTypeFlow"
@@ -30,7 +30,8 @@ type CatalogActionState = Pick<
     | "setShowCatAddModal"
     | "setShowInvTypeModal"
     | "setTaxPropagationFlow"
->;
+> &
+    Pick<AppQueries, "categories">;
 
 export type CatalogActionsOptions = CatalogActionState & {
     T: Translator;

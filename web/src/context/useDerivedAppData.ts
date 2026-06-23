@@ -11,24 +11,24 @@ import {
 } from "./derivedDataModel";
 import type { Translator } from "../types";
 import type { AppProviderState } from "./useAppProviderState";
+import type { AppQueries } from "./useAppQueries";
 import type { SessionController } from "./useSessionController";
 
 type DerivedProviderState = Pick<
     AppProviderState,
-    | "assetForm"
-    | "assets"
-    | "cashflowDir"
-    | "categories"
-    | "expSummary"
-    | "expenses"
-    | "filterCat"
-    | "filterYear"
-    | "investmentTypes"
-    | "setFilterYear"
-    | "summary"
-    | "trendExpenses"
-    | "trendIncomes"
->;
+    "assetForm" | "cashflowDir" | "filterCat" | "filterYear" | "setFilterYear"
+> &
+    Pick<
+        AppQueries,
+        | "assets"
+        | "categories"
+        | "expSummary"
+        | "expenses"
+        | "investmentTypes"
+        | "summary"
+        | "trendExpenses"
+        | "trendIncomes"
+    >;
 
 type UseDerivedAppDataArgs = DerivedProviderState &
     Pick<SessionController, "enabledFeatures"> & {

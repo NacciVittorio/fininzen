@@ -12,6 +12,7 @@ import type { DecimalSeparator } from "../utils/formatters";
 import type { RefreshReason } from "../utils/refreshReasons";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppProviderState } from "./useAppProviderState";
+import type { AppQueries } from "./useAppQueries";
 import type { TickerResult, TickerSearchOrigin } from "./useImportAndTicker";
 
 type AssetActionState = Pick<
@@ -20,10 +21,8 @@ type AssetActionState = Pick<
     | "adjustForm"
     | "assetForm"
     | "assetSaving"
-    | "contributionSources"
     | "editingAssetId"
     | "editingAssetOrigOverrideRef"
-    | "investmentTypes"
     | "setAdjustAssetId"
     | "setAdjustError"
     | "setAdjustForm"
@@ -37,7 +36,8 @@ type AssetActionState = Pick<
     | "setShowAdjustModal"
     | "setShowAssetModal"
     | "setTaxPropagationFlow"
->;
+> &
+    Pick<AppQueries, "contributionSources" | "investmentTypes">;
 
 export type AssetActionsOptions = AssetActionState & {
     T: Translator;

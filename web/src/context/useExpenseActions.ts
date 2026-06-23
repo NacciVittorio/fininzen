@@ -8,12 +8,12 @@ import type { Translator } from "../types";
 import type { DecimalSeparator } from "../utils/formatters";
 import type { RefreshReason } from "../utils/refreshReasons";
 import type { AppProviderState } from "./useAppProviderState";
+import type { AppQueries } from "./useAppQueries";
 import type { TransactionPreferences } from "./appContextHelpers";
 
 type ExpenseActionState = Pick<
     AppProviderState,
     | "cashflowDir"
-    | "categories"
     | "editingExpenseId"
     | "expForm"
     | "setDeleteExpenseTarget"
@@ -25,7 +25,8 @@ type ExpenseActionState = Pick<
     | "setTransferError"
     | "setTransferForm"
     | "setTransferWarning"
->;
+> &
+    Pick<AppQueries, "categories">;
 
 // Prefill payload for opening the expense modal in edit mode. The cashflow feed
 // supplies EntityId-typed ids (number | string) sourced from a CashflowFeedItem,

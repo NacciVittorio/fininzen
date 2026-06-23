@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import type { TokenResponse } from "../api/auth";
 import type { GrantsResponse } from "../api/sharing";
-import type { PortfolioSummaryResponse } from "../api/portfolio";
 import type { ProfileResponse } from "../api/profile";
 import { clearAccessToken, setAccessToken } from "../utils/api";
 import { logError } from "../utils/logger";
@@ -73,12 +73,6 @@ const tabFromPathname = (pathname: string | null): string => {
     return "dashboard";
 };
 
-type ClientCache<T> = {
-    data: T | null;
-    ts: number;
-    inFlight: Promise<T> | null;
-};
-
 type UserProfile = {
     email: string;
     name: string;
@@ -93,24 +87,13 @@ type ProfileApplyResult = {
 
 export function useSessionController(providerState: AppProviderState) {
     const {
-        setCategories,
-        setAssets,
-        setSummary,
-        setInvestmentTypes,
-        setContributionSources,
-        setExpenses,
-        setTrendExpenses,
-        setTrendIncomes,
-        setBudgets,
-        setRecurringExpenses,
-        setRecurringInvestmentPlans,
-        setPortfolioHistory,
         setDashConfig,
         setMonthlyOverviewPrefs,
         setWealthMetrics,
         setDemoConfirm,
         setDemoUnderstood,
     } = providerState;
+    const queryClient = useQueryClient();
     // ── Router-driven tab ──
     // The URL is the source of truth for the active view. `tab` is derived from
     // the pathname and `setTab` navigates; defined up here so the auth callbacks
@@ -158,24 +141,6 @@ export function useSessionController(providerState: AppProviderState) {
     );
     const bgTimestampRef = useRef<number | null>(null);
     const [showDemoModal, setShowDemoModal] = useState(false);
-    const categoriesCacheRef = useRef<
-        ClientCache<AppProviderState["categories"]>
-    >({
-        data: null,
-        ts: 0,
-        inFlight: null,
-    });
-    const assetsCacheRef = useRef<ClientCache<AppProviderState["assets"]>>({
-        data: null,
-        ts: 0,
-        inFlight: null,
-    });
-    const summaryCacheRef = useRef<ClientCache<PortfolioSummaryResponse>>({
-        data: null,
-        ts: 0,
-        inFlight: null,
-    });
-    const cacheContextRef = useRef("__none__");
     const profilePatchQueueRef = useRef<ProfilePatchQueue>(
         emptyProfilePatchQueue(),
     );
@@ -187,43 +152,19 @@ export function useSessionController(providerState: AppProviderState) {
     }, []);
 
     const resetClientState = useCallback((): void => {
-        categoriesCacheRef.current = { data: null, ts: 0, inFlight: null };
-        assetsCacheRef.current = { data: null, ts: 0, inFlight: null };
-        summaryCacheRef.current = { data: null, ts: 0, inFlight: null };
-        cacheContextRef.current = "__none__";
+        // Drop all cached server state (TanStack Query owns it now); the
+        // enabled queries refetch for the new session once authenticated.
+        queryClient.clear();
         resetQueuedProfilePatch();
         clearDashboardLocalCache();
-        setCategories([]);
-        setAssets([]);
-        setSummary({});
-        setInvestmentTypes([]);
-        setContributionSources([]);
-        setExpenses([]);
-        setTrendExpenses([]);
-        setTrendIncomes([]);
-        setBudgets([]);
-        setRecurringExpenses([]);
-        setRecurringInvestmentPlans([]);
-        setPortfolioHistory([]);
         setDashConfig(cloneDashConfig());
         setMonthlyOverviewPrefs(normalizeMonthlyOverviewPrefs({}));
         setWealthMetrics(["wealth"]);
     }, [
+        queryClient,
         resetQueuedProfilePatch,
-        setAssets,
-        setBudgets,
-        setCategories,
-        setContributionSources,
         setDashConfig,
-        setExpenses,
-        setInvestmentTypes,
         setMonthlyOverviewPrefs,
-        setPortfolioHistory,
-        setRecurringExpenses,
-        setRecurringInvestmentPlans,
-        setSummary,
-        setTrendExpenses,
-        setTrendIncomes,
         setWealthMetrics,
     ]);
 
@@ -573,10 +514,6 @@ export function useSessionController(providerState: AppProviderState) {
         setTemporaryPrivacyReveals,
         privacyRevealTimersRef,
         applyProfileData,
-        categoriesCacheRef,
-        assetsCacheRef,
-        summaryCacheRef,
-        cacheContextRef,
         profilePatchQueueRef,
         enableAppLock,
         disableAppLock,

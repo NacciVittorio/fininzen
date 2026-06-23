@@ -1,24 +1,5 @@
 import { useRef, useState } from "react";
-import type {
-    Asset,
-    Budget,
-    Category,
-    Expense,
-    InvestmentType,
-    RecurringExpense,
-    RecurringInvestmentPlan,
-} from "../api/types";
-import type {
-    CashflowTrendPoint,
-    ExpenseSummaryResponse,
-    RecurringStatusResponse,
-} from "../api/expenses";
-import type {
-    PortfolioHistoryPoint,
-    PortfolioSummaryResponse,
-} from "../api/portfolio";
-import type { ContributionSource } from "../api/contributionSources";
-import type { AllocationTargetRow } from "../utils/allocationGroups";
+import type { Category, Expense, InvestmentType } from "../api/types";
 import type { CashflowDirection } from "../utils/directionFilter";
 import { currentMonth, currentYear } from "../utils/formatters";
 import {
@@ -146,44 +127,16 @@ export function useAppProviderState() {
     });
     const [showDashSettings, setShowDashSettings] = useState(false);
 
-    // Data
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [trendExpenses, setTrendExpenses] = useState<CashflowTrendPoint[]>(
-        [],
-    );
-    const [trendIncomes, setTrendIncomes] = useState<CashflowTrendPoint[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [assets, setAssets] = useState<Asset[]>([]);
-    const [summary, setSummary] = useState<PortfolioSummaryResponse | null>(
-        null,
-    );
-    const [expSummary, setExpSummary] = useState<ExpenseSummaryResponse | null>(
-        null,
-    );
-    const [recurringStatus, setRecurringStatus] =
-        useState<RecurringStatusResponse | null>(null);
-    // Always for the current calendar month — drives Dashboard widgets that
-    // shouldn't follow the Cash Flow tab's filterMonth.
-    const [expSummaryCurrentMonth, setExpSummaryCurrentMonth] =
-        useState<ExpenseSummaryResponse>({
-            total: 0,
-            by_category: [],
-        });
+    // Server-state data (expenses, assets, categories, summaries, trends, …) is
+    // owned by useAppQueries (TanStack Query). What remains here is client-only
+    // UI/filter/form state plus a few server-synced preferences.
 
-    const [monthlyInvestmentStats, setMonthlyInvestmentStats] =
-        useState<DataObject | null>(null);
     // Mese/anno dedicati alla card statistiche investimenti (tab Investimenti):
     // navigano indipendentemente dal filterMonth del Cash Flow.
     const [invStatsMonth, setInvStatsMonth] = useState(currentMonth);
     const [invStatsYear, setInvStatsYear] = useState(currentYear);
 
     // Investment types
-    const [investmentTypes, setInvestmentTypes] = useState<InvestmentType[]>(
-        [],
-    );
-    const [contributionSources, setContributionSources] = useState<
-        ContributionSource[]
-    >([]);
     const [showInvTypeModal, setShowInvTypeModal] = useState(false);
     const [invTypeForm, setInvTypeForm] = useState<InvestmentTypeForm>({
         name: "",
@@ -199,22 +152,13 @@ export function useAppProviderState() {
         null,
     );
 
-    // Allocation
-    const [allocationData, setAllocationData] = useState<AllocationTargetRow[]>(
-        [],
-    );
-
     // Budgets
-    const [budgets, setBudgets] = useState<Budget[]>([]);
     const [editingBudgetCat, setEditingBudgetCat] = useState<EntityId | null>(
         null,
     );
     const [budgetInputVal, setBudgetInputVal] = useState("");
 
     // Recurring
-    const [recurringExpenses, setRecurringExpenses] = useState<
-        RecurringExpense[]
-    >([]);
     const [showRecurringModal, setShowRecurringModal] = useState(false);
     const [editingRecurringId, setEditingRecurringId] =
         useState<EntityId | null>(null);
@@ -225,9 +169,6 @@ export function useAppProviderState() {
     const [recurringSaving, setRecurringSaving] = useState(false);
     const [generateRecurringMsg, setGenerateRecurringMsg] =
         useState<DataObject | null>(null);
-    const [recurringInvestmentPlans, setRecurringInvestmentPlans] = useState<
-        RecurringInvestmentPlan[]
-    >([]);
     const [showPacModal, setShowPacModal] = useState(false);
     const [editingPacId, setEditingPacId] = useState<EntityId | null>(null);
     const [pacForm, setPacForm] = useState<PacForm>(() => buildPacForm());
@@ -348,10 +289,8 @@ export function useAppProviderState() {
         icon: "💰",
     });
 
-    // Wealth trend
-    const [portfolioHistory, setPortfolioHistory] = useState<
-        PortfolioHistoryPoint[]
-    >([]);
+    // Wealth trend (the portfolioHistory series itself is a query in useAppQueries;
+    // these are the user-controlled range/metric selectors that key it).
     const [wealthTimeRange, setWealthTimeRange] =
         useState<WealthTimeRange>("1M");
     const [wealthRangeOffset, setWealthRangeOffset] = useState(0); // months back from today (0 = current)
@@ -367,7 +306,6 @@ export function useAppProviderState() {
             return ["wealth"];
         }
     });
-    const [fireGoal, setFireGoal] = useState<number | null>(null);
 
     const _initMonthlyPrefs = () => {
         if (typeof window === "undefined")
@@ -382,11 +320,6 @@ export function useAppProviderState() {
             return normalizeMonthlyOverviewPrefs({});
         }
     };
-    const [monthlyOverview, setMonthlyOverview] = useState<DataObject | null>(
-        null,
-    );
-    const [monthlyOverviewAvailableYears, setMonthlyOverviewAvailableYears] =
-        useState<number[]>([]);
     const [monthlyOverviewPrefs, setMonthlyOverviewPrefs] =
         useState<MonthlyOverviewPreferences>(_initMonthlyPrefs);
     // Bumped on data mutations so Compare mode and prev-year fetches re-run.
@@ -397,50 +330,20 @@ export function useAppProviderState() {
         setDashConfig,
         showDashSettings,
         setShowDashSettings,
-        expenses,
-        setExpenses,
-        trendExpenses,
-        setTrendExpenses,
-        trendIncomes,
-        setTrendIncomes,
-        categories,
-        setCategories,
-        assets,
-        setAssets,
-        summary,
-        setSummary,
-        expSummary,
-        setExpSummary,
-        recurringStatus,
-        setRecurringStatus,
-        expSummaryCurrentMonth,
-        setExpSummaryCurrentMonth,
-        monthlyInvestmentStats,
-        setMonthlyInvestmentStats,
         invStatsMonth,
         setInvStatsMonth,
         invStatsYear,
         setInvStatsYear,
-        investmentTypes,
-        setInvestmentTypes,
-        contributionSources,
-        setContributionSources,
         showInvTypeModal,
         setShowInvTypeModal,
         invTypeForm,
         setInvTypeForm,
         editingInvTypeId,
         setEditingInvTypeId,
-        allocationData,
-        setAllocationData,
-        budgets,
-        setBudgets,
         editingBudgetCat,
         setEditingBudgetCat,
         budgetInputVal,
         setBudgetInputVal,
-        recurringExpenses,
-        setRecurringExpenses,
         showRecurringModal,
         setShowRecurringModal,
         editingRecurringId,
@@ -453,8 +356,6 @@ export function useAppProviderState() {
         setRecurringSaving,
         generateRecurringMsg,
         setGenerateRecurringMsg,
-        recurringInvestmentPlans,
-        setRecurringInvestmentPlans,
         showPacModal,
         setShowPacModal,
         editingPacId,
@@ -577,20 +478,12 @@ export function useAppProviderState() {
         setAdjustError,
         catForm,
         setCatForm,
-        portfolioHistory,
-        setPortfolioHistory,
         wealthTimeRange,
         setWealthTimeRange,
         wealthRangeOffset,
         setWealthRangeOffset,
         wealthMetrics,
         setWealthMetrics,
-        fireGoal,
-        setFireGoal,
-        monthlyOverview,
-        setMonthlyOverview,
-        monthlyOverviewAvailableYears,
-        setMonthlyOverviewAvailableYears,
         monthlyOverviewPrefs,
         setMonthlyOverviewPrefs,
         monthlyOverviewRefreshKey,
