@@ -93,9 +93,17 @@ just format              # ruff format + prettier write
 just schema              # rigenera lo schema OpenAPI (frontend/openapi.json)
 just hooks               # installa i git pre-commit hook
 just hooks-run           # esegue tutti i pre-commit hook sull'intero albero
+just release             # bump SemVer + CHANGELOG + tag dai Conventional Commits
 ```
 
 > I comandi con ⚠️ sono distruttivi e non chiedono conferma.
+
+## Versionamento
+
+L'app usa una **versione unica SemVer** (`Major.Minor.Patch`) condivisa da
+backend e frontend, con `VERSION` in root come unica fonte di verità. Il
+rilascio è automatizzato da `just release`. Metodologia e flusso completo:
+[wiki/VERSIONING.md](/wiki/VERSIONING.md).
 
 ## Deploy su VPS
 

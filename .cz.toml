@@ -1,0 +1,20 @@
+# Commitizen — unified versioning for Fininzen.
+# `just release` runs `cz bump`, which derives the next SemVer version from the
+# Conventional Commits since the last tag, syncs every file in `version_files`,
+# updates CHANGELOG.md and creates the `vX.Y.Z` tag. See wiki/VERSIONING.md.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+tag_format = "v$version"
+update_changelog_on_bump = true
+# Beta: stay in 0.x. While the major is 0, breaking changes bump the minor
+# (0.x.0) instead of going to 1.0.0. Flip this to false for the first stable
+# 1.0.0 release. See wiki/VERSIONING.md.
+major_version_zero = true
+# Single source of truth (VERSION) plus the web package manifest. The backend
+# reads VERSION at runtime and Next.js inlines it at build time, so these two
+# files are all that need rewriting on a bump.
+version_files = [
+    "VERSION",
+    "web/package.json:\"version\"",
+]
