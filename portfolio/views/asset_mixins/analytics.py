@@ -22,6 +22,7 @@ from ...services import (
 from datetime import datetime, timedelta, timezone, date as date_cls
 from decimal import Decimal
 from fininzen.accounting import accounting_month_range, get_user_accounting_start_day
+from fininzen.api_errors import safe_client_message
 
 from .._common import (
     _build_fx_lookup,
@@ -362,7 +363,7 @@ class _AssetAnalyticsMixin:
                     "price-history auto-backfill failed asset=%s", asset.id
                 )
                 meta["status"] = "error"
-                meta["message"] = str(e)
+                meta["message"] = safe_client_message(e)
 
             # Refresh earliest_available after backfill — may have changed.
             existing_earliest = (

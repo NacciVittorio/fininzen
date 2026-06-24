@@ -20,6 +20,7 @@ from ..services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal, ROUND_HALF_UP
+from fininzen.api_errors import client_error_response, safe_client_message
 from fininzen.mixins import _effective_user, require_view_as_full
 from fininzen.permissions import IsNotDemoUser
 
@@ -200,7 +201,7 @@ class TransactionsFeedView(APIView):
         try:
             qs = _portfolio_transactions_queryset(user, request.query_params)
         except ValueError as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return client_error_response(exc)
         total = qs.count()
 
         page_size_str = request.query_params.get("page_size", "50")
@@ -329,7 +330,11 @@ class TransactionsBulkView(APIView):
             self._validate_payload(payload, patch)
         except ValueError as exc:
             return Response(
-                {"ok": False, "errors": [str(exc)], "error_codes": ["invalid_bulk"]},
+                {
+                    "ok": False,
+                    "errors": [safe_client_message(exc)],
+                    "error_codes": ["invalid_bulk"],
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -356,11 +361,11 @@ class TransactionsBulkView(APIView):
                     serializer.is_valid(raise_exception=True)
                     patch_transaction(tx, serializer, owner=user)
                 except ArchivedAssetTransactionError as exc:
-                    errors.append(str(exc))
+                    errors.append(safe_client_message(exc))
                     archived_blocked = True
                     break
                 except Exception as exc:
-                    errors.append(str(exc))
+                    errors.append(safe_client_message(exc))
                     break
                 applied += 1
             if errors:
