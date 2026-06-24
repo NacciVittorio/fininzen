@@ -15,7 +15,6 @@ from ...serializers import (
     AssetTransactionSerializer,
 )
 from ...services import (
-    ArchivedAssetTransactionError,
     create_transaction,
     delete_transaction,
     patch_transaction,
@@ -25,6 +24,7 @@ from ...services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal
+from fininzen.api_errors import client_error_response, domain_error_response
 from fininzen.utils import parse_optional_bool
 
 from .._common import (
@@ -92,22 +92,13 @@ class _AssetTransactionsMixin:
                 owner=self.get_effective_user(),
             )
         except ValueError as exc:
-            status_code = (
-                status.HTTP_409_CONFLICT
-                if isinstance(exc, ArchivedAssetTransactionError)
-                else status.HTTP_400_BAD_REQUEST
-            )
             logger.warning(
                 "transactions POST: rejected — %s (asset=%s user=%s)",
                 exc,
                 asset.name,
                 self.request.user,
             )
-            if isinstance(exc, ArchivedAssetTransactionError):
-                payload = {"error": "asset_archived", "detail": str(exc)}
-            else:
-                payload = {"error": str(exc)}
-            return Response(payload, status=status_code)
+            return domain_error_response(exc)
 
         _ensure_history_covers_transactions(asset)
         resp_data = dict(
@@ -135,16 +126,7 @@ class _AssetTransactionsMixin:
             try:
                 delete_transaction(tx)
             except ValueError as exc:
-                status_code = (
-                    status.HTTP_409_CONFLICT
-                    if isinstance(exc, ArchivedAssetTransactionError)
-                    else status.HTTP_400_BAD_REQUEST
-                )
-                if isinstance(exc, ArchivedAssetTransactionError):
-                    payload = {"error": "asset_archived", "detail": str(exc)}
-                else:
-                    payload = {"error": str(exc)}
-                return Response(payload, status=status_code)
+                return domain_error_response(exc)
             return Response(status=status.HTTP_204_NO_CONTENT)
         # PATCH
         source_account_id = request.data.get("source_account_id")
@@ -170,16 +152,7 @@ class _AssetTransactionsMixin:
                 owner=self.get_effective_user(),
             )
         except ValueError as exc:
-            status_code = (
-                status.HTTP_409_CONFLICT
-                if isinstance(exc, ArchivedAssetTransactionError)
-                else status.HTTP_400_BAD_REQUEST
-            )
-            if isinstance(exc, ArchivedAssetTransactionError):
-                payload = {"error": "asset_archived", "detail": str(exc)}
-            else:
-                payload = {"error": str(exc)}
-            return Response(payload, status=status_code)
+            return domain_error_response(exc)
         _ensure_history_covers_transactions(asset)
         return Response(
             AssetTransactionSerializer(updated_tx, context={"request": request}).data
@@ -253,7 +226,7 @@ class _AssetTransactionsMixin:
                 owner=self.get_effective_user(),
             )
         except ValueError as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return client_error_response(exc)
         if result.get("warning"):
             logger.warning(
                 "transfer: insufficient balance — from=%s balance=%s amount=%s",
@@ -324,16 +297,7 @@ class _AssetTransactionsMixin:
                 owner=self.get_effective_user(),
             )
         except ValueError as exc:
-            status_code = (
-                status.HTTP_409_CONFLICT
-                if isinstance(exc, ArchivedAssetTransactionError)
-                else status.HTTP_400_BAD_REQUEST
-            )
-            if isinstance(exc, ArchivedAssetTransactionError):
-                payload = {"error": "asset_archived", "detail": str(exc)}
-            else:
-                payload = {"error": str(exc)}
-            return Response(payload, status=status_code)
+            return domain_error_response(exc)
         asset.refresh_from_db()
         return Response(
             {
