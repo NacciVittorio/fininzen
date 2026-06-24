@@ -283,6 +283,25 @@ def _apply_sqlite_pragmas(sender, connection, **kwargs):
 
 connection_created.connect(_apply_sqlite_pragmas)
 
+# Auth/abuse throttle rates. These production-safe defaults are what pytest and
+# the live app exercise. Setting E2E_RELAX_THROTTLES=1 lifts the per-IP/per-user
+# auth buckets to a high ceiling so the Playwright suite — which logs in fresh
+# on every test from a single loopback IP — does not trip the 20/min login
+# limiter mid-run. The flag is opt-in: unset (prod, CI, pytest) the shipped
+# limits apply unchanged. NEVER enable it on a public deployment.
+_THROTTLE_RATES = {
+    "login": "20/minute",
+    "register": "10/minute",
+    "search_ticker": "30/minute",
+    "view_as_attempt": "30/minute",
+    "grant": "20/minute",
+    "webauthn": "20/minute",
+    "account": "10/minute",
+    "reset": "5/minute",
+}
+if os.environ.get("E2E_RELAX_THROTTLES"):
+    _THROTTLE_RATES = {scope: "100000/minute" for scope in _THROTTLE_RATES}
+
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -297,16 +316,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.ScopedRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {
-        "login": "20/minute",
-        "register": "10/minute",
-        "search_ticker": "30/minute",
-        "view_as_attempt": "30/minute",
-        "grant": "20/minute",
-        "webauthn": "20/minute",
-        "account": "10/minute",
-        "reset": "5/minute",
-    },
+    "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
 
 # drf-spectacular: single source of truth for the API contract. The committed
@@ -368,6 +378,13 @@ _extra_csrf = (
     [o.strip() for o in _csrf_origins.split(",") if o.strip()] if _csrf_origins else []
 )
 CSRF_TRUSTED_ORIGINS = ["https://fininzen.nacci.eu"] + _extra_csrf
+
+# Browser-visible path the httpOnly refresh cookie is scoped to. It must match
+# the path the *frontend* calls, not the path Django's URLConf sees: the Next.js
+# app calls `/fininzen/api/auth/*` (Caddy strips `/fininzen` before Django), so
+# at cutover this is set to "/fininzen/api/auth/". The default keeps the legacy
+# Vite SPA (served at "/api/...") working until the cutover.
+REFRESH_COOKIE_PATH = os.environ.get("REFRESH_COOKIE_PATH", "/api/auth/")
 
 LANGUAGE_CODE = "it-it"
 TIME_ZONE = "Europe/Rome"

@@ -24,17 +24,26 @@ fininzen.nacci.eu {
 		file_server
 	}
 
+	# ── Phase 2 (Next.js) cutover ──
+	# The SPA now lives in the Next.js app (web/, `next start` on :3000, see
+	# deploy/systemd/fininzen-web.service). It calls the API under the
+	# `/fininzen/api/*` prefix; `handle_path` strips `/fininzen` so Django still
+	# receives `/api/*` unchanged. Django must run with
+	# REFRESH_COOKIE_PATH=/fininzen/api/auth/ so the fn_refresh cookie is scoped
+	# to the browser-visible path (set it in /etc/fininzen.env at cutover).
+	handle_path /fininzen/api/* {
+		reverse_proxy localhost:8000
+	}
+
+	# Legacy unprefixed API kept reachable during the cutover window; can be
+	# removed once nothing calls /api/* directly.
 	handle /api/* {
 		reverse_proxy localhost:8000
 	}
 
+	# Everything else → the Next.js Node server (replaces the old static
+	# frontend/dist + try_files index.html fallback).
 	handle {
-		root * /opt/fininzen/frontend/dist
-		@frontendAssets path /assets/*
-		header @frontendAssets Cache-Control "public, max-age=31536000, immutable"
-		@frontendShell not path /assets/*
-		header @frontendShell Cache-Control "no-cache, must-revalidate"
-		try_files {path} /index.html
-		file_server
+		reverse_proxy localhost:3000
 	}
 }

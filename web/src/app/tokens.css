@@ -1,0 +1,590 @@
+/* ───────────────────────────────────────────────────────────────────
+   WEALTH MANAGEMENT — DESIGN TOKENS
+   Sistema a doppio tema: light (E2) · dark (E3 navy)
+   Tipografia: Helvetica Neue (system fallback) · IBM Plex Mono per numeri
+   ─────────────────────────────────────────────────────────────────── */
+
+:root {
+    /* ── Type families ─────────────────────────────────────────────── */
+    --font-sans: "Helvetica Neue", Helvetica, "Inter Tight", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+
+    /* ── Type scale (px) ───────────────────────────────────────────── */
+    --t-h1: 76px; /* hero number — patrimonio netto                */
+    --t-h2: 42px; /* page title / KPI value                        */
+    --t-h3: 32px; /* sub KPI value                                 */
+    --t-h4: 22px; /* highlighted callout                           */
+    --t-h5: 20px; /* section heading                               */
+    --t-body-lg: 16px; /* lead paragraph                                */
+    --t-body: 14px; /* body                                          */
+    --t-sm: 13px; /* secondary                                     */
+    --t-xs: 12px; /* tertiary                                      */
+    --t-label: 10px; /* uppercase label                               */
+
+    /* ── Type weights — gerarchia bold ─────────────────────────────── */
+    --w-display: 900; /* hero numbers, KPI values                      */
+    --w-heading: 800; /* page titles, section headers                  */
+    --w-strong: 700; /* labels (bold), inline-emphasized data         */
+    --w-body: 500; /* default text                                  */
+    --w-light: 400; /* descriptive prose                             */
+
+    /* ── Letter spacing ────────────────────────────────────────────── */
+    --ls-tight: -3.5px; /* hero number                                  */
+    --ls-h: -1.2px; /* headings                                     */
+    --ls-h-small: -0.4px; /* section titles                               */
+    --ls-label: 2px; /* uppercase labels                             */
+    --ls-label-em: 2.5px; /* accent uppercase                             */
+
+    /* ── Radii ─────────────────────────────────────────────────────── */
+    --r-card: 16px;
+    --r-input: 12px;
+    --r-pill: 999px;
+    --r-chip: 8px;
+
+    /* ── Spacing scale ─────────────────────────────────────────────── */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 22px;
+    --sp-6: 32px;
+    --sp-7: 44px;
+    --sp-8: 64px;
+
+    /* ── Touch target minimum (WCAG 2.5.5) ────────────────────────── */
+    --btn-min: 44px;
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    --sidebar-w: 220px;
+    --content-pad: 32px 44px;
+
+    /* ════════════════════════════════════════════════════════════════
+     LIGHT THEME (default) · E2 · "Bianco + ombre Fineco"
+     - Nessun nero: il testo principale è navy pieno
+     - Sfondi: bianco + tinta blu chiarissima
+     - Accenti: blu azzurro (primario) + verde (denaro positivo)
+     ════════════════════════════════════════════════════════════════ */
+
+    /* Surfaces */
+    --bg: #ffffff; /* app background          */
+    --bg-2: #f4f8ff; /* alt surface (canvas)    */
+    --card: #ffffff; /* card fill               */
+    --card-inset: #f4f8ff; /* nested chip/inset       */
+
+    /* Text (sostituisce qualunque nero) */
+    --fg: #0b1628; /* primary text — navy     */
+    --fg-soft: rgba(11, 22, 40, 0.62); /* secondary               */
+    --fg-faint: rgba(11, 22, 40, 0.36); /* tertiary / placeholder  */
+
+    /* Brand */
+    --navy: #0b1628;
+    --navy-deep: #06101e;
+
+    /* Accents */
+    --accent: #1e90ff; /* azzurro — primary       */
+    --accent-deep: #0e6fd8;
+    --accent-soft: rgba(30, 144, 255, 0.08); /* tinted bg / hover       */
+    --accent-ring: rgba(30, 144, 255, 0.18); /* focus ring inset        */
+    /* CTA button — accent-deep clears WCAG AA with white text */
+    --btn-primary-bg: var(--accent-deep);
+    --btn-primary-fg: #ffffff;
+
+    --success: #0a8a5e; /* verde — denaro positivo */
+    --success-deep: #076b48;
+    --success-soft: rgba(10, 138, 94, 0.1);
+
+    --danger: #c73e3a;
+    --danger-soft: rgba(199, 62, 58, 0.1);
+    --danger-ring: rgba(199, 62, 58, 0.26);
+    --warning: #b87000;
+    --warning-soft: rgba(184, 112, 0, 0.12);
+    --warning-ring: rgba(184, 112, 0, 0.26);
+
+    /* Hairlines */
+    --rule: rgba(11, 22, 40, 0.06);
+    --rule-soft: rgba(11, 22, 40, 0.04);
+
+    /* Shadows — la firma del tema: ombre azzurre soft (Fineco-style) */
+    --shadow:
+        0 10px 30px -8px rgba(30, 144, 255, 0.25),
+        0 4px 12px -2px rgba(11, 22, 40, 0.06);
+    --shadow-soft:
+        0 6px 20px -6px rgba(30, 144, 255, 0.18),
+        0 2px 8px -1px rgba(11, 22, 40, 0.05);
+    --shadow-deep:
+        0 16px 48px -12px rgba(30, 144, 255, 0.3),
+        0 6px 18px -4px rgba(11, 22, 40, 0.1);
+
+    /* Modal / overlay backdrops — navy-based to stay on-palette */
+    --backdrop: rgba(6, 16, 30, 0.34);
+    --backdrop-strong: rgba(6, 16, 30, 0.5);
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18), inset 0 1px 0 var(--rule);
+
+    /* Chart palette — used by Charts.jsx + per-metric pills.
+     Resolved via getComputedStyle in JS for SVG attr usage. */
+    --chart-1: #1e90ff; /* azzurro — accent */
+    --chart-2: #0a8a5e; /* verde   — success */
+    --chart-3: #b87000; /* arancio — warning */
+    --chart-4: #6e5bc9; /* viola   — alt series */
+    --chart-5: #0e6fd8; /* blu deep */
+    --chart-6: rgba(11, 22, 40, 0.38); /* neutro — fg-faint light */
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK THEME · E3 · "Navy scuro + verde/azzurro"
+   - Pagina navy profondo, cards in blu più ricco e saturo
+   - Stessi accenti gerarchici, calibrati per il fondo scuro
+   - Ombre con glow azzurro
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] {
+    /* Surfaces */
+    --bg: #06101e; /* page navy deep          */
+    --bg-2: #0b1628; /* canvas alt              */
+    --card: #1a3565; /* card — blu ricco        */
+    --card-inset: #22417a; /* card lift / inset       */
+
+    /* Text */
+    --fg: rgba(255, 255, 255, 0.94);
+    --fg-soft: rgba(255, 255, 255, 0.62);
+    --fg-faint: rgba(255, 255, 255, 0.36);
+
+    /* Brand */
+    --navy: #0b1628;
+    --navy-deep: #06101e;
+
+    /* Accents (più luminosi per leggibilità su scuro) */
+    --accent: #5cc8ff;
+    --accent-deep: #3aa8e0;
+    --accent-soft: rgba(92, 200, 255, 0.1);
+    --accent-ring: rgba(92, 200, 255, 0.3);
+    /* CTA su scuro: azzurro luminoso con testo navy (contrasto AA) */
+    --btn-primary-bg: var(--accent);
+    --btn-primary-fg: #06101e;
+
+    --success: #3fd698;
+    --success-deep: #2bc085;
+    --success-soft: rgba(63, 214, 152, 0.12);
+
+    --danger: #ff7a7a;
+    --danger-soft: rgba(255, 122, 122, 0.16);
+    --danger-ring: rgba(255, 122, 122, 0.34);
+    --warning: #ffc55a;
+    --warning-soft: rgba(255, 197, 90, 0.16);
+    --warning-ring: rgba(255, 197, 90, 0.34);
+
+    /* Hairlines */
+    --rule: rgba(255, 255, 255, 0.1);
+    --rule-soft: rgba(255, 255, 255, 0.05);
+
+    /* Shadows — glow azzurro */
+    --shadow:
+        0 12px 36px -10px rgba(92, 200, 255, 0.3),
+        0 4px 14px -2px rgba(0, 0, 0, 0.45);
+    --shadow-soft:
+        0 6px 22px -6px rgba(92, 200, 255, 0.22),
+        0 2px 8px -1px rgba(0, 0, 0, 0.4);
+    --shadow-deep:
+        0 18px 56px -14px rgba(92, 200, 255, 0.36),
+        0 6px 18px -4px rgba(0, 0, 0, 0.55);
+
+    /* Modal / overlay backdrops */
+    --backdrop: rgba(0, 0, 0, 0.55);
+    --backdrop-strong: rgba(0, 0, 0, 0.72);
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.55), inset 0 1px 0 var(--rule);
+
+    /* Chart palette — più saturi/luminosi per fondo scuro */
+    --chart-1: #5cc8ff; /* azzurro — accent */
+    --chart-2: #3fd698; /* verde            */
+    --chart-3: #ffc55a; /* warning          */
+    --chart-4: #a78bfa; /* viola            */
+    --chart-5: #3aa8e0; /* blu deep         */
+    --chart-6: rgba(255, 255, 255, 0.36); /* neutro */
+}
+
+/* ── Optional: respect OS preference automatically ─────────────── */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        /* Apply the same overrides as [data-theme="dark"] above.
+       Easier to just toggle data-theme via JS based on user pref. */
+    }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   BASE — usare questi token negli stili dei componenti
+   ─────────────────────────────────────────────────────────────────── */
+
+html,
+body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.app-canvas {
+    background: var(--bg-2); /* the area outside cards */
+    color: var(--fg);
+}
+
+/* ── Cards (la firma visiva: blu shadow / glow azzurro) ────────── */
+.card {
+    background: var(--card);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
+    padding: var(--sp-5);
+}
+.card--hero {
+    padding: var(--sp-6) calc(var(--sp-6) + 4px);
+}
+.card--soft {
+    box-shadow: var(--shadow-soft);
+}
+.card--deep {
+    box-shadow: var(--shadow-deep);
+}
+
+/* ── Inset surface (highlight box dentro a card) ───────────────── */
+.inset {
+    background: var(--card-inset);
+    border-radius: var(--r-input);
+    box-shadow: inset 0 0 0 1px var(--accent-ring);
+    padding: 14px 16px;
+}
+
+/* ── Typography utilities ───────────────────────────────────────── */
+/* Fluid type — clamps prevent overflow on narrow viewports */
+.hero-number {
+    font-family: var(--font-sans);
+    font-weight: var(--w-display);
+    font-size: clamp(40px, 12vw, 76px);
+    line-height: 0.92;
+    letter-spacing: var(--ls-tight);
+    color: var(--fg);
+    max-width: 100%;
+    overflow-wrap: normal;
+    word-break: keep-all;
+}
+.page-title {
+    font-family: var(--font-sans);
+    font-weight: var(--w-heading);
+    font-size: clamp(28px, 6vw, 42px);
+    line-height: 1;
+    letter-spacing: var(--ls-h);
+    color: var(--fg);
+    max-width: 100%;
+    overflow-wrap: normal;
+    word-break: keep-all;
+}
+.section-title {
+    font-family: var(--font-sans);
+    font-weight: var(--w-heading);
+    font-size: clamp(17px, 3vw, 20px);
+    line-height: 1;
+    letter-spacing: var(--ls-h-small);
+    color: var(--fg);
+}
+.kpi-value {
+    font-family: var(--font-sans);
+    font-weight: var(--w-display);
+    font-size: clamp(26px, 8vw, 42px);
+    line-height: 1;
+    letter-spacing: -1.5px;
+    /* hard guarantee: never overflow card width */
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+    max-width: 100%;
+}
+.kpi-value--positive {
+    color: var(--success);
+}
+.kpi-value--accent {
+    color: var(--accent);
+}
+.kpi-value--neutral {
+    color: var(--fg);
+}
+.kpi-value--danger {
+    color: var(--danger);
+}
+.kpi-value--warning {
+    color: var(--warning);
+}
+.kpi-value--compact {
+    font-size: clamp(16px, 4.8vw, 22px);
+    letter-spacing: -0.4px;
+}
+
+.label {
+    font: var(--w-body) var(--t-label) / 1 var(--font-sans);
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    color: var(--fg-soft);
+}
+.label--bold {
+    font-weight: var(--w-strong);
+}
+.label--accent {
+    /* accent-deep clears WCAG AA at 10px uppercase weight 700 */
+    color: var(--accent-deep);
+    letter-spacing: var(--ls-label-em);
+    font-weight: var(--w-strong);
+}
+
+.num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings:
+        "tnum" 1,
+        "lnum" 1;
+}
+
+.mono {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings:
+        "tnum" 1,
+        "lnum" 1;
+}
+
+@media (max-width: 760px) {
+    /* tracking E2 scalato in proporzione ai clamp mobile */
+    .hero-number {
+        font-size: clamp(30px, 12vw, 48px);
+        letter-spacing: -2px;
+        line-height: 0.98;
+    }
+    .page-title {
+        font-size: clamp(26px, 9vw, 38px);
+        letter-spacing: -0.8px;
+        line-height: 1.02;
+    }
+    .kpi-value {
+        font-size: clamp(24px, 9vw, 34px);
+        letter-spacing: -1px;
+    }
+    .kpi-value--compact {
+        font-size: clamp(15px, 5vw, 20px);
+        letter-spacing: -0.3px;
+    }
+}
+
+/* ── Pill / badge — usato per "+15% YTD" ───────────────────────── */
+.pill-success,
+.pill-danger,
+.pill-warning,
+.pill-accent,
+.pill-neutral {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: var(--r-pill);
+    font: var(--w-strong) var(--t-sm) / 1 var(--font-sans);
+    letter-spacing: 0;
+}
+.pill-success::before,
+.pill-danger::before,
+.pill-warning::before,
+.pill-accent::before,
+.pill-neutral::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.pill-success {
+    background: var(--success-soft);
+    color: var(--success);
+}
+.pill-danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.pill-warning {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+.pill-accent {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.pill-neutral {
+    background: var(--card-inset);
+    color: var(--fg);
+}
+
+/* ── Segmented control (range chart switcher) ──────────────────── */
+.segmented {
+    display: flex;
+    gap: 4px;
+    background: var(--card-inset);
+    padding: 3px;
+    border-radius: var(--r-pill);
+    box-shadow: inset 0 0 0 1px var(--rule);
+}
+.segmented button {
+    min-height: 32px;
+    padding: 7px 12px;
+    font: var(--w-body) 12px / 1 var(--font-sans);
+    color: var(--fg-soft);
+    background: transparent;
+    border: 0;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+}
+.segmented button[aria-pressed="true"] {
+    background: var(--accent);
+    color: #fff;
+    font-weight: var(--w-strong);
+}
+
+/* ── Sidebar nav item ──────────────────────────────────────────── */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: var(--btn-min);
+    padding: 12px 14px;
+    border-radius: 10px;
+    font: var(--w-body) var(--t-sm) / 1 var(--font-sans);
+    color: var(--fg-soft);
+    cursor: pointer;
+}
+.nav-item[aria-current="page"] {
+    background: var(--accent-soft);
+    color: var(--fg);
+    font-weight: var(--w-strong);
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.btn {
+    border: 0;
+    cursor: pointer;
+    border-radius: var(--r-pill);
+    font: var(--w-strong) 13px / 1 var(--font-sans);
+    min-height: 40px;
+    padding: 10px 18px;
+}
+.btn-primary {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-fg);
+    box-shadow: var(--shadow-soft);
+}
+.btn-primary:hover {
+    filter: brightness(1.05);
+}
+.btn-dark {
+    background: var(--navy);
+    color: #fff;
+}
+.btn-ghost {
+    background: var(--card);
+    color: var(--fg);
+    box-shadow: var(--shadow-soft);
+}
+
+/* ── Progress bar ──────────────────────────────────────────────── */
+.progress {
+    position: relative;
+    height: 5px;
+    background: var(--card-inset);
+    border-radius: var(--r-pill);
+    box-shadow: inset 0 0 0 1px var(--rule);
+}
+.progress > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: var(--r-pill);
+    background: var(
+        --success
+    ); /* default; usa --accent o --navy se preferisci */
+}
+
+/* ── Hairline divider ──────────────────────────────────────────── */
+.hr {
+    height: 1px;
+    background: var(--rule);
+    border: 0;
+}
+
+/* ── Press state (feedback nativo iOS su tap) ──────────────────── */
+.pressable {
+    transition:
+        transform 0.15s ease,
+        opacity 0.15s ease,
+        background 0.15s ease;
+}
+.pressable:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
+
+/* ── Focus visible (a11y) ──────────────────────────────────────── */
+.app-root
+    :where(button, a, [role="button"], input, select, textarea):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ── Responsive: sidebar → bottom nav on mobile ────────────────── */
+@media (max-width: 760px) {
+    .app-sidebar {
+        display: none !important;
+    }
+    .app-bottom-nav {
+        display: flex !important;
+    }
+    .app-content {
+        padding: 20px 16px calc(72px + env(safe-area-inset-bottom)) !important;
+    }
+    .btn,
+    .segmented button,
+    .touch-target,
+    .filter-pill button {
+        --filter-pill-min-h: var(--btn-min);
+        min-height: var(--btn-min) !important;
+    }
+    .fab {
+        bottom: calc(
+            72px + var(--sp-4) + env(safe-area-inset-bottom)
+        ) !important;
+    }
+    .speed-dial-fab {
+        bottom: calc(
+            72px + var(--sp-4) + env(safe-area-inset-bottom)
+        ) !important;
+    }
+    .touch-target {
+        min-width: var(--btn-min) !important;
+        min-height: var(--btn-min) !important;
+    }
+}
+
+/* Pages with a floating action button reserve scroll clearance for it:
+   bottom nav (72px) + gap (--sp-5) + 56px FAB + breathing room, so the last
+   rows (e.g. a right-aligned toolbar button) can scroll out from under the
+   FAB. Higher specificity than the .app-content rule above, so it wins. */
+@media (max-width: 760px) {
+    body.has-fab .app-content {
+        padding-bottom: calc(162px + env(safe-area-inset-bottom)) !important;
+    }
+}
+
+/* Cash Flow selection mode hides the bottom nav so the bulk toolbar owns the
+   bottom edge. Higher specificity than the responsive rule above, so it wins. */
+body.cf-select-mode .app-bottom-nav {
+    display: none !important;
+}
+
+@supports (padding: max(0px)) {
+    @media (max-width: 760px) {
+        .speed-dial-fab {
+            bottom: calc(
+                72px + var(--sp-5) + env(safe-area-inset-bottom)
+            ) !important;
+        }
+    }
+}

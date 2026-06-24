@@ -1,0 +1,38 @@
+{
+    "name": "web",
+    "version": "1.0.0",
+    "private": true,
+    "description": "fininzen frontend — Next.js App Router (SSR)",
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "generate:api": "openapi-typescript ../frontend/openapi.json -o src/api/schema.d.ts",
+        "lint": "prettier --check src/ && npm run lint:eslint && npm run lint:types",
+        "lint:eslint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
+        "lint:types": "tsc --noEmit",
+        "format": "prettier --write src/"
+    },
+    "dependencies": {
+        "@tanstack/react-query": "^5.62.0",
+        "next": "^15.5.0",
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6"
+    },
+    "devDependencies": {
+        "@eslint/eslintrc": "^3.3.0",
+        "@eslint/js": "^9.39.2",
+        "@playwright/test": "^1.61.0",
+        "@types/node": "^24.0.0",
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "@typescript-eslint/eslint-plugin": "^8.50.0",
+        "@typescript-eslint/parser": "^8.50.0",
+        "eslint": "^9.39.2",
+        "eslint-config-next": "^15.5.0",
+        "globals": "^16.5.0",
+        "openapi-typescript": "^7.13.0",
+        "prettier": "^3.8.3",
+        "typescript": "^5.9.3"
+    }
+}

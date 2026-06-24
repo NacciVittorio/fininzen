@@ -18,8 +18,11 @@ REFRESH_COOKIE_NAME = "fn_refresh"
 CSRF_COOKIE_NAME = "fn_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 # The httpOnly refresh cookie is scoped to the auth endpoints so it is not
-# attached to every /api/* request (only refresh/logout need it).
-REFRESH_COOKIE_PATH = "/api/auth/"
+# attached to every /api/* request (only refresh/logout need it). The path is
+# the *browser-visible* one (see settings.REFRESH_COOKIE_PATH): behind the
+# Next.js app Caddy strips a `/fininzen` prefix before Django, so the cookie
+# must be scoped to `/fininzen/api/auth/` even though Django routes `/api/auth/`.
+REFRESH_COOKIE_PATH = getattr(settings, "REFRESH_COOKIE_PATH", "/api/auth/")
 # The CSRF cookie must be readable by the SPA (served at "/") to echo it back as
 # a header, so it is path "/". It carries no secret — just the double-submit
 # nonce — so a broad path is fine.
