@@ -149,17 +149,26 @@ hooks-run:
 
 # ── Release ──────────────────────────────────────────────────────────────────
 
-# Bump the unified version (SemVer) from the Conventional Commits: update
-# VERSION + web/package.json + CHANGELOG.md, create the vX.Y.Z tag and push
-# (commit + tag). The release.yml GitHub Action then publishes the Release.
+# Cut a release. On the very FIRST run (no tags yet) this just tags the current
+# VERSION as the baseline — commitizen needs an existing tag to compute the next
+# version and an incremental changelog. On every later run it bumps the unified
+# version (SemVer) from the Conventional Commits: update VERSION +
+# web/package.json + CHANGELOG.md and create the vX.Y.Z tag. Either way it pushes
+# commit + tag, and the release.yml GitHub Action then publishes the Release.
 # Usage:
 #   just release            → increment inferred automatically from the commits
 #   just release patch      → force a patch increment (likewise minor / major)
 # Run from `main` with a clean working tree. See wiki/VERSIONING.md.
 release BUMP="":
-    INC="{{uppercase(BUMP)}}"; \
-    if [ -z "$INC" ]; then {{venv_python}} -m commitizen bump --yes; \
-    else {{venv_python}} -m commitizen bump --yes --increment "$INC"; fi
+    if [ -z "$(git tag)" ]; then \
+        v="v$(tr -d '[:space:]' < VERSION)"; \
+        echo "No tags yet — tagging current VERSION as baseline $v (no bump)."; \
+        git tag -a "$v" -m "$v — baseline release"; \
+    else \
+        INC="{{uppercase(BUMP)}}"; \
+        if [ -z "$INC" ]; then {{venv_python}} -m commitizen bump --yes; \
+        else {{venv_python}} -m commitizen bump --yes --increment "$INC"; fi; \
+    fi
     git push --follow-tags
 
 # ── Utilities ────────────────────────────────────────────────────────────────

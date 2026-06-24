@@ -7,6 +7,9 @@ name = "cz_conventional_commits"
 version = "0.0.1"
 tag_format = "v$version"
 update_changelog_on_bump = true
+# Create annotated tags so `git push --follow-tags` actually pushes them
+# (it ignores lightweight tags). Without this the Release workflow never fires.
+annotated_tag = true
 # Beta: stay in 0.x. While the major is 0, breaking changes bump the minor
 # (0.x.0) instead of going to 1.0.0. Flip this to false for the first stable
 # 1.0.0 release. See wiki/VERSIONING.md.

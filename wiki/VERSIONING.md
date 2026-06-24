@@ -100,6 +100,12 @@ the `just release` recipe.
 4. Pushing the tag triggers the GitHub Action **`.github/workflows/release.yml`**,
    which creates the **GitHub Release** with notes extracted from `CHANGELOG.md`.
 
+> **First run (bootstrap).** `cz bump` needs an existing tag to compute the next
+> version and an incremental changelog. The very first `just release` therefore
+> detects that no tags exist and simply tags the current `VERSION` as the
+> baseline (`v0.0.1`, no bump) before pushing — this becomes the first GitHub
+> Release. From the second run on it bumps normally. You never tag by hand.
+
 From then on the backend (at runtime) and the web app (on its next build/deploy)
 report the new version, and the Release is visible on GitHub.
 
