@@ -12,7 +12,8 @@ enabled from repository code alone.
 - Enable one edge guard:
   - build Caddy with `github.com/mholt/caddy-ratelimit` and uncomment the
     `rate_limit` block in `Caddyfile`, or
-  - install the fail2ban jail described in `scripts/fininzen-fail2ban.md`.
+  - install the fail2ban filter and jail shipped under `deploy/fail2ban/`
+    (see `deploy/fail2ban/README.md`).
 
 ## Backups
 
@@ -49,5 +50,5 @@ enabled from repository code alone.
 
 ## Smoke Test
 
-- Keep `scripts/smoke_test.sh` in the deploy path. It checks the SPA shell,
-  hashed assets, backend health, and the unauthenticated auth guard.
+- Keep `scripts/smoke_test.sh` in the deploy path. It checks the Next.js app
+  shell, hashed assets, backend health, and the unauthenticated auth guard.
