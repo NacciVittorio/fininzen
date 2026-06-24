@@ -1,4 +1,17 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import type { NextConfig } from "next";
+
+// Unified app version: read the repo-root VERSION file (the single source of
+// truth, bumped by `just release`) at build time and inline it as
+// NEXT_PUBLIC_APP_VERSION so the About tab shows the real deployed version
+// instead of "dev". The backend reads the same file at runtime. See
+// wiki/VERSIONING.md.
+const APP_VERSION = readFileSync(
+    join(__dirname, "..", "VERSION"),
+    "utf8",
+).trim();
 
 // In production Caddy terminates TLS on fininzen.nacci.eu and routes
 // `/fininzen/api/*` straight to Django (stripping the `/fininzen` prefix), so
@@ -10,6 +23,7 @@ const DJANGO_ORIGIN = process.env.DJANGO_ORIGIN ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
+    env: { NEXT_PUBLIC_APP_VERSION: APP_VERSION },
     // Django's API endpoints require trailing slashes (and the typed client uses
     // them). Without this, Next 308-redirects `/fininzen/api/auth/x/` to the
     // slash-less form before the rewrite runs, breaking every API call.

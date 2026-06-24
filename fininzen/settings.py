@@ -319,13 +319,19 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
 
+# Unified application version: the root VERSION file is the single source of
+# truth (bumped by `just release` / commitizen). Backend reads it at runtime so
+# the OpenAPI contract and /api/health/ always report the deployed version; the
+# web app inlines the same file at build time. See wiki/VERSIONING.md.
+APP_VERSION = (BASE_DIR / "VERSION").read_text().strip()
+
 # drf-spectacular: single source of truth for the API contract. The committed
 # OpenAPI schema (just schema) is consumed by the frontend codegen to produce
 # typed API clients, so backend changes surface as frontend build breaks.
 SPECTACULAR_SETTINGS = {
     "TITLE": "Fininzen API",
     "DESCRIPTION": "Wealth-management API (expenses + portfolio).",
-    "VERSION": "1.0.0",
+    "VERSION": APP_VERSION,
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api",
     "COMPONENT_SPLIT_REQUEST": True,

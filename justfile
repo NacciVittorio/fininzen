@@ -1,5 +1,5 @@
 # Justfile — Fininzen
-# Usa: just <comando>
+# Usage: just <command>
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
@@ -67,7 +67,7 @@ reset-db:
 clear:
     git clean -fdX -e '!db.sqlite3' -e '!venv/' -e '!venv/**' -e '!**/node_modules/' -e '!**/node_modules/**' -e '!.claude/' -e '!.claude/**'
 
-# ── Avvio ────────────────────────────────────────────────────────────────────
+# ── Start ────────────────────────────────────────────────────────────────────
 
 backend:
     DJANGO_DEBUG=1 {{venv_python}} manage.py runserver
@@ -111,7 +111,7 @@ docker-prod-down:
 deploy-prod BRANCH="main":
     sudo {{deploy_root}}/scripts/deploy.sh {{quote(BRANCH)}}
 
-# ── Qualità del codice ───────────────────────────────────────────────────────
+# ── Code quality ─────────────────────────────────────────────────────────────
 
 test-backend:
     {{venv_python}} -m pytest -c pytest.ini --cov-fail-under=75
@@ -120,7 +120,7 @@ test-frontend:
     npm run test --prefix {{frontend_dir}} -- --silent
 
 test-e2e:
-    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then npm run test:e2e --prefix {{frontend_dir}}; else echo "Django non attivo su :8000 — E2E saltati."; fi
+    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then npm run test:e2e --prefix {{frontend_dir}}; else echo "Django not running on :8000 — skipping E2E."; fi
 
 test: test-backend test-frontend test-e2e
 
@@ -147,7 +147,22 @@ hooks:
 hooks-run:
     {{venv_python}} -m pre_commit run --all-files
 
-# ── Utilità ──────────────────────────────────────────────────────────────────
+# ── Release ──────────────────────────────────────────────────────────────────
+
+# Bump the unified version (SemVer) from the Conventional Commits: update
+# VERSION + web/package.json + CHANGELOG.md, create the vX.Y.Z tag and push
+# (commit + tag). The release.yml GitHub Action then publishes the Release.
+# Usage:
+#   just release            → increment inferred automatically from the commits
+#   just release patch      → force a patch increment (likewise minor / major)
+# Run from `main` with a clean working tree. See wiki/VERSIONING.md.
+release BUMP="":
+    INC="{{uppercase(BUMP)}}"; \
+    if [ -z "$INC" ]; then {{venv_python}} -m commitizen bump --yes; \
+    else {{venv_python}} -m commitizen bump --yes --increment "$INC"; fi
+    git push --follow-tags
+
+# ── Utilities ────────────────────────────────────────────────────────────────
 
 shell:
     {{venv_python}} manage.py shell

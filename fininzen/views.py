@@ -3,6 +3,7 @@ fininzen/views.py — Auth views: registration, JWT token, data-sharing grants.
 """
 
 import logging
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
@@ -220,7 +221,9 @@ class HealthView(APIView):
                 {"status": "error", "database": "unavailable"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
-        return Response({"status": "ok", "database": "ok"})
+        return Response(
+            {"status": "ok", "database": "ok", "version": settings.APP_VERSION}
+        )
 
 
 # ── Grant helpers ──────────────────────────────────────────────────────────────
