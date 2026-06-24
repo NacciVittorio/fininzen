@@ -28,6 +28,15 @@ if [[ -f "$ENV_FILE" ]]; then
     set +a
 fi
 
+# Next.js cutover: Caddy serves the browser the prefixed /fininzen/api/auth/*
+# path, so Django must scope fn_refresh to that exact path or silent refresh
+# breaks (the browser never re-sends the cookie). Fail closed before touching the
+# live service rather than ship a site that cannot stay logged in.
+if [[ "${REFRESH_COOKIE_PATH:-}" != "/fininzen/api/auth/" ]]; then
+    echo "deploy: REFRESH_COOKIE_PATH must be '/fininzen/api/auth/' in ${ENV_FILE} for the Next.js cutover (got '${REFRESH_COOKIE_PATH:-unset}')" >&2
+    exit 78
+fi
+
 # Postgres connection: prefer DATABASE_URL, else libpq PG* env from POSTGRES_*.
 PG_CONN="${DATABASE_URL:-}"
 if [[ -z "$PG_CONN" ]]; then
@@ -49,6 +58,7 @@ rollback() {
     trap - ERR
     echo "deploy: failure detected, rolling back to ${PREV_REV}" >&2
     systemctl stop fininzen || true
+    systemctl stop fininzen-web || true
     su - fininzen -c "cd ${APP_ROOT} && git reset --hard && git checkout --detach ${PREV_REV}" || true
     if [[ -f "$DB_BACKUP" ]]; then
         echo "deploy: restoring Postgres from ${DB_BACKUP}" >&2
@@ -90,9 +100,14 @@ if [[ -n "${BACKUP_ENC_PASSPHRASE:-}" ]]; then
 fi
 # Run migrations before integrity audits so schema-dependent checks do not hit
 # fields that were introduced in the same release.
-su - fininzen -c "cd ${APP_ROOT} && just install-backend && just migrate-prod && just audit-integrity-prod && just audit-integrity-check-prod && just collectstatic-prod && just build-frontend-prod"
+# build-web-prod (Next.js SSR) replaces build-frontend-prod in the forward path:
+# the cutover Caddyfile routes the browser to Next on :3000, so frontend/dist is
+# no longer served. The rollback path still rebuilds the Vite SPA to match the
+# restored legacy Caddyfile.
+su - fininzen -c "cd ${APP_ROOT} && just install-backend && just migrate-prod && just audit-integrity-prod && just audit-integrity-check-prod && just collectstatic-prod && just build-web-prod"
 install -m 0644 "${APP_ROOT}/Caddyfile" "$CADDYFILE"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen.service" "${SYSTEMD_DIR}/fininzen.service"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-web.service" "${SYSTEMD_DIR}/fininzen-web.service"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.service" "${SYSTEMD_DIR}/fininzen-refresh-prices.service"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.timer" "${SYSTEMD_DIR}/fininzen-refresh-prices.timer"
 if [[ -d "$FAIL2BAN_FILTER_DIR" && -d "$FAIL2BAN_JAIL_DIR" ]]; then
@@ -103,9 +118,12 @@ caddy validate --config "$CADDYFILE" --adapter caddyfile
 systemctl daemon-reload
 systemctl enable --now caddy
 systemctl enable fininzen
+systemctl enable fininzen-web
 systemctl enable --now fininzen-refresh-prices.timer
 systemctl reload caddy
 systemctl restart fininzen
+# fininzen-web (After=fininzen.service) starts after Django is back up.
+systemctl restart fininzen-web
 systemctl restart fail2ban || true
 "${APP_ROOT}/scripts/smoke_test.sh" "$PUBLIC_URL" "$SMOKE_ATTEMPTS"
 trap - ERR
