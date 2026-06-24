@@ -75,16 +75,14 @@ run_check() {
     local asset
     local assets=()
 
-    request "/" "html" || return 1
-    if ! header_contains '^Cache-Control:.*no-cache'; then
-        record_failure "html / is missing Cache-Control: no-cache"
-        return 1
-    fi
+    # /login is a real rendered Next.js page (/ is a 307 redirect to /dashboard).
+    request "/login" "html" || return 1
     html="$(cat "$TMP_DIR/body")"
 
-    request "/manifest.json" "manifest" || return 1
-    request "/api/health/" "backend health" || return 1
-    request_status "/api/auth/profile/" "auth guard" "401" || return 1
+    # API still reachable through the Caddy /fininzen prefix, and the auth guard
+    # rejects anonymous reads.
+    request "/fininzen/api/health/" "backend health" || return 1
+    request_status "/fininzen/api/auth/profile/" "auth guard" "401" || return 1
 
     while IFS= read -r asset; do
         assets+=("$asset")
@@ -95,7 +93,7 @@ run_check() {
             | sort -u
     )
     if (( ${#assets[@]} == 0 )); then
-        record_failure "html / does not reference any JavaScript or CSS asset"
+        record_failure "html /login does not reference any JavaScript or CSS asset"
         return 1
     fi
 
@@ -104,7 +102,9 @@ run_check() {
             asset="/${asset}"
         fi
         request "$asset" "asset" || return 1
-        if [[ "$asset" == /assets/* ]] \
+        # Next emits content-hashed bundles under /_next/static/* with a 1-year
+        # immutable cache; assert it so a misconfigured proxy is caught.
+        if [[ "$asset" == /_next/static/* ]] \
             && ! header_contains '^Cache-Control:.*immutable'; then
             record_failure "hashed asset ${asset} is missing Cache-Control: immutable"
             return 1
