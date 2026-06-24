@@ -287,6 +287,7 @@ export default function CfFiltersSheet({
                 <div style={{ padding: "18px 0 0" }}>
                     <button
                         type="button"
+                        data-testid="cf-filters-apply"
                         onClick={onClose}
                         style={{
                             width: "100%",
