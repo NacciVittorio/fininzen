@@ -4,7 +4,7 @@ All notable changes to Fininzen are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/). This file is maintained
 automatically by `just release` (commitizen) from Conventional Commits — see
-[docs/VERSIONING.md](docs/VERSIONING.md).
+[wiki/VERSIONING.md](wiki/VERSIONING.md).
 
 ## v0.0.1 (2026-06-24)
 
