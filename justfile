@@ -5,6 +5,7 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
 venv_python := "venv/bin/python"
 frontend_dir := "frontend"
+web_dir := "web"
 frontend_bin := "frontend/node_modules/.bin"
 deploy_root := "/opt/fininzen"
 env_file := "/etc/fininzen.env"
@@ -29,7 +30,10 @@ install-backend:
 install-frontend:
     cd {{frontend_dir}} && npm install
 
-install: install-backend install-frontend
+install-web:
+    cd {{web_dir}} && npm install
+
+install: install-backend install-frontend install-web
 
 update: install
 
@@ -73,6 +77,12 @@ frontend:
 
 build-frontend-prod:
     cd {{deploy_root}}/frontend && npm ci --quiet && rm -rf dist.next && npm run build -- --outDir dist.next && mkdir -p dist/assets && cp -R dist.next/assets/. dist/assets/ && find dist.next -maxdepth 1 -type f ! -name index.html -exec cp {} dist/ \; && cp dist.next/index.html dist/index.html.next && mv -f dist/index.html.next dist/index.html && rm -rf dist.next && find dist/assets -type f -mtime +7 -delete
+
+# Build the Next.js SSR app served by fininzen-web.service. NEXT_PUBLIC_API_BASE
+# is inlined here (defaults to /fininzen/api), so the browser bundle targets the
+# Caddy-prefixed API; DJANGO_ORIGIN is a runtime-only var set by the unit.
+build-web-prod:
+    cd {{deploy_root}}/{{web_dir}} && npm ci --quiet && npm run build
 
 start:
     DJANGO_PID="" VITE_PID=""; cleanup() { kill "$DJANGO_PID" "$VITE_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{frontend_dir}} -- --host 127.0.0.1 & VITE_PID=$!; wait "$DJANGO_PID" "$VITE_PID"
