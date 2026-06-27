@@ -349,7 +349,17 @@ class _AssetAnalyticsMixin:
             try:
                 _, backfill_meta = _run_with_timeout(_run_backfill, _BACKFILL_TIMEOUT)
                 meta["status"] = backfill_meta.get("status", "ok")
-                meta["message"] = backfill_meta.get("message")
+                # The provider layer (portfolio.prices) builds error messages as
+                # f"yfinance: {exc}" / f"Borsa Italiana: {exc}" — raw str(exc) that
+                # reaches this HTTP response. Scrub it through the same audited
+                # sanitizer used by the except branch below so no SQL/path/stack
+                # detail can leak to the client (CodeQL py/stack-trace-exposure).
+                raw_message = backfill_meta.get("message")
+                meta["message"] = (
+                    safe_client_message(raw_message)
+                    if raw_message is not None
+                    else None
+                )
             except FuturesTimeoutError:
                 logger.warning(
                     "price-history auto-backfill timeout (>%ds) asset=%s",
