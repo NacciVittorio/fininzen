@@ -5,6 +5,60 @@
 > Scope: re-verifica dei 98 finding v1 contro il codice attuale + audit delle superfici introdotte dai 56 commit di `main` (iOS redesign, WebAuthn/passkey, demo account, dashboard deep-dive, archiviazione asset, migrazioni 0036-0039).
 > Metodologia: rebase con riconciliazione manuale dei fix Critical, poi verifica file-per-file con tassonomia di stato. Test suite eseguita su entrambi i branch per attribuire i fallimenti.
 
+## ⚠️ Re-audit v3 — 2026-06-27 (verifica sulla codebase attuale)
+
+> Questa sezione è il risultato di una **ri-verifica leggendo il codice attuale** (non
+> fidandosi delle conferme nel testo v2). Da v2 (2026-06-13/15) la codebase è cambiata
+> molto: migrazione JS→TypeScript del frontend Vite, **riscrittura Next.js in `web/` con
+> cutover in produzione** (PR #20, TanStack Query al posto di `AppContext.jsx`), versioning
+> unificato (PR #22), refactor delle view in package, fix CodeQL stack-trace (PR #24) e
+> override Dependabot (PR #23). Il file **resta in vita** (decisione utente): le sole fix di
+> sicurezza sono applicate; i residui "by-design"/qualità restano da decidere prima di
+> chiudere il documento.
+
+### Backend — confermato risolto nel codice
+CRIT-01…08, HIGH-02/03/04/05/13/17, MED-01/15, LOW-02, NEW-MED-03/04, throttles, WebAuthn
+(`is_active` + throttle + `IsNotDemoUser`), JWT cookie httpOnly + CSRF double-submit,
+`fininzen/api_errors.py` (anti stack-trace), deps Dependabot (cryptography 48.0.1, PyYAML
+6.0.3, override postcss/js-yaml/undici). Verificati per file/riga sul codice rebasato.
+
+### Frontend — cluster "moot" per migrazione, postura riportata in `web/`
+La produzione è `web/` (Next.js). I finding scritti su `frontend/AppContext.jsx`/`vite.config.js`
+non si applicano più a quel codice; la postura è stata **verificata in `web/`**:
+HIGH-21 (token in memoria + refresh cookie httpOnly + CSRF, `web/src/utils/api.ts`) ✅,
+CRIT-04/HIGH-25/26 (parser monetario string-based, `web/src/utils/formatters.ts`) ✅,
+HIGH-24/27 (parse localStorage con normalizer) ✅, HIGH-31 ErrorBoundary ✅,
+NEW-LOW-04 focus-trap BottomSheet ✅, HIGH-22 sourcemap (Next default off) ✅,
+HIGH-30 God-context → TanStack Query (moot) ✅. `frontend/` resta come legacy
+(buildato/testato dal justfile ma non in produzione → candidato a rimozione).
+
+### 🔴 Finding di sicurezza REALMENTE aperti trovati nel re-audit — ora corretti
+- **HIGH-23 (regressione migrazione) — CSP assente sulla SPA di produzione.** La CSP
+  v2 era iniettata da un plugin Vite `<meta>` che non esiste più; né `web/next.config.ts`,
+  né il `Caddyfile`, né Django (copre solo `/api/*`) mettevano una `Content-Security-Policy`
+  sull'HTML servito da Next.js. **Fix**: `web/src/middleware.ts` — CSP **nonce-based**
+  (`script-src 'self' 'nonce-…' 'strict-dynamic'`, `object-src 'none'`, `base-uri/form-action
+  'self'`, `frame-ancestors 'none'`; `'unsafe-eval'/'unsafe-inline'` solo in dev per l'HMR) +
+  `web/src/app/layout.tsx` legge `headers()` per forzare il rendering dinamico così Next
+  applica il nonce ai suoi script. Verificato a runtime: header CSP presente e **tutti** i 16
+  `<script>` portano il nonce coerente (0 script senza nonce).
+- **CodeQL residuo — leak di eccezione provider.** `portfolio/prices.py:468/495`
+  costruiscono `f"yfinance: {exc}"` / `f"Borsa Italiana: {exc}"` che arrivava al client via
+  `portfolio/views/asset_mixins/analytics.py:352` **senza** `safe_client_message` (la PR #24
+  aveva sanificato solo il ramo `except`). **Fix**: il messaggio di backfill è ora scrubbato
+  con `safe_client_message` al confine HTTP (il dettaglio resta nei log e nel comando CLI).
+
+### 🟡 Residui non-sicurezza / by-design — DA DECIDERE prima di eliminare questo file
+Sotto il criterio "solo fix in codice" questi bloccano la cancellazione, ma forzarli sarebbe
+in parte una regressione di prodotto: **HIGH-01** (messaggio esplicito su register, già
+throttled), **MED-06** (CORS≠CSRF in dev), **MED-07** (semantica FX), **MED-08** (migration
+backfill 0029), **LOW-07** (`amount__gt=0` = constraint volontario), **LOW-11** (paginazione
+globale = regressione frontend), e debito di qualità **MED-16/17/21/23/33**, **LOW-16**,
+**NEW-LOW-02** (duplicazione `_recompute_and_rebuild_asset`). Decidere caso per caso se
+implementare o accettare; alla chiusura di tutti, il file può essere eliminato.
+
+---
+
 ## Legenda stato
 
 - ✅ **Risolto** — corretto nel codice attuale (fix Critical di `fa452c8`/`cb05b76` o commit indipendente di `main`).
