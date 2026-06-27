@@ -4,9 +4,8 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
 venv_python := "venv/bin/python"
-frontend_dir := "frontend"
 web_dir := "web"
-frontend_bin := "frontend/node_modules/.bin"
+web_bin := "web/node_modules/.bin"
 deploy_root := "/opt/fininzen"
 env_file := "/etc/fininzen.env"
 
@@ -20,20 +19,17 @@ doctor:
     node --version
     npm --version
     just --version
-    test -x {{frontend_bin}}/prettier
+    test -x {{web_bin}}/prettier
 
 install-backend:
     if [ ! -x {{venv_python}} ]; then python3 -m venv venv; fi
     {{venv_python}} -m pip install --upgrade pip
     {{venv_python}} -m pip install -r requirements.txt
 
-install-frontend:
-    cd {{frontend_dir}} && npm install
-
 install-web:
     cd {{web_dir}} && npm install
 
-install: install-backend install-frontend install-web
+install: install-backend install-web
 
 update: install
 
@@ -72,11 +68,8 @@ clear:
 backend:
     DJANGO_DEBUG=1 {{venv_python}} manage.py runserver
 
-frontend:
-    npm run dev --prefix {{frontend_dir}}
-
-build-frontend-prod:
-    cd {{deploy_root}}/frontend && npm ci --quiet && rm -rf dist.next && npm run build -- --outDir dist.next && mkdir -p dist/assets && cp -R dist.next/assets/. dist/assets/ && find dist.next -maxdepth 1 -type f ! -name index.html -exec cp {} dist/ \; && cp dist.next/index.html dist/index.html.next && mv -f dist/index.html.next dist/index.html && rm -rf dist.next && find dist/assets -type f -mtime +7 -delete
+web:
+    npm run dev --prefix {{web_dir}}
 
 # Build the Next.js SSR app served by fininzen-web.service. NEXT_PUBLIC_API_BASE
 # is inlined here (defaults to /fininzen/api), so the browser bundle targets the
@@ -85,7 +78,7 @@ build-web-prod:
     cd {{deploy_root}}/{{web_dir}} && npm ci --quiet && npm run build
 
 start:
-    DJANGO_PID="" VITE_PID=""; cleanup() { kill "$DJANGO_PID" "$VITE_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{frontend_dir}} -- --host 127.0.0.1 & VITE_PID=$!; wait "$DJANGO_PID" "$VITE_PID"
+    DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
 
 docker-local-up:
     docker compose -f deploy/docker/local/compose.yml up -d postgres redis
@@ -116,27 +109,24 @@ deploy-prod BRANCH="main":
 test-backend:
     {{venv_python}} -m pytest -c pytest.ini --cov-fail-under=75
 
-test-frontend:
-    npm run test --prefix {{frontend_dir}} -- --silent
-
 test-e2e:
-    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then npm run test:e2e --prefix {{frontend_dir}}; else echo "Django not running on :8000 — skipping E2E."; fi
+    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then npm run test:e2e --prefix {{web_dir}}; else echo "Django not running on :8000 — skipping E2E."; fi
 
-test: test-backend test-frontend test-e2e
+test: test-backend test-e2e
 
 lint:
     {{venv_python}} -m ruff check .
-    npm run lint --prefix {{frontend_dir}}
+    npm run lint --prefix {{web_dir}}
 
-# Regenerate the committed OpenAPI schema from the DRF views. The frontend
-# typed client (npm run generate:api) is derived from this file, so run it
-# after changing serializers/views. CI fails if the committed schema is stale.
+# Regenerate the committed OpenAPI schema from the DRF views. The web typed
+# client (npm run generate:api) is derived from this file, so run it after
+# changing serializers/views. CI fails if the committed schema is stale.
 schema:
-    DJANGO_DEBUG=1 {{venv_python}} manage.py spectacular --format openapi-json --file {{frontend_dir}}/openapi.json
+    DJANGO_DEBUG=1 {{venv_python}} manage.py spectacular --format openapi-json --file openapi.json
 
 format:
     {{venv_python}} -m ruff format .
-    npm run format --prefix {{frontend_dir}}
+    npm run format --prefix {{web_dir}}
 
 # HIGH-33: install the git pre-commit hooks (ruff + prettier) from
 # .pre-commit-config.yaml. Run once after `just install`.

@@ -29,8 +29,8 @@ HIGH-21 (token in memoria + refresh cookie httpOnly + CSRF, `web/src/utils/api.t
 CRIT-04/HIGH-25/26 (parser monetario string-based, `web/src/utils/formatters.ts`) ✅,
 HIGH-24/27 (parse localStorage con normalizer) ✅, HIGH-31 ErrorBoundary ✅,
 NEW-LOW-04 focus-trap BottomSheet ✅, HIGH-22 sourcemap (Next default off) ✅,
-HIGH-30 God-context → TanStack Query (moot) ✅. `frontend/` resta come legacy
-(buildato/testato dal justfile ma non in produzione → candidato a rimozione).
+HIGH-30 God-context → TanStack Query (moot) ✅. Il vecchio `frontend/` Vite è stato
+**rimosso** dal repo (non era più la produzione); CI/justfile/deploy ora puntano solo a `web/`.
 
 ### 🔴 Finding di sicurezza REALMENTE aperti trovati nel re-audit — ora corretti
 - **HIGH-23 (regressione migrazione) — CSP assente sulla SPA di produzione.** La CSP

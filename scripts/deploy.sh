@@ -75,7 +75,7 @@ rollback() {
         cp -a "${CADDYFILE}.bak" "$CADDYFILE" || true
         systemctl reload caddy || true
     fi
-    su - fininzen -c "cd ${APP_ROOT} && just install-backend && just collectstatic-prod && just build-frontend-prod" || true
+    su - fininzen -c "cd ${APP_ROOT} && just install-backend && just collectstatic-prod && just build-web-prod" || true
     systemctl restart fininzen || true
     exit "$exit_code"
 }
@@ -100,10 +100,9 @@ if [[ -n "${BACKUP_ENC_PASSPHRASE:-}" ]]; then
 fi
 # Run migrations before integrity audits so schema-dependent checks do not hit
 # fields that were introduced in the same release.
-# build-web-prod (Next.js SSR) replaces build-frontend-prod in the forward path:
-# the cutover Caddyfile routes the browser to Next on :3000, so frontend/dist is
-# no longer served. The rollback path still rebuilds the Vite SPA to match the
-# restored legacy Caddyfile.
+# build-web-prod builds the Next.js SSR app: the Caddyfile routes the browser to
+# Next on :3000. The legacy Vite frontend has been removed, so both the forward
+# and rollback paths build the same web app.
 su - fininzen -c "cd ${APP_ROOT} && just install-backend && just migrate-prod && just audit-integrity-prod && just audit-integrity-check-prod && just collectstatic-prod && just build-web-prod"
 install -m 0644 "${APP_ROOT}/Caddyfile" "$CADDYFILE"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen.service" "${SYSTEMD_DIR}/fininzen.service"

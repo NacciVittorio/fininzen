@@ -41,8 +41,7 @@ fininzen.nacci.eu {
 		reverse_proxy localhost:8000
 	}
 
-	# Everything else → the Next.js Node server (replaces the old static
-	# frontend/dist + try_files index.html fallback).
+	# Everything else → the Next.js Node server (serves the SPA + SSR).
 	handle {
 		reverse_proxy localhost:3000
 	}

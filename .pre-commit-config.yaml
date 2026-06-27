@@ -9,7 +9,7 @@ minimum_pre_commit_version: "4.0.0"
 # Generated artifacts: never let a hook reformat these, or they drift from what
 # the codegen (just schema / npm run generate:api) produces and the CI
 # api-contract job fails.
-exclude: '^frontend/(openapi\.json|src/api/schema\.d\.ts)$'
+exclude: '^(openapi\.json|web/src/api/schema\.d\.ts)$'
 
 repos:
   # ---- Python: lint + format (same engine/version as requirements.txt) ----
@@ -20,14 +20,14 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  # ---- Frontend: prettier via the project's own pinned binary ----
+  # ---- Web (Next.js): prettier via the project's own pinned binary ----
   - repo: local
     hooks:
       - id: prettier
-        name: prettier (frontend/src)
-        entry: frontend/node_modules/.bin/prettier --write
+        name: prettier (web/src)
+        entry: web/node_modules/.bin/prettier --write
         language: system
-        files: ^frontend/src/.*\.(ts|tsx|js|jsx|css|json)$
+        files: ^web/src/.*\.(ts|tsx|js|jsx|css|json)$
 
   # ---- Basic hygiene ----
   - repo: https://github.com/pre-commit/pre-commit-hooks
