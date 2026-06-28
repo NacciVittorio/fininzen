@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { ReactNode } from "react";
 import { useFormatters } from "../../utils/useFormatters";
+import { ChartEmpty } from "./ChartEmpty";
 
 type PieDatum = {
     total: number | string;
@@ -31,9 +32,11 @@ type PieChartProps = {
     onHoverChange?: ((i: number | null) => void) | null;
     tLabel?: string;
     tPctOfTotal?: string;
+    emptyLabel?: string;
 };
 
-export function PieChart({
+// LOW-16: memoized pure data→SVG chart.
+export const PieChart = memo(function PieChart({
     data,
     size = 180,
     onSliceClick = null,
@@ -41,17 +44,19 @@ export function PieChart({
     onHoverChange = null,
     tLabel = "total",
     tPctOfTotal = "of total",
+    emptyLabel,
 }: PieChartProps) {
     const { formatEur } = useFormatters();
     const [innerHover, setInnerHover] = useState<number | null>(null);
     const activeIdx = hoveredIndex !== null ? hoveredIndex : innerHover;
 
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0)
+        return <ChartEmpty height={size} label={emptyLabel} />;
     const total = data.reduce(
         (s, d) => s + parseFloat(String(d.total || 0)),
         0,
     );
-    if (total === 0) return null;
+    if (total === 0) return <ChartEmpty height={size} label={emptyLabel} />;
 
     const cx = size / 2,
         cy = size / 2,
@@ -205,4 +210,4 @@ export function PieChart({
             )}
         </div>
     );
-}
+});

@@ -692,6 +692,8 @@ const it: Record<string, string> = {
     wm_goal: "Obiettivo",
     wm_no_chart_data:
         "Nessun dato per le metriche selezionate — prova un intervallo più ampio o aggiungi movimenti",
+    wm_no_data_refresh:
+        "Ancora nessun dato — aggiorna i prezzi per iniziare il tracciamento",
     fire_net_worth_goal: "Obiettivo Patrimoniale (€)",
     dash_kpi_cards: "KPI",
     dash_investment_kpi: "Statistiche Investimenti",

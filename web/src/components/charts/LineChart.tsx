@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useFormatters } from "../../utils/useFormatters";
+import { ChartEmpty } from "./ChartEmpty";
 
 type LineChartDatum = {
     total_value?: number | string;
@@ -14,9 +15,17 @@ type LineChartProps = {
     height?: number;
     // `label` is accepted for API compatibility but currently unused.
     label?: string;
+    // Localized placeholder shown when there is nothing to plot (MED-33).
+    emptyLabel?: string;
 };
 
-export function LineChart({ data, height = 180 }: LineChartProps) {
+// LOW-16: memoized — a pure data→SVG component, so it only needs to re-render
+// when its props actually change (charts sit inside cards that re-render often).
+export const LineChart = memo(function LineChart({
+    data,
+    height = 180,
+    emptyLabel,
+}: LineChartProps) {
     const { formatEurFull } = useFormatters();
     const containerRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);
@@ -33,7 +42,8 @@ export function LineChart({ data, height = 180 }: LineChartProps) {
         return () => ro.disconnect();
     }, []);
 
-    if (!data || data.length < 2) return null;
+    if (!data || data.length < 2)
+        return <ChartEmpty height={height} label={emptyLabel} />;
 
     const padding = { top: 20, right: 20, bottom: 30, left: 50 };
     const chartWidth = width - padding.left - padding.right;
@@ -261,4 +271,4 @@ export function LineChart({ data, height = 180 }: LineChartProps) {
             </svg>
         </div>
     );
-}
+});

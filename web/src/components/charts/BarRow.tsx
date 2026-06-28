@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { ReactNode } from "react";
 import { useFormatters } from "../../utils/useFormatters";
 
@@ -11,7 +12,15 @@ type BarRowProps = {
     extra?: ReactNode;
 };
 
-export function BarRow({ label, value, total, color, extra }: BarRowProps) {
+// LOW-16: memoized — rendered in lists with stable primitive props, the clearest
+// case where re-rendering only on prop change is a net win.
+export const BarRow = memo(function BarRow({
+    label,
+    value,
+    total,
+    color,
+    extra,
+}: BarRowProps) {
     const { formatEur } = useFormatters();
     const pct = total > 0 ? (value / total) * 100 : 0;
     return (
@@ -63,4 +72,4 @@ export function BarRow({ label, value, total, color, extra }: BarRowProps) {
             </div>
         </div>
     );
-}
+});

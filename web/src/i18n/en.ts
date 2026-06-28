@@ -689,6 +689,7 @@ const en: Record<string, string> = {
     wm_goal: "Goal Line",
     wm_no_chart_data:
         "No data for selected metrics — try a wider range or add expense records",
+    wm_no_data_refresh: "No data yet — refresh prices to start tracking",
     fire_net_worth_goal: "Net Worth Goal (€)",
     dash_kpi_cards: "KPI Cards",
     dash_investment_kpi: "Investment Stats",
