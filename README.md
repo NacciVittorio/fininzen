@@ -55,15 +55,15 @@ In alternativa, due terminali separati:
 # Terminale 1 — Backend
 just backend
 
-# Terminale 2 — Frontend
-just frontend
+# Terminale 2 — Web (Next.js)
+just web
 ```
 
 L'applicazione sarà raggiungibile su:
 
 ```text
 Backend: http://localhost:8000
-Frontend: http://localhost:5173
+Web: http://localhost:3000
 ```
 
 ## Comandi Just
@@ -72,25 +72,24 @@ Frontend: http://localhost:5173
 just doctor              # controlla venv, Node, npm, just e prettier
 just install             # installa dipendenze Python e Node
 just update              # riallinea env a requirements/package-lock
-just start               # avvia backend + frontend insieme
+just start               # avvia backend + web insieme
 just backend             # solo Django (porta 8000)
-just frontend            # solo Vite (porta 5173)
+just web                 # solo Next.js (porta 3000)
 just makemigrations      # crea nuove migrations dopo modifiche ai modelli
 just migrate             # applica migrations pendenti
 just migrate-prod        # applica migrations in produzione caricando /etc/fininzen.env
 just collectstatic-prod  # raccoglie file statici Django in produzione
-just build-frontend-prod # build frontend production con npm ci
-just deploy-prod main    # aggiorna /opt/fininzen, migra, raccoglie statici e builda frontend
+just build-web-prod      # build Next.js production con npm ci
+just deploy-prod main    # aggiorna /opt/fininzen, migra, raccoglie statici e builda web
 just reset-db            # ⚠️ cancella tutto e riparte da zero
 just shell               # shell interattiva Django
 just showmigrations      # controlla stato migrations
-just test                # esegue backend, frontend ed e2e
+just test                # esegue backend ed e2e
 just test-backend        # solo pytest
-just test-frontend       # solo vitest
-just test-e2e            # solo Playwright
-just lint                # ruff + prettier
-just format              # ruff format + prettier write
-just schema              # rigenera lo schema OpenAPI (frontend/openapi.json)
+just test-e2e            # solo Playwright (web)
+just lint                # ruff + lint web (prettier + eslint + tsc)
+just format              # ruff format + prettier write (web)
+just schema              # rigenera lo schema OpenAPI (openapi.json)
 just hooks               # installa i git pre-commit hook
 just hooks-run           # esegue tutti i pre-commit hook sull'intero albero
 just release             # bump SemVer + CHANGELOG + tag dai Conventional Commits

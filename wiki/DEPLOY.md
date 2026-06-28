@@ -151,14 +151,14 @@ cd /opt/fininzen
 just install
 ```
 
-## 8. Migrazione database, statici e build frontend
+## 8. Migrazione database, statici e build web
 
 ```bash
 su - fininzen
 cd /opt/fininzen
 just migrate-prod
 just collectstatic-prod
-just build-frontend-prod
+just build-web-prod
 ```
 
 ---

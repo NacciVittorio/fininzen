@@ -62,7 +62,7 @@ Do not edit these numbers by hand: use `just release` (below).
 
 - **Settings → About** in the web app (the real value instead of the old `dev`).
 - **`GET /api/health/`** → `{"status":"ok","database":"ok","version":"0.0.1"}`.
-- **OpenAPI contract** (`frontend/openapi.json`, field `info.version`).
+- **OpenAPI contract** (`openapi.json`, field `info.version`).
 - **GitHub → Releases** and git tags `vX.Y.Z`.
 
 ## How to cut a release

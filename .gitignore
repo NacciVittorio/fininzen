@@ -10,18 +10,17 @@ logs/
 
 # Node.js
 node_modules/
-frontend/dist/
+web/.next/
 
 # Playwright
 test-results/
-frontend/test-results/
-frontend/playwright-report/
+web/test-results/
+web/playwright-report/
 .mcp.json
 .playwright-mcp
 
 # Coverage reports
 htmlcov/
-frontend/coverage/
 .coverage
 
 # Local data exports
