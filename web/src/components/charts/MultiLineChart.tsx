@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { MouseEvent, TouchEvent } from "react";
 import { makeFormatTick } from "../../utils/formatters";
 import { useFormatters } from "../../utils/useFormatters";
+import { ChartEmpty } from "./ChartEmpty";
 
 type SeriesDatum = { date: string; value: number };
 
@@ -19,6 +20,7 @@ type MultiLineChartProps = {
     height?: number;
     goalLine?: number | null;
     goalLabel?: string;
+    emptyLabel?: string;
 };
 
 type TooltipLine = {
@@ -28,11 +30,13 @@ type TooltipLine = {
     yAxis?: "left" | "right";
 };
 
-export function MultiLineChart({
+// LOW-16: memoized pure data→SVG chart.
+export const MultiLineChart = memo(function MultiLineChart({
     series = [],
     height = 220,
     goalLine = null,
     goalLabel = "",
+    emptyLabel,
 }: MultiLineChartProps) {
     const { formatEurFull } = useFormatters();
     const containerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +55,8 @@ export function MultiLineChart({
     }, []);
 
     const activeSeries = series.filter((s) => s.data && s.data.length > 1);
-    if (activeSeries.length === 0) return null;
+    if (activeSeries.length === 0)
+        return <ChartEmpty height={height} label={emptyLabel} />;
 
     const hasRight = activeSeries.some((s) => s.yAxis === "right");
     const hasLeft = activeSeries.some((s) => s.yAxis !== "right");
@@ -68,7 +73,8 @@ export function MultiLineChart({
     const allDates = [
         ...new Set(activeSeries.flatMap((s) => s.data.map((d) => d.date))),
     ].sort();
-    if (allDates.length < 2) return null;
+    if (allDates.length < 2)
+        return <ChartEmpty height={height} label={emptyLabel} />;
 
     const dateToX = (d: string): number | null => {
         const idx = allDates.indexOf(d);
@@ -473,4 +479,4 @@ export function MultiLineChart({
             </svg>
         </div>
     );
-}
+});

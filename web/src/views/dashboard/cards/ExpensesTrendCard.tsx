@@ -57,7 +57,7 @@ export function ExpensesTrendCard({
                     color={isIncome ? "var(--chart-2)" : "var(--chart-1)"}
                 />
             ) : (
-                <EmptyCardText>No data</EmptyCardText>
+                <EmptyCardText>{T("no_data")}</EmptyCardText>
             )}
         </Card>
     );

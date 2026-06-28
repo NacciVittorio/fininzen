@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { ChartEmpty } from "./ChartEmpty";
 
 type BarTrendDatum = { value: number; month: string };
 
@@ -8,12 +9,15 @@ type BarTrendChartProps = {
     data?: BarTrendDatum[];
     height?: number;
     color?: string;
+    emptyLabel?: string;
 };
 
-export function BarTrendChart({
+// LOW-16: memoized pure data→SVG chart.
+export const BarTrendChart = memo(function BarTrendChart({
     data,
     height = 120,
     color = "var(--accent)",
+    emptyLabel,
 }: BarTrendChartProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(340);
@@ -28,7 +32,8 @@ export function BarTrendChart({
         return () => ro.disconnect();
     }, []);
 
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0)
+        return <ChartEmpty height={height} label={emptyLabel} />;
 
     const padding = { left: 0, right: 0, top: 16, bottom: 20 };
     const chartWidth = width - padding.left - padding.right;
@@ -90,4 +95,4 @@ export function BarTrendChart({
             </svg>
         </div>
     );
-}
+});

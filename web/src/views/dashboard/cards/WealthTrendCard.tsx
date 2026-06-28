@@ -187,9 +187,7 @@ export function WealthTrendCard({
                     <EmptyCardText>{T("wm_no_chart_data")}</EmptyCardText>
                 )
             ) : (
-                <EmptyCardText>
-                    No data yet — refresh prices to start tracking
-                </EmptyCardText>
+                <EmptyCardText>{T("wm_no_data_refresh")}</EmptyCardText>
             )}
         </Card>
     );
