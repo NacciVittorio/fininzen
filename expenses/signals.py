@@ -18,20 +18,18 @@ logger = logging.getLogger(__name__)
 def _recompute_and_rebuild_asset(asset):
     """Recompute the asset under a row lock, then rebuild its manual history.
 
-    The recompute is delegated to portfolio.services._recompute_asset_locked which
-    wraps the operation in `transaction.atomic()` + `select_for_update(Asset)` so
-    two concurrent mutations cannot interleave on the same asset (CRIT-01).
+    NEW-LOW-02: delegates to ``portfolio.services._refresh_manual_asset`` (the
+    canonical recompute-locked + rebuild-history helper, CRIT-01) instead of
+    re-implementing it. ``_refresh_manual_asset`` already swallows rebuild
+    failures; we keep an outer guard so that a failure in the *recompute* step
+    (which it lets propagate) still never poisons the surrounding Expense save —
+    the signal must stay best-effort.
     """
-    from portfolio.prices import rebuild_manual_history
-    from portfolio.services import _recompute_asset_locked
+    from portfolio.services import _refresh_manual_asset
 
     try:
-        _recompute_asset_locked(asset)
-        asset.refresh_from_db()
-        rebuild_manual_history(asset)
+        _refresh_manual_asset(asset)
     except Exception:
-        # Never let a refresh failure poison the surrounding Expense save —
-        # log with the asset id so the issue is traceable, then continue.
         logger.exception(
             "_recompute_and_rebuild_asset: asset=%s refresh failed",
             getattr(asset, "pk", "?"),

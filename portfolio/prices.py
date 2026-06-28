@@ -16,6 +16,7 @@ Nota sui ticker europei:
   BTC-USD  → Bitcoin in USD
 """
 
+import atexit
 import logging
 import random
 import time
@@ -37,6 +38,11 @@ _BACKFILL_TIMEOUT = 12  # seconds wall-clock per intero backfill (retry inclusi)
 _PROVIDER_EXECUTOR = ThreadPoolExecutor(
     max_workers=4, thread_name_prefix="price-provider"
 )
+# MED-21: the provider pool is a long-lived module global (one per gunicorn
+# worker). Register an explicit shutdown so the worker drains its price-provider
+# threads on process exit instead of leaving them to the interpreter teardown;
+# wait=False so a thread still blocked on a slow Yahoo/Borsa call can't hang exit.
+atexit.register(_PROVIDER_EXECUTOR.shutdown, wait=False)
 
 logger = logging.getLogger(__name__)
 

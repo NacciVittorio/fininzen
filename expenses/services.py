@@ -340,6 +340,105 @@ _ASSET_SAMPLES = [
 ]
 
 
+def _seed_clear_demo_data(user, Asset, InvestmentType, FireSettings, RecurringExpense):
+    """Wipe the demo user's data before re-seeding (current user only)."""
+    Expense.objects.filter(owner=user).delete()
+    Budget.objects.filter(owner=user).delete()
+    RecurringExpense.objects.filter(owner=user).delete()
+    Asset.objects.filter(owner=user).delete()
+    FireSettings.objects.filter(owner=user).delete()
+
+
+def _seed_default_categories(user):
+    """Create the demo user's default expense/income categories (idempotent)."""
+    defaults = [
+        ("Food & Groceries", "#e8845a", "🛒", Category.EXPENSE),
+        ("Transport", "#5a8ee8", "🚌", Category.EXPENSE),
+        ("Entertainment", "#8e5ae8", "🎬", Category.EXPENSE),
+        ("Health", "#5ae898", "💊", Category.EXPENSE),
+        ("Home", "#e8c85a", "🏠", Category.EXPENSE),
+        ("Shopping", "#e85a8e", "👗", Category.EXPENSE),
+        ("Utilities", "#5ae8e8", "⚡", Category.EXPENSE),
+        ("Other", "#8e8e8e", "📦", Category.EXPENSE),
+        ("Salary", "#4ade80", "💼", Category.INCOME),
+        ("Investments", "#60a5fa", "📈", Category.INCOME),
+    ]
+    for name, color, icon, cat_type in defaults:
+        Category.objects.get_or_create(
+            name=name,
+            owner=user,
+            parent=None,
+            defaults={"color": color, "icon": icon, "category_type": cat_type},
+        )
+
+
+def _seed_default_investment_types(user, InvestmentType):
+    """Create the demo user's default investment types (idempotent)."""
+    # (name, color, icon, supports_ticker, is_liquid_default, is_bank_account)
+    defaults = [
+        ("Bank Account", "#22d3ee", "🏦", False, True, True),
+        ("ETF", "#4f7fff", "📊", True, True, False),
+        ("Stock", "#60a5fa", "📈", True, True, False),
+        ("Crypto", "#f59e0b", "₿", True, True, False),
+        ("Bond", "#34d399", "🏛️", True, True, False),
+        ("Real Estate", "#a78bfa", "🏠", False, False, False),
+        ("Fund", "#6ee7b7", "💼", False, False, False),
+    ]
+    for (
+        name,
+        color,
+        icon,
+        supports_ticker,
+        is_liquid_default,
+        is_bank_account,
+    ) in defaults:
+        InvestmentType.objects.get_or_create(
+            name=name,
+            owner=user,
+            defaults={
+                "color": color,
+                "icon": icon,
+                "supports_ticker": supports_ticker,
+                "is_liquid_default": is_liquid_default,
+                "is_bank_account": is_bank_account,
+            },
+        )
+
+
+def _demo_monthly_frames(today):
+    """The six month-start dates (oldest→newest) the demo data spans."""
+    frames = []
+    cursor = date_cls(today.year, today.month, 1)
+    for _ in range(6):
+        frames.append(cursor)
+        if cursor.month == 1:
+            cursor = date_cls(cursor.year - 1, 12, 1)
+        else:
+            cursor = date_cls(cursor.year, cursor.month - 1, 1)
+    frames.reverse()
+    return frames
+
+
+def _seed_demo_budgets(user):
+    """Create sample monthly budgets for the demo user (idempotent)."""
+    demo_budgets = [
+        ("Food & Groceries", 400),
+        ("Transport", 150),
+        ("Entertainment", 100),
+        ("Home", 200),
+        ("Shopping", 150),
+        ("Utilities", 120),
+    ]
+    for cat_name, amount in demo_budgets:
+        cat = Category.objects.filter(name=cat_name, owner=user).first()
+        if cat:
+            Budget.objects.get_or_create(
+                category=cat,
+                owner=user,
+                defaults={"amount": amount},
+            )
+
+
 def seed_demo_for_user(user, Asset, InvestmentType, *, month_key=None):
     from portfolio.models import AssetTransaction
     from decimal import Decimal as _D
@@ -361,64 +460,10 @@ def seed_demo_for_user(user, Asset, InvestmentType, *, month_key=None):
     rng = random.Random(f"demo-seed:{seed_key}")
     today = timezone.localdate()
 
-    # Pulizia — solo i dati dell'utente corrente
-    Expense.objects.filter(owner=user).delete()
-    Budget.objects.filter(owner=user).delete()
-    RecurringExpense.objects.filter(owner=user).delete()
-    Asset.objects.filter(owner=user).delete()
-    FireSettings.objects.filter(owner=user).delete()
-
-    # Categorie di default per questo utente
-    _DEFAULT_CATEGORIES = [
-        ("Food & Groceries", "#e8845a", "🛒", Category.EXPENSE),
-        ("Transport", "#5a8ee8", "🚌", Category.EXPENSE),
-        ("Entertainment", "#8e5ae8", "🎬", Category.EXPENSE),
-        ("Health", "#5ae898", "💊", Category.EXPENSE),
-        ("Home", "#e8c85a", "🏠", Category.EXPENSE),
-        ("Shopping", "#e85a8e", "👗", Category.EXPENSE),
-        ("Utilities", "#5ae8e8", "⚡", Category.EXPENSE),
-        ("Other", "#8e8e8e", "📦", Category.EXPENSE),
-        ("Salary", "#4ade80", "💼", Category.INCOME),
-        ("Investments", "#60a5fa", "📈", Category.INCOME),
-    ]
-    for name, color, icon, cat_type in _DEFAULT_CATEGORIES:
-        Category.objects.get_or_create(
-            name=name,
-            owner=user,
-            parent=None,
-            defaults={"color": color, "icon": icon, "category_type": cat_type},
-        )
-
-    # Tipi di investimento di default per questo utente
-    # (name, color, icon, supports_ticker, is_liquid_default, is_bank_account)
-    _DEFAULT_INV_TYPES = [
-        ("Bank Account", "#22d3ee", "🏦", False, True, True),
-        ("ETF", "#4f7fff", "📊", True, True, False),
-        ("Stock", "#60a5fa", "📈", True, True, False),
-        ("Crypto", "#f59e0b", "₿", True, True, False),
-        ("Bond", "#34d399", "🏛️", True, True, False),
-        ("Real Estate", "#a78bfa", "🏠", False, False, False),
-        ("Fund", "#6ee7b7", "💼", False, False, False),
-    ]
-    for (
-        name,
-        color,
-        icon,
-        supports_ticker,
-        is_liquid_default,
-        is_bank_account,
-    ) in _DEFAULT_INV_TYPES:
-        InvestmentType.objects.get_or_create(
-            name=name,
-            owner=user,
-            defaults={
-                "color": color,
-                "icon": icon,
-                "supports_ticker": supports_ticker,
-                "is_liquid_default": is_liquid_default,
-                "is_bank_account": is_bank_account,
-            },
-        )
+    # Pulizia + scaffolding di default (solo i dati dell'utente corrente)
+    _seed_clear_demo_data(user, Asset, InvestmentType, FireSettings, RecurringExpense)
+    _seed_default_categories(user)
+    _seed_default_investment_types(user, InvestmentType)
     ensure_default_contribution_sources(user)
 
     expense_cats = list(
@@ -469,15 +514,7 @@ def seed_demo_for_user(user, Asset, InvestmentType, *, month_key=None):
 
     # ── Spese ed entrate — 1 spesa per mese linkata al checking account ───────
     expenses_created = 0
-    monthly_frames = []
-    cursor = date_cls(today.year, today.month, 1)
-    for _ in range(6):
-        monthly_frames.append(cursor)
-        if cursor.month == 1:
-            cursor = date_cls(cursor.year - 1, 12, 1)
-        else:
-            cursor = date_cls(cursor.year, cursor.month - 1, 1)
-    monthly_frames.reverse()
+    monthly_frames = _demo_monthly_frames(today)
 
     for frame in monthly_frames:
         ref = frame
@@ -589,22 +626,7 @@ def seed_demo_for_user(user, Asset, InvestmentType, *, month_key=None):
         backfill_recurring_expense(rec)
 
     # ── Budget mensili di esempio ─────────────────────────────────────────────
-    _DEMO_BUDGETS = [
-        ("Food & Groceries", 400),
-        ("Transport", 150),
-        ("Entertainment", 100),
-        ("Home", 200),
-        ("Shopping", 150),
-        ("Utilities", 120),
-    ]
-    for cat_name, amount in _DEMO_BUDGETS:
-        cat = Category.objects.filter(name=cat_name, owner=user).first()
-        if cat:
-            Budget.objects.get_or_create(
-                category=cat,
-                owner=user,
-                defaults={"amount": amount},
-            )
+    _seed_demo_budgets(user)
 
     # Asset di investimento — tutti MANUAL con ticker="" per garantire la costruzione
     # della price history tramite rebuild_manual_history (no-op se has_ticker=True).
