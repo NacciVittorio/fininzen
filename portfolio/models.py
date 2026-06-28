@@ -304,6 +304,16 @@ class Asset(models.Model):
         - AUTO: average-cost su BUY/SELL.
         - MANUAL: opening_balance + CASH_IN/CASH_OUT + ADJUSTMENT determinano current_value.
         I movimenti futuri restano persistiti ma non incidono sul saldo corrente.
+
+        MED-07 — convenzione FX dei campi EUR (deliberata, non un bug):
+        `current_value_eur` usa il tasso di cambio **live** (valore di mercato in
+        EUR oggi, riga ~430), mentre `invested_capital_eur` è il **cost basis
+        storico** accumulato col tasso FX *alla data di ciascuna transazione*
+        (`_historical_rate`). È lo standard finanziario: il valore corrente
+        riflette il mercato di oggi, il capitale investito riflette quanto è
+        costato realmente in EUR all'epoca. Le due metriche NON vanno "allineate"
+        sullo stesso tasso. Quando lo storico FX è incompleto, `invested_capital_eur`
+        è None e il serializer espone `eur_complete=False` (la UI lo segnala con `~`).
         """
         today = timezone.localdate()
         txs = list(
@@ -427,6 +437,10 @@ class Asset(models.Model):
             self.invested_capital,
             self.current_value,
         )
+        # MED-07: current_value_eur uses the LIVE rate (today's market value in
+        # EUR), in contrast with invested_capital_eur which is the historical
+        # cost basis accumulated above with per-transaction rates. See the
+        # method docstring — this asymmetry is intentional.
         rate = get_exchange_rate(self.currency or "EUR")
         if rate is not None:
             self.current_value_eur = _q2(self.current_value * rate)
