@@ -12,8 +12,18 @@ def _clear_cache():
     asset reconcile TTL, HIGH-17) and rate-limit scopes. Without a reset a guard
     armed by one test would silently skip work expected by the next, making
     order-dependent failures. Clearing before each test keeps them independent.
+
+    The FX module caches (live + historical, MED-23) are process-global and
+    survive the per-test DB rollback, so clear them too: otherwise a rate cached
+    by one test would shadow a different rate set up by the next.
     """
     cache.clear()
+    from portfolio import fx
+
+    with fx._RATE_CACHE_LOCK:
+        fx._RATE_CACHE.clear()
+    with fx._HIST_RATE_CACHE_LOCK:
+        fx._HIST_RATE_CACHE.clear()
     yield
 
 

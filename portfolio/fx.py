@@ -23,6 +23,13 @@ _RATE_CACHE: dict[tuple[str, str], tuple[Decimal, datetime]] = {}
 # half-written entry or the fallback path can race with a fresh write.
 _RATE_CACHE_LOCK = threading.Lock()
 _CACHE_TTL = timedelta(hours=24)
+# MED-23: a recompute over an asset's history calls get_historical_exchange_rate
+# once per transaction, re-hitting the DB for the same (currency, day) pairs. A
+# persisted historical rate is immutable once recorded, so memoising the *found*
+# rows is safe; we deliberately never cache a None (a missing day may be
+# backfilled later) so a transient gap can't be cached forever.
+_HIST_RATE_CACHE: dict[tuple[str, str, int | None, date], Decimal] = {}
+_HIST_RATE_CACHE_LOCK = threading.Lock()
 _FRANKFURTER_BASE = "https://api.frankfurter.app"
 _REQUEST_TIMEOUT = 5  # seconds
 _HISTORICAL_LOOKBACK_DAYS = 7
@@ -87,6 +94,13 @@ def get_historical_exchange_rate(
         return Decimal("1")
     from .models import FXRateHistory
 
+    owner_id = getattr(owner, "pk", owner)
+    cache_key = (from_ccy, to_ccy, owner_id, day)
+    with _HIST_RATE_CACHE_LOCK:
+        cached = _HIST_RATE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
     qs = FXRateHistory.objects.filter(
         from_currency=from_ccy,
         to_currency=to_ccy,
@@ -96,7 +110,12 @@ def get_historical_exchange_rate(
     if owner is not None:
         qs = qs.filter(owner=owner)
     row = qs.order_by("-date").only("rate").first()
-    return Decimal(row.rate) if row else None
+    if row is None:
+        return None
+    rate = Decimal(row.rate)
+    with _HIST_RATE_CACHE_LOCK:
+        _HIST_RATE_CACHE[cache_key] = rate
+    return rate
 
 
 def fetch_historical_exchange_rate(
