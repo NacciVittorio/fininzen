@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expenses", "0014_require_tenant_ownership"),
         ("portfolio", "0047_owner_cascade_on_delete"),
