@@ -87,13 +87,14 @@ def test_expense_create_rejects_other_users_category(client, other_cat):
     assert res.status_code == 400
 
 
-def test_expense_create_rejects_non_positive_amount(client, own_cat):
+def test_expense_create_rejects_zero_amount(client, own_cat):
+    # LOW-07: negative amounts are now allowed (refunds); only zero is rejected.
     res = client.post(
         "/api/expenses/",
         data={
             "description": "Invalid amount",
             "category": own_cat.id,
-            "amount": "-10.00",
+            "amount": "0",
             "date": "2026-01-01",
         },
         content_type="application/json",

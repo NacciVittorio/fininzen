@@ -148,9 +148,13 @@ class Expense(models.Model):
                 ),
                 name="uniq_rec_occ_owner",
             ),
+            # LOW-07: allow refunds — a negative expense models money returned
+            # (it reduces the month's spending and, when linked to a bank
+            # account, increases the balance via a negative CASH_OUT shadow tx).
+            # Zero stays rejected: a zero-amount movement carries no information.
             models.CheckConstraint(
-                condition=models.Q(amount__gt=0),
-                name="expense_amount_positive",
+                condition=~models.Q(amount=0),
+                name="expense_amount_nonzero",
             ),
         ]
 

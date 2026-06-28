@@ -172,6 +172,72 @@ def test_verifying_expense_linked_account_updates_balance(client, cat, test_user
     assert shadow.is_verified is True
 
 
+def test_refund_negative_expense_increases_linked_balance(client, cat, test_user):
+    """LOW-07: a negative expense (refund) returns money to the linked account."""
+    itype = InvestmentType.objects.create(
+        name="Bank", is_bank_account=True, supports_ticker=False, owner=test_user
+    )
+    account = Asset.objects.create(
+        name="Checking",
+        investment_type=itype,
+        tracking_type=Asset.MANUAL,
+        owner=test_user,
+    )
+    AssetTransaction.objects.create(
+        asset=account,
+        transaction_type=AssetTransaction.CASH_IN,
+        date=date(2026, 1, 1),
+        shares=Decimal("1"),
+        price_per_share=Decimal("1000"),
+        is_verified=True,
+        owner=test_user,
+    )
+    account.recompute_from_transactions()
+
+    Expense.objects.create(
+        description="Returned shoes",
+        amount=Decimal("-50.00"),
+        category=cat,
+        date=date(2026, 4, 10),
+        linked_asset=account,
+        is_verified=True,
+        owner=test_user,
+    )
+
+    account.refresh_from_db()
+    # The refund raises the balance above the opening 1000.
+    assert account.current_value == Decimal("1050.00")
+
+
+def test_create_refund_via_api_accepts_negative_amount(client, cat):
+    res = client.post(
+        "/api/expenses/",
+        data={
+            "description": "Refund",
+            "amount": "-12.50",
+            "category": cat.id,
+            "date": "2026-04-10",
+        },
+        content_type="application/json",
+    )
+    assert res.status_code == 201, res.content
+    assert Decimal(res.json()["amount"]) == Decimal("-12.50")
+
+
+def test_create_expense_rejects_zero_amount(client, cat):
+    res = client.post(
+        "/api/expenses/",
+        data={
+            "description": "Nothing",
+            "amount": "0",
+            "category": cat.id,
+            "date": "2026-04-10",
+        },
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+
+
 def test_month_filter(client, cat, test_user):
     Expense.objects.create(
         description="Jan",

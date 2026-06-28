@@ -139,8 +139,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
         return fields
 
     def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("L'importo deve essere maggiore di zero.")
+        # LOW-07: a negative amount is a refund (money returned); only zero is
+        # rejected since it carries no information.
+        if value == 0:
+            raise serializers.ValidationError("L'importo non può essere zero.")
         return value
 
     def validate(self, attrs):

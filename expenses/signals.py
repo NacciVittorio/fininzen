@@ -92,17 +92,29 @@ def sync_expense_to_asset(sender, instance, **kwargs):
             return
 
         cat = instance.category
-        tx_type = (
-            AssetTransaction.CASH_OUT
-            if not cat or cat.category_type == "expense"
-            else AssetTransaction.CASH_IN
-        )
+        is_expense = not cat or cat.category_type == "expense"
+        # LOW-07: map the (possibly negative) expense amount to a cash direction.
+        # An expense removes money, income adds it; a negative amount flips the
+        # direction (a refunded expense returns money). The shadow tx must keep a
+        # positive price_per_share (assettransaction_amount_valid), so the sign is
+        # encoded in the transaction TYPE, not the amount.
+        # instance.amount may still be the raw value assigned on create (e.g. a
+        # str via Model.objects.create(amount="10.00")) — coerce before arithmetic.
+        amount = Decimal(str(instance.amount))
+        signed_inflow = -amount if is_expense else amount
+        if signed_inflow >= 0:
+            tx_type = AssetTransaction.CASH_IN
+            shadow_amount = signed_inflow
+        else:
+            tx_type = AssetTransaction.CASH_OUT
+            shadow_amount = -signed_inflow
 
         logger.debug(
-            "sync_expense_to_asset: expense=%s amount=%s → %s on asset=%s",
+            "sync_expense_to_asset: expense=%s amount=%s → %s %s on asset=%s",
             instance.pk,
             instance.amount,
             tx_type,
+            shadow_amount,
             asset.name,
         )
         AssetTransaction.objects.update_or_create(
@@ -112,7 +124,7 @@ def sync_expense_to_asset(sender, instance, **kwargs):
                 "transaction_type": tx_type,
                 "date": instance.date,
                 "shares": Decimal("1"),
-                "price_per_share": instance.amount,
+                "price_per_share": shadow_amount,
                 "is_verified": instance.is_verified,
                 "owner": instance.owner,
             },
