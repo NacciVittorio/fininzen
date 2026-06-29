@@ -53,7 +53,9 @@ VERSION ──┬── Backend  → fininzen/settings.py reads it at runtime (A
           ├── Web       → web/next.config.ts inlines it at build time as
           │              NEXT_PUBLIC_APP_VERSION → shown in Settings → About.
           └── Tooling   → commitizen (.cz.toml) keeps VERSION, web/package.json
-                          and CHANGELOG.md in sync on every bump.
+                          and CHANGELOG.md in sync on every bump, and a
+                          pre_bump_hook regenerates openapi.json so its
+                          info.version follows too.
 ```
 
 Do not edit these numbers by hand: use `just release` (below).
