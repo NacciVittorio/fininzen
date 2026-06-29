@@ -6,7 +6,7 @@ Quattro aree, per scopi diversi:
 |---|---|
 | `local/` | Infrastruttura di sviluppo: solo Postgres + Redis in Docker, Django gira sul venv host. |
 | `stack/` | **Deploy di produzione completo**: Caddy + Next.js + Django + Postgres + Redis, tutto in container. |
-| `prod/` | Immagine del backend Django (`Dockerfile` + `entrypoint.sh`), buildata dal servizio `backend` dello stack. |
+| `backend/` | Immagine del backend Django (`Dockerfile` + `entrypoint.sh`), buildata dal servizio `backend` dello stack. |
 | `web/` | Dockerfile del frontend Next.js (usato dallo stack). |
 
 ## Local (sviluppo)

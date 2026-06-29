@@ -28,7 +28,7 @@ enabled from repository code alone.
 - Keep workers at `2` or lower on the current 1 vCPU / 1 GB VPS.
 - Configure worker recycling, for example `--max-requests 1000
   --max-requests-jitter 100`. In the Docker stack this is set in the gunicorn
-  command of `deploy/docker/prod/Dockerfile`.
+  command of `deploy/docker/backend/Dockerfile`.
 
 ## Price Refresh
 
@@ -44,8 +44,9 @@ enabled from repository code alone.
 - `deploy/docker/stack/compose.yml` is the production topology: Caddy + Next.js +
   Django/Gunicorn (two workers) + PostgreSQL 18 + Redis 7. See
   `wiki/DOCKER_DEPLOY.md`.
-- `deploy/docker/prod/` is a backend-only reference; `deploy/docker/local/` is
-  dev infra (Postgres + Redis only).
+- `deploy/docker/backend/` holds the Django backend image (Dockerfile +
+  entrypoint) built by the stack; `deploy/docker/local/` is dev infra
+  (Postgres + Redis only).
 - Keep `DATABASE_URL`/`POSTGRES_*` mandatory in production. SQLite is a local
   development fallback only.
 

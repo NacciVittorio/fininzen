@@ -45,7 +45,7 @@ services:
   backend:
     build:
       context: ../../..
-      dockerfile: deploy/docker/prod/Dockerfile
+      dockerfile: deploy/docker/backend/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:

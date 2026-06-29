@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x deploy/docker/prod/entrypoint.sh
+RUN chmod +x deploy/docker/backend/entrypoint.sh
 
 EXPOSE 8000
 
@@ -22,5 +22,5 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8000/api/health/ || exit 1
 
 # The entrypoint runs migrate + collectstatic, then execs the CMD below.
-ENTRYPOINT ["/app/deploy/docker/prod/entrypoint.sh"]
+ENTRYPOINT ["/app/deploy/docker/backend/entrypoint.sh"]
 CMD ["gunicorn", "fininzen.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--max-requests", "1000", "--max-requests-jitter", "100"]
