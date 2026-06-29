@@ -409,11 +409,21 @@ USE_TZ = True
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "1") == "1"
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "31536000"))
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    # Cookie/transport hardening assumes the site is served over HTTPS. For a
+    # trusted-LAN deploy served over plain HTTP (no TLS), set
+    # DJANGO_SECURE_COOKIES=0 so the browser actually stores the auth cookies:
+    # Secure-only cookies are silently dropped over http://, which breaks login
+    # and silent token refresh even with username+password. Keep the default
+    # (1) for any internet-facing deployment.
+    _secure_cookies = os.environ.get("DJANGO_SECURE_COOKIES", "1") == "1"
+    SESSION_COOKIE_SECURE = _secure_cookies
+    CSRF_COOKIE_SECURE = _secure_cookies
+    if _secure_cookies:
+        SECURE_HSTS_SECONDS = int(
+            os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "31536000")
+        )
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 STATIC_URL = "static/"

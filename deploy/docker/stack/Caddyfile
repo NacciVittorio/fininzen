@@ -1,0 +1,40 @@
+# Full-stack reverse proxy — plain HTTP on :80 for a trusted-LAN deploy.
+#
+# Same routing contract as the bare-metal Caddyfile at the repo root, but talks
+# to the compose service names instead of localhost, and serves static assets
+# from the shared `staticfiles` volume. When you move to a real domain + TLS,
+# replace `:80` with `your.domain {` and Caddy will provision a certificate
+# automatically (then flip DJANGO_SECURE_COOKIES back to 1).
+:80 {
+	encode gzip
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Django's collected static assets (admin + DRF browsable API). handle_path
+	# strips the /static prefix so the path maps directly into the volume root.
+	handle_path /static/* {
+		root * /srv/staticfiles
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Browser-visible API path. Strip /fininzen so Django still receives /api/*.
+	handle_path /fininzen/api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Legacy unprefixed API, kept reachable for direct callers.
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else → the Next.js server (SPA + SSR).
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
