@@ -25,16 +25,17 @@ enabled from repository code alone.
 
 - Keep workers at `2` or lower on the current 1 vCPU / 1 GB VPS.
 - Configure worker recycling, for example `--max-requests 1000
-  --max-requests-jitter 100`, in the systemd unit or process manager.
-- Keep the existing log rotation hook enabled before server start.
-- The repo ships a reference unit in `deploy/systemd/fininzen.service`.
+  --max-requests-jitter 100`. In the Docker stack this is set in the gunicorn
+  command of `deploy/docker/prod/Dockerfile`.
 
 ## Price Refresh
 
 - Do not refresh prices from Django startup hooks.
-- Schedule `venv/bin/python manage.py refresh_asset_prices` from cron or a
-  systemd timer. Run it outside peak request windows.
-- The repo ships a reference timer in `deploy/systemd/fininzen-refresh-prices.timer`.
+- Schedule `manage.py refresh_asset_prices` out of band. Run it outside peak
+  request windows.
+- In the Docker stack, schedule it via host cron calling the backend container
+  (`docker compose ... exec -T backend python manage.py refresh_asset_prices`) —
+  see `wiki/DOCKER_DEPLOY.md` §7.
 
 ## Docker Reference
 

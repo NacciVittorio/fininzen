@@ -1,8 +1,8 @@
-# Future production reference stack.
+# Backend-only reference stack (Postgres + Redis + Django/Gunicorn).
 #
-# This is intentionally separate from the bare-metal systemd deploy. It provides
-# a container-native topology for future use while preserving the current
-# production path.
+# This is a minimal, app-only topology. For the full production deploy (with the
+# Next.js frontend and Caddy reverse proxy) use deploy/docker/stack/ instead —
+# its `backend` service reuses this directory's Dockerfile.
 services:
   postgres:
     image: postgres:16-alpine

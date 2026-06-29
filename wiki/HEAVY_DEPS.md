@@ -36,8 +36,8 @@ miss), so yfinance is loaded into the gunicorn web process and a user request ca
 trigger a live upstream fetch.
 
 The intended end state is that **only** the out-of-band refresh job
-(`portfolio/management/commands/refresh_asset_prices.py`, driven by
-`deploy/systemd/fininzen-refresh-prices.{service,timer}`) ever calls upstream, and
-views read exclusively from persisted prices. Moving the remaining lazy fetches
+(`portfolio/management/commands/refresh_asset_prices.py`, scheduled via host cron
+against the backend container — see `wiki/DOCKER_DEPLOY.md` §7) ever calls
+upstream, and views read exclusively from persisted prices. Moving the remaining lazy fetches
 behind the refresh job is a separate, larger refactor and is **not** part of the
 current "keep & justify" pass — tracked here as a follow-up.

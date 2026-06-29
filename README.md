@@ -34,12 +34,11 @@ export DATABASE_URL=postgres://fininzen:change-me@localhost:5432/fininzen
 ```
 
 Il materiale Docker del repo vive sotto `deploy/docker/`:
-- `deploy/docker/local/` per la dev infra
-- `deploy/docker/prod/` per il riferimento containerizzato futuro
+- `deploy/docker/local/` per la dev infra (Postgres + Redis)
+- `deploy/docker/stack/` per il deploy di produzione completo in container
 
-In produzione il deploy è bare-metal (gunicorn sotto systemd dietro Caddy): vedi
-[wiki/DEPLOY.md](/wiki/DEPLOY.md). Docker serve come infrastruttura locale e
-come riferimento containerizzato futuro sotto `deploy/docker/prod/`.
+In produzione il deploy è containerizzato (Caddy + Next.js + Django + Postgres +
+Redis via `docker compose`): vedi la guida [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
 
 ## Avvio
 
@@ -104,10 +103,10 @@ backend e frontend, con `VERSION` in root come unica fonte di verità. Il
 rilascio è automatizzato da `just release`. Metodologia e flusso completo:
 [wiki/VERSIONING.md](/wiki/VERSIONING.md).
 
-## Deploy su VPS
+## Deploy
 
-Per eseguire il deploy dell'applicazione su un server Linux, seguire la guida:
-[DEPLOY.md](/wiki/DEPLOY.md)
+Per il deploy containerizzato su un server Linux (da VM vuota a stack online),
+seguire la guida: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md)
 
 ## API Endpoints
 
