@@ -42,7 +42,9 @@ class CategoryViewSet(ViewAsMixin, viewsets.ModelViewSet):
         cat_type = self.request.query_params.get("type")
         if cat_type in (Category.EXPENSE, Category.INCOME):
             qs = qs.filter(category_type=cat_type)
-        return qs
+        # LOW-11: annotate() adds a GROUP BY, which makes Django drop the model's
+        # Meta.ordering for pagination — order explicitly so paging is deterministic.
+        return qs.order_by("category_type", "name", "id")
 
     def perform_create(self, serializer):
         serializer.save(owner=self.get_effective_user())

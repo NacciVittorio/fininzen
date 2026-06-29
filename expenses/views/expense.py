@@ -94,7 +94,10 @@ class ExpenseViewSet(ViewAsMixin, viewsets.ModelViewSet):
                     {"is_verified": f"invalid boolean value: {verified_param!r}"}
                 )
             queryset = queryset.filter(is_verified=normalized in ("true", "1"))
-        return queryset
+        # LOW-11: id tiebreaker on top of the model's "-date, -created_at" order so
+        # pagination boundaries are stable even when rows share date/created_at
+        # (e.g. bulk-seeded expenses) — this is the list that can exceed one page.
+        return queryset.order_by("-date", "-created_at", "id")
 
     @action(
         detail=False,

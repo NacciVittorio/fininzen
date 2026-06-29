@@ -25,8 +25,12 @@ class BudgetViewSet(ViewAsMixin, viewsets.ModelViewSet):
     serializer_class = BudgetSerializer
 
     def get_queryset(self):
-        return Budget.objects.select_related("category").filter(
-            owner=self.get_effective_user()
+        # LOW-11: Budget has no Meta.ordering — order explicitly so pagination is
+        # deterministic.
+        return (
+            Budget.objects.select_related("category")
+            .filter(owner=self.get_effective_user())
+            .order_by("id")
         )
 
     def perform_create(self, serializer):

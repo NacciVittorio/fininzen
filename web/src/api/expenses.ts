@@ -1,5 +1,5 @@
 import type { ApiFetcher, PaginatedResponse } from "./client";
-import { requestJsonWithFetcher } from "./client";
+import { fetchAllPagesWithFetcher, requestJsonWithFetcher } from "./client";
 import type { Category, Expense } from "./types";
 
 export type UnknownCollection<TItem = unknown> =
@@ -52,10 +52,7 @@ export const fetchExpensesList = (
     fetcher: ApiFetcher,
     params: URLSearchParams,
 ): Promise<UnknownCollection<Expense>> =>
-    requestJsonWithFetcher<UnknownCollection<Expense>>(
-        fetcher,
-        withQuery("/expenses/", params),
-    );
+    fetchAllPagesWithFetcher<Expense>(fetcher, withQuery("/expenses/", params));
 
 export const fetchExpenseTrends = (
     fetcher: ApiFetcher,
@@ -65,10 +62,7 @@ export const fetchExpenseTrends = (
 export const fetchExpenseCategoriesList = (
     fetcher: ApiFetcher,
 ): Promise<UnknownCollection<Category>> =>
-    requestJsonWithFetcher<UnknownCollection<Category>>(
-        fetcher,
-        "/expenses/categories/",
-    );
+    fetchAllPagesWithFetcher<Category>(fetcher, "/expenses/categories/");
 
 export const fetchExpenseSummaryData = (
     fetcher: ApiFetcher,

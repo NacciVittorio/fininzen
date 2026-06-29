@@ -44,7 +44,7 @@ def expense_a(cat_a, user_a):
 
 def test_b_not_in_expense_list(client, user_b, expense_a):
     client.force_login(user_b)
-    ids = [x["id"] for x in client.get("/api/expenses/").json()]
+    ids = [x["id"] for x in client.get("/api/expenses/").json()["results"]]
     assert expense_a.id not in ids
 
 
@@ -73,7 +73,7 @@ def test_b_cannot_delete_expense(client, user_b, expense_a):
 
 def test_b_not_in_category_list(client, user_b, cat_a):
     client.force_login(user_b)
-    ids = [x["id"] for x in client.get("/api/expenses/categories/").json()]
+    ids = [x["id"] for x in client.get("/api/expenses/categories/").json()["results"]]
     assert cat_a.id not in ids
 
 
