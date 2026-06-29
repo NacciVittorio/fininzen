@@ -2,9 +2,9 @@
 #
 # backup_offsite.sh — Replica off-site dei backup Postgres di Fininzen.
 #
-# CRIT-08 (CODE_REVIEW.md): il backup locale al VPS è single-point-of-failure
-# in scenari di ransomware, FS corruption o perdita del provider. Questo script
-# spinge l'ultimo backup verso una destinazione remota.
+# Il backup locale al VPS è single-point-of-failure in scenari di ransomware,
+# FS corruption o perdita del provider. Questo script spinge l'ultimo backup
+# verso una destinazione remota.
 #
 # Configurazione (via /etc/fininzen.env oppure environment):
 #   BACKUP_DIR              — sorgente locale (default /opt/fininzen/backups)

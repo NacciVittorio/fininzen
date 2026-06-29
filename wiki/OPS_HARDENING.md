@@ -52,3 +52,28 @@ enabled from repository code alone.
 
 - Keep `scripts/smoke_test.sh` in the deploy path. It checks the Next.js app
   shell, hashed assets, backend health, and the unauthenticated auth guard.
+
+## Accepted Findings (won't-fix / by-design)
+
+These review findings were evaluated and deliberately accepted rather than
+changed. They are recorded here so the rationale isn't lost now that the backlog
+is closed and the full review log (`wiki/CODE_REVIEW.md`) has been removed.
+
+- **HIGH-01 — Email enumeration on register.** The register endpoint returns an
+  explicit "user already exists" message (`fininzen/views.py`). Kept for UX and
+  already rate-limited via `RegisterRateThrottle`; eliminating enumeration fully
+  would require email-verification signup (a product decision). OWASP-acceptable
+  as-is.
+- **MED-06 — CORS ≠ CSRF in development.** The permissive dev CORS origins
+  (`localhost:5173`, LAN regex in `fininzen/settings.py`) are dev-only;
+  production sets `CORS_ALLOWED_ORIGINS` explicitly with
+  `CORS_ALLOW_ALL_ORIGINS=False`. No change.
+- **MED-34 — PII in application logs.** Sentry is opt-in and ships with
+  `send_default_pii=False`; a generalized PII-scrubbing filter on the app loggers
+  is intentionally deferred (logs hold financial data and host access is
+  restricted).
+
+Operational items already covered by the checklist above: **HIGH-20** (shared
+throttle buckets via `REDIS_URL` — see Rate Limits), **HIGH-34** (edge
+rate-limit / fail2ban — see Edge Protection), **MED-36** (gunicorn worker
+recycling — see Gunicorn).

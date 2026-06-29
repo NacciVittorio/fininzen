@@ -168,8 +168,7 @@ function _normalizeDecimalString(
 // parseAmount: convert user-typed number into a JS Number.
 // `sep` is the user's decimal separator ("," for IT, "." for US/UK).
 // CRIT-04: the parser is rewritten to share _normalizeDecimalString so the
-// edge case parseAmount("1.234", ",") now returns 1234 (was 1.234) — see
-// MED-26 in CODE_REVIEW.md.
+// edge case parseAmount("1.234", ",") now returns 1234 (was 1.234).
 export const parseAmount = (
     val: DecimalInput,
     sep: DecimalSeparator = ",",
