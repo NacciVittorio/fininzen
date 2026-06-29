@@ -1,5 +1,5 @@
 import type { ApiFetcher, PaginatedResponse } from "./client";
-import { requestJsonWithFetcher } from "./client";
+import { fetchAllPagesWithFetcher } from "./client";
 import type { InvestmentType } from "./types";
 
 // InvestmentType is sourced from the generated OpenAPI types (see ./types),
@@ -13,7 +13,7 @@ export type InvestmentTypeCollection =
 export const fetchInvestmentTypesList = (
     fetcher: ApiFetcher,
 ): Promise<InvestmentTypeCollection> =>
-    requestJsonWithFetcher<InvestmentTypeCollection>(
+    fetchAllPagesWithFetcher<InvestmentType>(
         fetcher,
         "/portfolio/investment-types/",
     );

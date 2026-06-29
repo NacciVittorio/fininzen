@@ -4,7 +4,7 @@ from portfolio.models import Asset, ContributionSource, InvestmentType
 def test_list_investment_types(client, itype):
     res = client.get("/api/portfolio/investment-types/")
     assert res.status_code == 200
-    names = [t["name"] for t in res.json()]
+    names = [t["name"] for t in res.json()["results"]]
     assert "ETF" in names
 
 
@@ -37,7 +37,7 @@ def test_create_and_list_contribution_sources(client, test_user):
 
     res = client.get("/api/portfolio/contribution-sources/")
     assert res.status_code == 200
-    data = res.json()
+    data = res.json()["results"]
     assert any(
         item["name"] == "TFR" and item["transaction_count"] == 0 for item in data
     )

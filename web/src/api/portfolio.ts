@@ -1,5 +1,5 @@
 import type { ApiFetcher, PaginatedResponse } from "./client";
-import { requestJsonWithFetcher } from "./client";
+import { fetchAllPagesWithFetcher, requestJsonWithFetcher } from "./client";
 import type { Asset } from "./types";
 
 export type UnknownCollection<TItem = unknown> =
@@ -49,7 +49,7 @@ const withQuery = (path: string, params?: URLSearchParams): `/${string}` => {
 export const fetchPortfolioAssetsList = (
     fetcher: ApiFetcher,
 ): Promise<UnknownCollection<Asset>> =>
-    requestJsonWithFetcher<UnknownCollection<Asset>>(
+    fetchAllPagesWithFetcher<Asset>(
         fetcher,
         "/portfolio/?include_archived=true",
     );

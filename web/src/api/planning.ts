@@ -1,5 +1,9 @@
 import type { ApiFetcher } from "./client";
-import { requestJsonWithFetcher, type PaginatedResponse } from "./client";
+import {
+    fetchAllPagesWithFetcher,
+    requestJsonWithFetcher,
+    type PaginatedResponse,
+} from "./client";
 import type { AllocationTargetRow } from "../utils/allocationGroups";
 import type {
     Budget,
@@ -50,23 +54,17 @@ export const saveAllocationTarget = (
 export const fetchBudgetsList = (
     fetcher: ApiFetcher,
 ): Promise<UnknownCollection<Budget>> =>
-    requestJsonWithFetcher<UnknownCollection<Budget>>(
-        fetcher,
-        "/expenses/budgets/",
-    );
+    fetchAllPagesWithFetcher<Budget>(fetcher, "/expenses/budgets/");
 
 export const fetchRecurringExpensesList = (
     fetcher: ApiFetcher,
 ): Promise<UnknownCollection<RecurringExpense>> =>
-    requestJsonWithFetcher<UnknownCollection<RecurringExpense>>(
-        fetcher,
-        "/expenses/recurring/",
-    );
+    fetchAllPagesWithFetcher<RecurringExpense>(fetcher, "/expenses/recurring/");
 
 export const fetchRecurringInvestmentPlansList = (
     fetcher: ApiFetcher,
 ): Promise<UnknownCollection<RecurringInvestmentPlan>> =>
-    requestJsonWithFetcher<UnknownCollection<RecurringInvestmentPlan>>(
+    fetchAllPagesWithFetcher<RecurringInvestmentPlan>(
         fetcher,
         "/portfolio/recurring-investments/",
     );

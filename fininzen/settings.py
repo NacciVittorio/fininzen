@@ -313,6 +313,16 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # LOW-11: bound every list endpoint that uses the standard ListModelMixin so a
+    # pathological query can't stream an unbounded result set. PageNumberPagination
+    # wraps responses as {count, next, previous, results}. The web client pages
+    # through `next` (see fetchAllPagesWithFetcher) so no list is silently truncated.
+    # Custom list() actions that build their own Response (AllocationTargetViewSet,
+    # FireViewSet) and APIView feeds (CashFlowFeedView, TransactionsFeedView — already
+    # bounded, see CRIT-07) are unaffected: pagination only applies to views that call
+    # paginate_queryset().
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 100,
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.ScopedRateThrottle",
     ],

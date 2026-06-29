@@ -1819,6 +1819,126 @@ export interface components {
             /** Format: decimal */
             tax_rate?: string;
         };
+        PaginatedAssetList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Asset"][];
+        };
+        PaginatedBudgetList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Budget"][];
+        };
+        PaginatedCategoryList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Category"][];
+        };
+        PaginatedContributionSourceList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ContributionSource"][];
+        };
+        PaginatedExpenseList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Expense"][];
+        };
+        PaginatedInvestmentTypeList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["InvestmentType"][];
+        };
+        PaginatedRecurringExpenseList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["RecurringExpense"][];
+        };
+        PaginatedRecurringInvestmentPlanList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["RecurringInvestmentPlan"][];
+        };
         PatchedAssetRequest: {
             name?: string;
             tracking_type?: components["schemas"]["TrackingTypeEnum"];
@@ -2487,7 +2607,10 @@ export interface operations {
     };
     expenses_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2499,7 +2622,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Expense"][];
+                    "application/json": components["schemas"]["PaginatedExpenseList"];
                 };
             };
         };
@@ -2626,7 +2749,10 @@ export interface operations {
     };
     expenses_budgets_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2638,7 +2764,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Budget"][];
+                    "application/json": components["schemas"]["PaginatedBudgetList"];
                 };
             };
         };
@@ -2801,7 +2927,10 @@ export interface operations {
     };
     expenses_categories_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2813,7 +2942,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Category"][];
+                    "application/json": components["schemas"]["PaginatedCategoryList"];
                 };
             };
         };
@@ -3022,7 +3151,10 @@ export interface operations {
     };
     expenses_recurring_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3034,7 +3166,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecurringExpense"][];
+                    "application/json": components["schemas"]["PaginatedRecurringExpenseList"];
                 };
             };
         };
@@ -3383,7 +3515,10 @@ export interface operations {
     };
     portfolio_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3395,7 +3530,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Asset"][];
+                    "application/json": components["schemas"]["PaginatedAssetList"];
                 };
             };
         };
@@ -3879,7 +4014,10 @@ export interface operations {
     };
     portfolio_contribution_sources_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3891,7 +4029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ContributionSource"][];
+                    "application/json": components["schemas"]["PaginatedContributionSourceList"];
                 };
             };
         };
@@ -4205,7 +4343,10 @@ export interface operations {
     };
     portfolio_investment_types_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4217,7 +4358,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvestmentType"][];
+                    "application/json": components["schemas"]["PaginatedInvestmentTypeList"];
                 };
             };
         };
@@ -4382,7 +4523,10 @@ export interface operations {
     };
     portfolio_recurring_investments_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4394,7 +4538,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecurringInvestmentPlan"][];
+                    "application/json": components["schemas"]["PaginatedRecurringInvestmentPlanList"];
                 };
             };
         };

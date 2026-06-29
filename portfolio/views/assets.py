@@ -72,7 +72,9 @@ class AssetViewSet(
             include_archived = True
         if not include_archived:
             qs = qs.filter(is_archived=False)
-        return qs
+        # LOW-11: a unique tiebreaker keeps page boundaries stable when paginating
+        # (the model's "-current_value" order alone can tie across the page split).
+        return qs.order_by("-current_value", "id")
 
     @action(detail=False, methods=["post"], url_path="refresh-prices")
     def refresh_prices(self, request):

@@ -203,7 +203,7 @@ def test_viewas_is_resolved_after_jwt_authentication(
     res = jwt_client.get("/api/expenses/", HTTP_X_VIEW_AS=str(user_a.id))
 
     assert res.status_code == 200
-    assert [row["id"] for row in res.json()] == [expense_a.id]
+    assert [row["id"] for row in res.json()["results"]] == [expense_a.id]
 
 
 def test_viewas_malformed_header_returns_400(client):

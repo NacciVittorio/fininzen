@@ -48,7 +48,7 @@ def asset_a(itype_a, user_a):
 
 def test_b_not_in_asset_list(client, user_b, asset_a):
     client.force_login(user_b)
-    ids = [x["id"] for x in client.get("/api/portfolio/").json()]
+    ids = [x["id"] for x in client.get("/api/portfolio/").json()["results"]]
     assert asset_a.id not in ids
 
 

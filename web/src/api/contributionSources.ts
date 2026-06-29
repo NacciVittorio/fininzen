@@ -1,5 +1,9 @@
 import type { ApiFetcher } from "./client";
-import { requestJsonWithFetcher, type PaginatedResponse } from "./client";
+import {
+    fetchAllPagesWithFetcher,
+    requestJsonWithFetcher,
+    type PaginatedResponse,
+} from "./client";
 
 export type ContributionSourcePayload = {
     name: string;
@@ -28,7 +32,7 @@ export type ContributionSourceCollection =
 export const fetchContributionSourcesList = (
     fetcher: ApiFetcher,
 ): Promise<ContributionSourceCollection> =>
-    requestJsonWithFetcher<ContributionSourceCollection>(
+    fetchAllPagesWithFetcher<ContributionSource>(
         fetcher,
         "/portfolio/contribution-sources/",
     );

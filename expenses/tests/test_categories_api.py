@@ -29,7 +29,7 @@ def income_type(test_user):
 def test_list_categories(client, cat_a):
     res = client.get("/api/expenses/categories/")
     assert res.status_code == 200
-    names = [c["name"] for c in res.json()]
+    names = [c["name"] for c in res.json()["results"]]
     assert "Transport" in names
 
 
@@ -257,7 +257,7 @@ def test_delete_income_category_null_syncs_linked_shadow(
 def test_filter_by_type_expense(client, cat_a, income_type):
     res = client.get("/api/expenses/categories/?type=expense")
     assert res.status_code == 200
-    names = [c["name"] for c in res.json()]
+    names = [c["name"] for c in res.json()["results"]]
     assert "Transport" in names
     assert "Salary" not in names
 
@@ -265,6 +265,6 @@ def test_filter_by_type_expense(client, cat_a, income_type):
 def test_filter_by_type_income(client, cat_a, income_type):
     res = client.get("/api/expenses/categories/?type=income")
     assert res.status_code == 200
-    names = [c["name"] for c in res.json()]
+    names = [c["name"] for c in res.json()["results"]]
     assert "Salary" in names
     assert "Transport" not in names

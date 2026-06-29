@@ -37,8 +37,12 @@ class InvestmentTypeViewSet(ViewAsMixin, viewsets.ModelViewSet):
     serializer_class = InvestmentTypeSerializer
 
     def get_queryset(self):
-        return InvestmentType.objects.filter(owner=self.get_effective_user()).annotate(
-            asset_count=Count("assets")
+        # LOW-11: annotate() adds a GROUP BY, which makes Django drop the model's
+        # Meta.ordering for pagination — order explicitly so paging is deterministic.
+        return (
+            InvestmentType.objects.filter(owner=self.get_effective_user())
+            .annotate(asset_count=Count("assets"))
+            .order_by("name", "id")
         )
 
     def perform_create(self, serializer):
@@ -92,7 +96,7 @@ class ContributionSourceViewSet(ViewAsMixin, viewsets.ModelViewSet):
                 transaction_count=Count("transactions", distinct=True),
                 asset_count=Count("asset_links", distinct=True),
             )
-            .order_by("sort_order", "name")
+            .order_by("sort_order", "name", "id")
         )
 
     def perform_create(self, serializer):
