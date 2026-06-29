@@ -8,17 +8,19 @@ enabled from repository code alone.
 - Set `REDIS_URL` in the production environment and install the `redis` Python
   package on the host so DRF throttle buckets are shared across gunicorn workers.
 - On the 1 GB VPS, keep Redis bounded, for example:
-  `maxmemory 64mb` and `maxmemory-policy volatile-lru`.
-- Enable one edge guard:
-  - build Caddy with `github.com/mholt/caddy-ratelimit` and uncomment the
-    `rate_limit` block in `Caddyfile`, or
-  - install the fail2ban filter and jail shipped under `deploy/fail2ban/`
-    (see `deploy/fail2ban/README.md`).
+  `maxmemory 64mb` and `maxmemory-policy volatile-lru` (already set in the stack
+  compose `redis` service).
+- Edge rate-limiting is a future hardening item for the internet-facing/HTTPS
+  deploy (e.g. Caddy built with `github.com/mholt/caddy-ratelimit`, or fail2ban
+  reading the Caddy container's access log). The in-app DRF `ScopedRateThrottle`
+  backed by Redis is the baseline.
 
 ## Backups
 
-- Back up PostgreSQL with `pg_dump --format=custom` and schedule
-  `scripts/backup_offsite.sh` after the local database dump completes.
+- Back up PostgreSQL with `scripts/backup_db.sh` (pg_dump `--format=custom` from
+  the container, with rotation and optional at-rest encryption), then schedule
+  `scripts/backup_offsite.sh` after it for off-site replication. See
+  `wiki/DOCKER_DEPLOY.md` §8.
 - Run a restore test periodically against a disposable path, not the live DB.
 
 ## Gunicorn
@@ -39,15 +41,13 @@ enabled from repository code alone.
 
 ## Docker Reference
 
-- `deploy/docker/prod/compose.yml` is the reference topology for future
-  Proxmox/Docker: PostgreSQL 16, Redis 7, Django/Gunicorn with two workers.
-- Keep `DATABASE_URL` mandatory in production. SQLite is a local development
-  fallback only.
-
-## Edge Protection
-
-- The repo ships a fail2ban filter and jail under `deploy/fail2ban/` for the
-  Caddy access log.
+- `deploy/docker/stack/compose.yml` is the production topology: Caddy + Next.js +
+  Django/Gunicorn (two workers) + PostgreSQL 16 + Redis 7. See
+  `wiki/DOCKER_DEPLOY.md`.
+- `deploy/docker/prod/` is a backend-only reference; `deploy/docker/local/` is
+  dev infra (Postgres + Redis only).
+- Keep `DATABASE_URL`/`POSTGRES_*` mandatory in production. SQLite is a local
+  development fallback only.
 
 ## Smoke Test
 
@@ -76,5 +76,5 @@ is closed and the full review log (`wiki/CODE_REVIEW.md`) has been removed.
 
 Operational items already covered by the checklist above: **HIGH-20** (shared
 throttle buckets via `REDIS_URL` — see Rate Limits), **HIGH-34** (edge
-rate-limit / fail2ban — see Edge Protection), **MED-36** (gunicorn worker
-recycling — see Gunicorn).
+rate-limiting — deferred to the HTTPS deploy, see Rate Limits), **MED-36**
+(gunicorn worker recycling — see Gunicorn).

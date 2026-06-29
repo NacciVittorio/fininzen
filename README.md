@@ -76,9 +76,6 @@ just backend             # solo Django (porta 8000)
 just web                 # solo Next.js (porta 3000)
 just makemigrations      # crea nuove migrations dopo modifiche ai modelli
 just migrate             # applica migrations pendenti
-just migrate-prod        # applica migrations in produzione caricando /etc/fininzen.env
-just collectstatic-prod  # raccoglie file statici Django in produzione
-just build-web-prod      # build Next.js production con npm ci
 just reset-db            # ⚠️ cancella tutto e riparte da zero
 just shell               # shell interattiva Django
 just showmigrations      # controlla stato migrations
@@ -91,6 +88,21 @@ just schema              # rigenera lo schema OpenAPI (openapi.json)
 just hooks               # installa i git pre-commit hook
 just hooks-run           # esegue tutti i pre-commit hook sull'intero albero
 just release             # bump SemVer + CHANGELOG + tag dai Conventional Commits
+```
+
+### Stack Docker (deploy in produzione)
+
+Da eseguire sul server, dalla root del repo (richiedono `deploy/docker/stack/.env`).
+Guida completa: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
+
+```sh
+just stack-up             # build + avvio dello stack completo
+just stack-down           # ferma lo stack (i volumi restano)
+just stack-ps             # stato dei servizi
+just stack-logs           # log in tail di tutti i servizi
+just stack-superuser      # crea l'utente admin
+just stack-refresh-prices # aggiorna i prezzi degli asset (one-shot)
+just stack-backup         # dump del database (scripts/backup_db.sh)
 ```
 
 > I comandi con ⚠️ sono distruttivi e non chiedono conferma.

@@ -246,18 +246,31 @@ dc up -d --build           # ricostruisce le immagini; migrate/collectstatic aut
 
 ### Backup del database
 
-```bash
-dc exec -T postgres pg_dump -U fininzen -Fc fininzen > /home/dockerapp/fininzen_$(date +%F).dump
-```
-
-Ripristino su un DB vuoto:
+Usa lo script dedicato: fa il `pg_dump` (formato custom) dal container in
+`<repo>/backups/`, con rotazione e cifratura opzionale (`BACKUP_ENC_PASSPHRASE`
+nel `.env`):
 
 ```bash
-cat fininzen_AAAA-MM-GG.dump | dc exec -T postgres pg_restore -U fininzen -d fininzen --clean
+just stack-backup           # equivale a: bash scripts/backup_db.sh
 ```
 
-> Pianifica i backup (cron) e testa periodicamente un restore su un path usa e
-> getta, non sul DB live.
+Schedulalo da cron (utente **dockerapp**) e, se vuoi una copia off-site, aggiungi
+`backup_offsite.sh` dopo (richiede `OFFSITE_RSYNC_TARGET` nel `.env`):
+
+```cron
+30 3 * * * /opt/fininzen/scripts/backup_db.sh      >> /home/dockerapp/backup_db.log 2>&1
+45 3 * * * /opt/fininzen/scripts/backup_offsite.sh >> /home/dockerapp/offsite.log   2>&1
+```
+
+Ripristino di un dump su un DB vuoto:
+
+```bash
+cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
+  docker compose --env-file deploy/docker/stack/.env -f deploy/docker/stack/compose.yml \
+  exec -T postgres pg_restore -U fininzen -d fininzen --clean
+```
+
+> Testa periodicamente un restore su un DB usa e getta, non sul DB live.
 
 ---
 
