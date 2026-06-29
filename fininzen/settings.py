@@ -57,9 +57,9 @@ _allowed = os.environ.get("DJANGO_ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
 if "fininzen.nacci.eu" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("fininzen.nacci.eu")
-# Always allow loopback so local health checks (scripts/deploy.sh) and
-# systemd probes don't get rejected as DisallowedHost (which returns 400
-# and would make the deploy health check think the worker is broken).
+# Always allow loopback so local health checks (the container HEALTHCHECK
+# curling 127.0.0.1) don't get rejected as DisallowedHost (which returns 400
+# and would make the health check think the worker is broken).
 for _loopback in ("127.0.0.1", "localhost"):
     if _loopback not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_loopback)

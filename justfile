@@ -101,9 +101,6 @@ docker-prod-up:
 docker-prod-down:
     docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml down
 
-deploy-prod BRANCH="main":
-    sudo {{deploy_root}}/scripts/deploy.sh {{quote(BRANCH)}}
-
 # ── Code quality ─────────────────────────────────────────────────────────────
 
 test-backend:

@@ -108,9 +108,9 @@ Tieni il SQLite originale finché la validazione su Postgres non è completa.
 
 ## 3. Backup & restore (steady state, Postgres)
 
-`scripts/deploy.sh` fa un `pg_dump --format=custom` prima di ogni migrazione e
-lo cifra con `BACKUP_ENC_PASSPHRASE` se impostata. `scripts/backup_offsite.sh`
-replica i file `*.dump` / `*.dump.enc`.
+Esegui un `pg_dump --format=custom` periodico (vedi `wiki/DOCKER_DEPLOY.md` §8
+per il comando via container). `scripts/backup_offsite.sh` può replicare off-site
+i file `*.dump` / `*.dump.enc` una volta adattato al nuovo flusso di backup.
 
 Restore:
 

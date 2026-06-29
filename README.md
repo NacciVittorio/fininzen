@@ -79,7 +79,6 @@ just migrate             # applica migrations pendenti
 just migrate-prod        # applica migrations in produzione caricando /etc/fininzen.env
 just collectstatic-prod  # raccoglie file statici Django in produzione
 just build-web-prod      # build Next.js production con npm ci
-just deploy-prod main    # aggiorna /opt/fininzen, migra, raccoglie statici e builda web
 just reset-db            # ⚠️ cancella tutto e riparte da zero
 just shell               # shell interattiva Django
 just showmigrations      # controlla stato migrations
