@@ -70,18 +70,6 @@ docker-local-down:
 docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
-docker-prod-config:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml config
-
-docker-prod-build:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml build web
-
-docker-prod-up:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml up -d
-
-docker-prod-down:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml down
-
 # ── Full Docker stack (production deploy: Caddy + Next.js + Django + PG + Redis) ─
 # Run these on the server from the repo root. Require deploy/docker/stack/.env.
 # Full guide: wiki/DOCKER_DEPLOY.md
