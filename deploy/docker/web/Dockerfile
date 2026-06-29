@@ -5,7 +5,7 @@
 #   docker build -f deploy/docker/web/Dockerfile -t fininzen-web .
 
 # ---- build stage ----
-FROM node:20-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 WORKDIR /app/web
 
 # Install deps first for layer caching. npm ci installs devDependencies too,
@@ -19,7 +19,7 @@ COPY VERSION /app/VERSION
 RUN npm run build
 
 # ---- runtime stage ----
-FROM node:20-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/web

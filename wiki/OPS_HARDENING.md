@@ -42,7 +42,7 @@ enabled from repository code alone.
 ## Docker Reference
 
 - `deploy/docker/stack/compose.yml` is the production topology: Caddy + Next.js +
-  Django/Gunicorn (two workers) + PostgreSQL 16 + Redis 7. See
+  Django/Gunicorn (two workers) + PostgreSQL 18 + Redis 7. See
   `wiki/DOCKER_DEPLOY.md`.
 - `deploy/docker/prod/` is a backend-only reference; `deploy/docker/local/` is
   dev infra (Postgres + Redis only).
