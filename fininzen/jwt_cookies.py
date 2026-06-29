@@ -39,9 +39,13 @@ def _refresh_max_age() -> int:
 
 
 def _cookie_secure() -> bool:
-    # Mirror the session/CSRF cookie policy: secure in production (DEBUG=False),
-    # plain over http in dev and tests so the cookie is actually stored.
-    return not settings.DEBUG
+    # Mirror the session/CSRF cookie policy so all auth cookies share one source
+    # of truth: secure in production, plain over http in dev/tests so the cookie
+    # is actually stored. SESSION_COOKIE_SECURE already folds in the
+    # DJANGO_SECURE_COOKIES opt-out used by plain-HTTP LAN deploys (see settings).
+    if settings.DEBUG:
+        return False
+    return getattr(settings, "SESSION_COOKIE_SECURE", True)
 
 
 def set_auth_cookies(response, refresh_token):

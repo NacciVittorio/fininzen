@@ -8,6 +8,9 @@ __pycache__/
 # Runtime logs (dir is recreated at startup via LOGS_DIR.mkdir)
 logs/
 
+# Database dumps produced by scripts/backup_db.sh
+backups/
+
 # Node.js
 node_modules/
 web/.next/

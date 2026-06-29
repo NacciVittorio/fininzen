@@ -1,0 +1,112 @@
+# Full containerized stack — Caddy + Next.js + Django + Postgres + Redis.
+#
+# This is the "everything in Docker" topology: a single `docker compose up -d`
+# brings the whole app online behind Caddy on port 80. Intended for a trusted
+# LAN deploy over plain HTTP (e.g. a Proxmox VM). See ./README.md.
+#
+#   cp deploy/docker/stack/.env.example deploy/docker/stack/.env   # then edit
+#   docker compose --env-file deploy/docker/stack/.env \
+#     -f deploy/docker/stack/compose.yml up -d --build
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fininzen}
+      POSTGRES_USER: ${POSTGRES_USER:-fininzen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fininzen} -d ${POSTGRES_DB:-fininzen}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - volatile-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?set DJANGO_ALLOWED_HOSTS}
+      # Plain-HTTP LAN deploy: no TLS, so don't redirect to https and let the
+      # browser store the (non-Secure) auth cookies. Flip both to 1 behind TLS.
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-0}
+      DJANGO_SECURE_COOKIES: ${DJANGO_SECURE_COOKIES:-0}
+      POSTGRES_DB: ${POSTGRES_DB:-fininzen}
+      POSTGRES_USER: ${POSTGRES_USER:-fininzen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-disable}
+      FIELD_ENCRYPTION_KEYS: ${FIELD_ENCRYPTION_KEYS:?set FIELD_ENCRYPTION_KEYS}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      # Caddy serves the browser the /fininzen/api/auth/* path, so the refresh
+      # cookie must be scoped there or silent token refresh breaks.
+      REFRESH_COOKIE_PATH: ${REFRESH_COOKIE_PATH:-/fininzen/api/auth/}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-localhost}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Fininzen}
+      WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-http://localhost}
+    volumes:
+      - staticfiles:/app/staticfiles
+
+  frontend:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Server-side (SSR/RSC) calls go straight to Django over the compose
+      # network; browser calls use the relative /fininzen/api path via Caddy.
+      DJANGO_ORIGIN: ${DJANGO_ORIGIN:-http://backend:8000}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - staticfiles:/srv/staticfiles:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  postgres_data:
+  staticfiles:
+  caddy_data:
+  caddy_config:

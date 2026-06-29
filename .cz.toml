@@ -4,7 +4,7 @@
 # updates CHANGELOG.md and creates the `vX.Y.Z` tag. See wiki/VERSIONING.md.
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.1"
+version = "0.1.0"
 tag_format = "v$version"
 update_changelog_on_bump = true
 # Create annotated tags so `git push --follow-tags` actually pushes them
@@ -20,4 +20,14 @@ major_version_zero = true
 version_files = [
     "VERSION",
     "web/package.json:\"version\"",
+]
+# openapi.json carries its own info.version (generated from VERSION by
+# drf-spectacular), but it must be *regenerated*, not text-substituted like the
+# version_files above — so it can't live in that list. This hook runs after
+# VERSION is bumped and before the bump commit, folding the refreshed schema
+# into it; a failure aborts the bump. Without it every release left the schema
+# stale and tripped the CI "API contract in sync" gate.
+pre_bump_hooks = [
+    "just schema",
+    "git add openapi.json",
 ]

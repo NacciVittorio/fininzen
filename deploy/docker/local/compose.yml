@@ -4,7 +4,7 @@
 # against them (prod-parity). The app itself keeps running on the host.
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
@@ -25,7 +25,7 @@ services:
       - -c
       - max_connections=30
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fininzen -d fininzen"]
       interval: 10s

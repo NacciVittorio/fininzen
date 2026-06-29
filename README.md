@@ -34,12 +34,11 @@ export DATABASE_URL=postgres://fininzen:change-me@localhost:5432/fininzen
 ```
 
 Il materiale Docker del repo vive sotto `deploy/docker/`:
-- `deploy/docker/local/` per la dev infra
-- `deploy/docker/prod/` per il riferimento containerizzato futuro
+- `deploy/docker/local/` per la dev infra (Postgres + Redis)
+- `deploy/docker/stack/` per il deploy di produzione completo in container
 
-In produzione il deploy è bare-metal (gunicorn sotto systemd dietro Caddy): vedi
-[wiki/DEPLOY.md](/wiki/DEPLOY.md). Docker serve come infrastruttura locale e
-come riferimento containerizzato futuro sotto `deploy/docker/prod/`.
+In produzione il deploy è containerizzato (Caddy + Next.js + Django + Postgres +
+Redis via `docker compose`): vedi la guida [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
 
 ## Avvio
 
@@ -77,10 +76,6 @@ just backend             # solo Django (porta 8000)
 just web                 # solo Next.js (porta 3000)
 just makemigrations      # crea nuove migrations dopo modifiche ai modelli
 just migrate             # applica migrations pendenti
-just migrate-prod        # applica migrations in produzione caricando /etc/fininzen.env
-just collectstatic-prod  # raccoglie file statici Django in produzione
-just build-web-prod      # build Next.js production con npm ci
-just deploy-prod main    # aggiorna /opt/fininzen, migra, raccoglie statici e builda web
 just reset-db            # ⚠️ cancella tutto e riparte da zero
 just shell               # shell interattiva Django
 just showmigrations      # controlla stato migrations
@@ -95,6 +90,21 @@ just hooks-run           # esegue tutti i pre-commit hook sull'intero albero
 just release             # bump SemVer + CHANGELOG + tag dai Conventional Commits
 ```
 
+### Stack Docker (deploy in produzione)
+
+Da eseguire sul server, dalla root del repo (richiedono `deploy/docker/stack/.env`).
+Guida completa: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
+
+```sh
+just stack-up             # build + avvio dello stack completo
+just stack-down           # ferma lo stack (i volumi restano)
+just stack-ps             # stato dei servizi
+just stack-logs           # log in tail di tutti i servizi
+just stack-superuser      # crea l'utente admin
+just stack-refresh-prices # aggiorna i prezzi degli asset (one-shot)
+just stack-backup         # dump del database (scripts/backup_db.sh)
+```
+
 > I comandi con ⚠️ sono distruttivi e non chiedono conferma.
 
 ## Versionamento
@@ -104,10 +114,10 @@ backend e frontend, con `VERSION` in root come unica fonte di verità. Il
 rilascio è automatizzato da `just release`. Metodologia e flusso completo:
 [wiki/VERSIONING.md](/wiki/VERSIONING.md).
 
-## Deploy su VPS
+## Deploy
 
-Per eseguire il deploy dell'applicazione su un server Linux, seguire la guida:
-[DEPLOY.md](/wiki/DEPLOY.md)
+Per il deploy containerizzato su un server Linux (da VM vuota a stack online),
+seguire la guida: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md)
 
 ## API Endpoints
 

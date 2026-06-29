@@ -1,34 +1,35 @@
 # Docker layout
 
-Questo ramo separa Docker in due aree:
+Quattro aree, per scopi diversi:
 
-- `local/` per l'infrastruttura di sviluppo in locale.
-- `prod/` per il riferimento futuro di produzione.
+| Cartella | Scopo |
+|---|---|
+| `local/` | Infrastruttura di sviluppo: solo Postgres + Redis in Docker, Django gira sul venv host. |
+| `stack/` | **Deploy di produzione completo**: Caddy + Next.js + Django + Postgres + Redis, tutto in container. |
+| `backend/` | Immagine del backend Django (`Dockerfile` + `entrypoint.sh`), buildata dal servizio `backend` dello stack. |
+| `web/` | Dockerfile del frontend Next.js (usato dallo stack). |
 
-## Local
+## Local (sviluppo)
 
-Usa Postgres e Redis in Docker, mentre Django continua a girare sul venv host.
+Postgres e Redis in Docker, Django sul venv host:
 
 ```bash
 docker compose -f deploy/docker/local/compose.yml up -d postgres redis
 ```
 
-Poi esporta `DATABASE_URL` e `FIELD_ENCRYPTION_KEYS` nella shell corrente, oppure
-caricali da un file `.env.local` con `source`.
+Poi esporta `DATABASE_URL` e `FIELD_ENCRYPTION_KEYS` nella shell, oppure caricali
+da un `.env.local` con `source`.
 
-## Prod reference
+## Stack (produzione)
 
-La configurazione sotto `prod/` è un riferimento di packaging per un eventuale
-deploy containerizzato futuro. Non sostituisce il deploy bare-metal esistente,
-ma ne copia la topologia applicativa in modo esplicito.
+Lo stack "tutto in Docker". Avvio rapido:
 
 ```bash
-cp deploy/docker/prod/.env.example deploy/docker/prod/.env
-docker compose \
-  --env-file deploy/docker/prod/.env \
-  -f deploy/docker/prod/compose.yml \
-  up -d --build
+cp deploy/docker/stack/.env.example deploy/docker/stack/.env   # poi compila
+docker compose --env-file deploy/docker/stack/.env \
+  -f deploy/docker/stack/compose.yml up -d --build
 ```
 
-Il container applicativo espone `/api/health/` e il compose usa PostgreSQL 16
-come baseline del repository.
+Guida completa da VM vuota (utente, permessi, SSH, .env, cron prezzi, backup):
+**[wiki/DOCKER_DEPLOY.md](../../wiki/DOCKER_DEPLOY.md)**. Riferimento rapido dei
+comandi: [stack/README.md](stack/README.md).

@@ -6,8 +6,7 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 venv_python := "venv/bin/python"
 web_dir := "web"
 web_bin := "web/node_modules/.bin"
-deploy_root := "/opt/fininzen"
-env_file := "/etc/fininzen.env"
+stack := "--env-file deploy/docker/stack/.env -f deploy/docker/stack/compose.yml"
 
 default: doctor lint test
 
@@ -41,18 +40,6 @@ makemigrations:
 migrate:
     {{venv_python}} manage.py migrate
 
-migrate-prod:
-    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py migrate
-
-audit-integrity-prod:
-    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py audit_domain_integrity --apply
-
-audit-integrity-check-prod:
-    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py audit_domain_integrity
-
-collectstatic-prod:
-    cd {{deploy_root}} && set -a && source {{env_file}} && set +a && {{venv_python}} manage.py collectstatic --noinput
-
 superuser:
     {{venv_python}} manage.py createsuperuser
 
@@ -71,12 +58,6 @@ backend:
 web:
     npm run dev --prefix {{web_dir}}
 
-# Build the Next.js SSR app served by fininzen-web.service. NEXT_PUBLIC_API_BASE
-# is inlined here (defaults to /fininzen/api), so the browser bundle targets the
-# Caddy-prefixed API; DJANGO_ORIGIN is a runtime-only var set by the unit.
-build-web-prod:
-    cd {{deploy_root}}/{{web_dir}} && npm ci --quiet && npm run build
-
 start:
     DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
 
@@ -89,20 +70,30 @@ docker-local-down:
 docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
-docker-prod-config:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml config
+# ── Full Docker stack (production deploy: Caddy + Next.js + Django + PG + Redis) ─
+# Run these on the server from the repo root. Require deploy/docker/stack/.env.
+# Full guide: wiki/DOCKER_DEPLOY.md
 
-docker-prod-build:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml build web
+stack-up:
+    docker compose {{stack}} up -d --build
 
-docker-prod-up:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml up -d
+stack-down:
+    docker compose {{stack}} down
 
-docker-prod-down:
-    docker compose --env-file deploy/docker/prod/.env -f deploy/docker/prod/compose.yml down
+stack-ps:
+    docker compose {{stack}} ps
 
-deploy-prod BRANCH="main":
-    sudo {{deploy_root}}/scripts/deploy.sh {{quote(BRANCH)}}
+stack-logs:
+    docker compose {{stack}} logs -f
+
+stack-superuser:
+    docker compose {{stack}} exec backend python manage.py createsuperuser
+
+stack-refresh-prices:
+    docker compose {{stack}} exec -T backend python manage.py refresh_asset_prices
+
+stack-backup:
+    bash scripts/backup_db.sh
 
 # ── Code quality ─────────────────────────────────────────────────────────────
 

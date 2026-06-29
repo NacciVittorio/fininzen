@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 #
-# backup_offsite.sh — Replica off-site dei backup Postgres di Fininzen.
+# backup_offsite.sh — Replica off-site dei dump Postgres prodotti da backup_db.sh.
 #
-# Il backup locale al VPS è single-point-of-failure in scenari di ransomware,
-# FS corruption o perdita del provider. Questo script spinge l'ultimo backup
-# verso una destinazione remota.
+# Il backup locale alla VM è single-point-of-failure (ransomware, corruzione FS,
+# perdita del provider). Questo script spinge i dump verso una destinazione
+# remota via rsync.
 #
-# Configurazione (via /etc/fininzen.env oppure environment):
-#   BACKUP_DIR              — sorgente locale (default /opt/fininzen/backups)
-#   OFFSITE_RSYNC_TARGET    — destinazione rsync (es. user@host:/srv/fininzen-backups/
-#                              o rclone:my-s3:fininzen-backups/)
+# Configurazione (via deploy/docker/stack/.env oppure environment):
+#   BACKUP_DIR              — sorgente locale (default <repo>/backups)
+#   OFFSITE_RSYNC_TARGET    — destinazione rsync (es. user@host:/srv/fininzen-backups/)
 #   OFFSITE_RSYNC_OPTS      — opzioni aggiuntive (default "--archive --compress
 #                              --delete-after --bwlimit=2M")
 #   OFFSITE_ALERT_EMAIL     — opzionale; se settato, manda mail su failure
@@ -17,18 +16,18 @@
 #
 # Uscita 0 se tutto OK, ≠ 0 se la replica fallisce.
 #
-# Esempio cron (utente fininzen):
-#   15 3 * * * /opt/fininzen/scripts/backup_offsite.sh >> /opt/fininzen/logs/offsite.log 2>&1
-
+# Esempio cron (utente dockerapp), dopo backup_db.sh:
+#   45 3 * * * /opt/fininzen/scripts/backup_offsite.sh >> /home/dockerapp/offsite.log 2>&1
 set -euo pipefail
 
-ENV_FILE="${ENV_FILE:-/etc/fininzen.env}"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/stack/.env}"
 if [[ -f "$ENV_FILE" ]]; then
     # shellcheck disable=SC1090
     set -a; source "$ENV_FILE"; set +a
 fi
 
-BACKUP_DIR="${BACKUP_DIR:-/opt/fininzen/backups}"
+BACKUP_DIR="${BACKUP_DIR:-${REPO_ROOT}/backups}"
 OFFSITE_RSYNC_TARGET="${OFFSITE_RSYNC_TARGET:-}"
 OFFSITE_RSYNC_OPTS="${OFFSITE_RSYNC_OPTS:---archive --compress --delete-after --bwlimit=2M}"
 OFFSITE_ALERT_EMAIL="${OFFSITE_ALERT_EMAIL:-}"
@@ -52,13 +51,12 @@ if [[ ! -d "$BACKUP_DIR" ]]; then
     fail "BACKUP_DIR '$BACKUP_DIR' non esiste o non è una directory"
 fi
 
-# Conta i backup presenti — se 0, lo script di backup locale non è ancora girato.
 # Cerca i dump Postgres (custom-format, eventualmente cifrati .enc) prodotti da
-# deploy.sh / pg_dump, non più i vecchi file .sqlite3.
+# backup_db.sh.
 mapfile -t BACKUPS < <(find "$BACKUP_DIR" -maxdepth 1 -type f \
     \( -name '*.dump' -o -name '*.dump.enc' \) -print)
 if [[ ${#BACKUPS[@]} -eq 0 ]]; then
-    fail "Nessun backup Postgres (*.dump/*.dump.enc) in $BACKUP_DIR — il job locale ha fallito?"
+    fail "Nessun backup Postgres (*.dump/*.dump.enc) in $BACKUP_DIR — backup_db.sh ha già girato?"
 fi
 
 log "Off-site sync: ${#BACKUPS[@]} file da $BACKUP_DIR → $OFFSITE_RSYNC_TARGET"
