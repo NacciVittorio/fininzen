@@ -23,8 +23,11 @@
 		file_server
 	}
 
-	# Browser-visible API path. Strip /fininzen so Django still receives /api/*.
-	handle_path /fininzen/api/* {
+	# Browser-visible API path. Strip ONLY the /fininzen segment so Django still
+	# receives /api/* — `handle_path /fininzen/api/*` would strip the whole
+	# /fininzen/api prefix and Django would see /auth/... → 404 on every call.
+	handle /fininzen/api/* {
+		uri strip_prefix /fininzen
 		reverse_proxy backend:8000
 	}
 
