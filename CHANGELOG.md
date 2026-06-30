@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.2.1 (2026-06-30)
+
+### Fix
+
+- **docker**: strip only /fininzen in Caddy so Django API routes resolve
+
 ## v0.2.0 (2026-06-30)
 
 ### Refactor
