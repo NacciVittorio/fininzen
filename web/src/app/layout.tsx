@@ -4,6 +4,32 @@ import "./tokens.css";
 import "./styles.css";
 import "./globals.css";
 import { Providers } from "./providers";
+import { IS_MOBILE_BUILD } from "../utils/platform";
+
+// The static export (mobile) has no middleware to mint a per-request CSP nonce,
+// and its HTML inlines Next's bootstrap scripts un-nonced, so it ships a static
+// <meta> CSP instead. It runs in a sandboxed WKWebView loading local assets, so
+// 'unsafe-inline' for scripts is an accepted trade-off (hardenable later via the
+// native Capacitor config). connect-src must include the cross-origin API host.
+const MOBILE_API_ORIGIN = (() => {
+    try {
+        return new URL(process.env.NEXT_PUBLIC_API_BASE ?? "").origin;
+    } catch {
+        return "";
+    }
+})();
+const MOBILE_CSP = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    `connect-src 'self' ${MOBILE_API_ORIGIN}`.trim(),
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+].join("; ");
 
 export const metadata: Metadata = {
     title: "fininzen",
@@ -68,10 +94,22 @@ export default async function RootLayout({
     // static prerendering the nonce can't be injected and `'strict-dynamic'`
     // would block every script. The nonce itself is applied by Next from the
     // request CSP header; here we only need to force dynamic rendering.
-    await headers();
+    //
+    // The mobile build is a static export: there is no request and no
+    // middleware, so we must NOT force dynamic rendering (it would break the
+    // export). It uses the static <meta> CSP rendered below instead.
+    if (!IS_MOBILE_BUILD) {
+        await headers();
+    }
     return (
         <html lang="it">
             <head>
+                {IS_MOBILE_BUILD && (
+                    <meta
+                        httpEquiv="Content-Security-Policy"
+                        content={MOBILE_CSP}
+                    />
+                )}
                 {SPLASH_SCREENS.map((s) => (
                     <link
                         key={s.href}

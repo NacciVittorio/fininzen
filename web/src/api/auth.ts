@@ -4,9 +4,14 @@ import {
     fetchWithTimeout,
     getCsrfToken,
 } from "../utils/api";
+import { IS_MOBILE_BUILD } from "../utils/platform";
+import { getRefreshToken } from "../utils/refreshTokenStore";
 
 export type TokenResponse = {
     access: string;
+    // Present only on the native (body-based) flow; the web flow keeps the
+    // refresh token in an httpOnly cookie and never returns it in the body.
+    refresh?: string;
 };
 
 export type RegisterResult = {
@@ -15,13 +20,19 @@ export type RegisterResult = {
     errors?: unknown[] | null;
 };
 
+// Native clients tag every auth request so the backend returns/accepts the
+// refresh token in the JSON body instead of the httpOnly cookie.
+const mobileHeader: Record<string, string> = IS_MOBILE_BUILD
+    ? { "X-Client": "mobile" }
+    : {};
+
 export async function requestLogin(
     email: string,
     password: string,
 ): Promise<Response> {
     return fetchWithTimeout(`${API}/auth/token/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...mobileHeader },
         body: JSON.stringify({ username: email, password }),
     });
 }
@@ -53,11 +64,22 @@ export async function requestRegister(
 export async function requestDemoLogin(): Promise<Response> {
     return fetchWithTimeout(`${API}/auth/demo/`, {
         method: "POST",
+        headers: { ...mobileHeader },
         timeoutMs: LONG_FETCH_TIMEOUT_MS,
     });
 }
 
 export async function requestLogout(): Promise<Response> {
+    if (IS_MOBILE_BUILD) {
+        // No cookie/CSRF: send the stored refresh in the body so the server can
+        // blacklist it.
+        const refresh = await getRefreshToken();
+        return fetchWithTimeout(`${API}/auth/logout/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...mobileHeader },
+            body: JSON.stringify(refresh ? { refresh } : {}),
+        });
+    }
     return fetchWithTimeout(`${API}/auth/logout/`, {
         method: "POST",
         headers: {
@@ -68,6 +90,16 @@ export async function requestLogout(): Promise<Response> {
 }
 
 export async function requestTokenRefresh(): Promise<Response> {
+    if (IS_MOBILE_BUILD) {
+        // Replay the stored refresh token in the body; the rotated refresh comes
+        // back in the response body (the caller re-stores it).
+        const refresh = await getRefreshToken();
+        return fetchWithTimeout(`${API}/auth/token/refresh/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...mobileHeader },
+            body: JSON.stringify(refresh ? { refresh } : {}),
+        });
+    }
     return fetchWithTimeout(`${API}/auth/token/refresh/`, {
         method: "POST",
         headers: {
