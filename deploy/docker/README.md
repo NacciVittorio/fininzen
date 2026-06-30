@@ -5,7 +5,7 @@ Quattro aree, per scopi diversi:
 | Cartella | Scopo |
 |---|---|
 | `local/` | Infrastruttura di sviluppo: solo Postgres + Redis in Docker, Django gira sul venv host. |
-| `stack/` | **Deploy di produzione completo**: Caddy + Next.js + Django + Postgres + Redis, tutto in container. |
+| `production/` | **Deploy di produzione completo**: Caddy + Next.js + Django + Postgres + Redis, tutto in container. |
 | `backend/` | Immagine del backend Django (`Dockerfile` + `entrypoint.sh`), buildata dal servizio `backend` dello stack. |
 | `web/` | Dockerfile del frontend Next.js (usato dallo stack). |
 
@@ -25,11 +25,11 @@ da un `.env.local` con `source`.
 Lo stack "tutto in Docker". Avvio rapido:
 
 ```bash
-cp deploy/docker/stack/.env.example deploy/docker/stack/.env   # poi compila
-docker compose --env-file deploy/docker/stack/.env \
-  -f deploy/docker/stack/compose.yml up -d --build
+cp deploy/docker/production/.env.example deploy/docker/production/.env   # poi compila
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml up -d --build
 ```
 
 Guida completa da VM vuota (utente, permessi, SSH, .env, cron prezzi, backup):
 **[wiki/DOCKER_DEPLOY.md](../../wiki/DOCKER_DEPLOY.md)**. Riferimento rapido dei
-comandi: [stack/README.md](stack/README.md).
+comandi: [production/README.md](production/README.md).

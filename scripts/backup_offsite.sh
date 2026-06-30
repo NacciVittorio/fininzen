@@ -6,7 +6,7 @@
 # perdita del provider). Questo script spinge i dump verso una destinazione
 # remota via rsync.
 #
-# Configurazione (via deploy/docker/stack/.env oppure environment):
+# Configurazione (via deploy/docker/production/.env oppure environment):
 #   BACKUP_DIR              — sorgente locale (default <repo>/backups)
 #   OFFSITE_RSYNC_TARGET    — destinazione rsync (es. user@host:/srv/fininzen-backups/)
 #   OFFSITE_RSYNC_OPTS      — opzioni aggiuntive (default "--archive --compress
@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/stack/.env}"
+ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/production/.env}"
 if [[ -f "$ENV_FILE" ]]; then
     # shellcheck disable=SC1090
     set -a; source "$ENV_FILE"; set +a

@@ -41,7 +41,7 @@ enabled from repository code alone.
 
 ## Docker Reference
 
-- `deploy/docker/stack/compose.yml` is the production topology: Caddy + Next.js +
+- `deploy/docker/production/compose.yml` is the production topology: Caddy + Next.js +
   Django/Gunicorn (two workers) + PostgreSQL 18 + Redis 7. See
   `wiki/DOCKER_DEPLOY.md`.
 - `deploy/docker/backend/` holds the Django backend image (Dockerfile +

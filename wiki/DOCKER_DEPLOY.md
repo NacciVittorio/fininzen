@@ -127,7 +127,7 @@ ssh -T git@github.com
 cd /opt/fininzen
 git clone git@github.com:NacciVittorio/fininzen.git .
 git checkout main                  # o il branch desiderato
-ls deploy/docker/stack/            # deve mostrare: compose.yml Caddyfile .env.example README.md
+ls deploy/docker/production/            # deve mostrare: compose.yml Caddyfile .env.example README.md
 ```
 
 > Se avevi già clonato in HTTPS, cambia solo il remote senza riclonare:
@@ -138,15 +138,15 @@ ls deploy/docker/stack/            # deve mostrare: compose.yml Caddyfile .env.e
 ## 5. Configurazione `.env` (come dockerapp, in `/opt/fininzen`)
 
 ```bash
-cp deploy/docker/stack/.env.example deploy/docker/stack/.env
-chmod 600 deploy/docker/stack/.env     # blinda i segreti: solo dockerapp legge/scrive
+cp deploy/docker/production/.env.example deploy/docker/production/.env
+chmod 600 deploy/docker/production/.env     # blinda i segreti: solo dockerapp legge/scrive
 
 # genera i due segreti (lanciali separatamente, copia ciascun output):
 python3 -c "import secrets; print(secrets.token_urlsafe(64))"                     # → DJANGO_SECRET_KEY
 python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"   # → FIELD_ENCRYPTION_KEYS
 
 hostname -I                            # → IP LAN della VM
-nano deploy/docker/stack/.env
+nano deploy/docker/production/.env
 ```
 
 Valori da impostare:
@@ -176,16 +176,16 @@ Valori da impostare:
 
 ```bash
 cd /opt/fininzen
-docker compose --env-file deploy/docker/stack/.env \
-  -f deploy/docker/stack/compose.yml up -d --build
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml up -d --build
 ```
 
 `migrate` e `collectstatic` vengono eseguiti automaticamente dall'entrypoint del
 backend a ogni avvio. Crea poi il primo utente amministratore:
 
 ```bash
-docker compose --env-file deploy/docker/stack/.env \
-  -f deploy/docker/stack/compose.yml exec backend python manage.py createsuperuser
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml exec backend python manage.py createsuperuser
 ```
 
 Apri **`http://<IP-VM>`** dal browser.
@@ -193,7 +193,7 @@ Apri **`http://<IP-VM>`** dal browser.
 Alias comodo per non ripetere i flag (aggiungilo a `~/.bashrc` di dockerapp):
 
 ```bash
-alias dc='docker compose --env-file /opt/fininzen/deploy/docker/stack/.env -f /opt/fininzen/deploy/docker/stack/compose.yml'
+alias dc='docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml'
 ```
 
 ---
@@ -209,7 +209,7 @@ Come **dockerapp**, `crontab -e`:
 
 ```cron
 # Aggiorna i prezzi ogni ora (minuto 17 per evitare il picco dell'ora esatta)
-17 * * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/stack/.env -f /opt/fininzen/deploy/docker/stack/compose.yml exec -T backend python manage.py refresh_asset_prices >> /home/dockerapp/refresh_prices.log 2>&1
+17 * * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py refresh_asset_prices >> /home/dockerapp/refresh_prices.log 2>&1
 ```
 
 Note:
@@ -251,7 +251,7 @@ Usa lo script dedicato: fa il `pg_dump` (formato custom) dal container in
 nel `.env`):
 
 ```bash
-just stack-backup           # equivale a: bash scripts/backup_db.sh
+just production-backup           # equivale a: bash scripts/backup_db.sh
 ```
 
 Schedulalo da cron (utente **dockerapp**) e, se vuoi una copia off-site, aggiungi
@@ -266,7 +266,7 @@ Ripristino di un dump su un DB vuoto:
 
 ```bash
 cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
-  docker compose --env-file deploy/docker/stack/.env -f deploy/docker/stack/compose.yml \
+  docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml \
   exec -T postgres pg_restore -U fininzen -d fininzen --clean
 ```
 
@@ -290,7 +290,7 @@ cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
 ## 10. Passare a dominio reale + HTTPS
 
 1. Punta un record DNS all'IP della VM e apri le porte 80 + 443.
-2. In `deploy/docker/stack/Caddyfile` sostituisci `:80 {` con `tuo.dominio {`
+2. In `deploy/docker/production/Caddyfile` sostituisci `:80 {` con `tuo.dominio {`
    (Caddy ottiene il certificato Let's Encrypt da solo) e aggiungi `- "443:443"`
    ai `ports` del servizio `caddy` in `compose.yml`.
 3. Nel `.env`: `DJANGO_SECURE_SSL_REDIRECT=1`, `DJANGO_SECURE_COOKIES=1`, e
@@ -302,7 +302,7 @@ cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
 
 ## Riferimenti
 
-- `deploy/docker/stack/README.md` — riferimento rapido dei comandi dello stack.
+- `deploy/docker/production/README.md` — riferimento rapido dei comandi dello stack.
 - `wiki/OPS_HARDENING.md` — checklist di hardening lato deploy.
 - `wiki/VERSIONING.md` — schema di versionamento unico backend/frontend.
 - `wiki/POSTGRES_MIGRATION.md` — note di migrazione SQLite → PostgreSQL.

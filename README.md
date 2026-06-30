@@ -35,7 +35,7 @@ export DATABASE_URL=postgres://fininzen:change-me@localhost:5432/fininzen
 
 Il materiale Docker del repo vive sotto `deploy/docker/`:
 - `deploy/docker/local/` per la dev infra (Postgres + Redis)
-- `deploy/docker/stack/` per il deploy di produzione completo in container
+- `deploy/docker/production/` per il deploy di produzione completo in container
 
 In produzione il deploy è containerizzato (Caddy + Next.js + Django + Postgres +
 Redis via `docker compose`): vedi la guida [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
@@ -92,17 +92,17 @@ just release             # bump SemVer + CHANGELOG + tag dai Conventional Commit
 
 ### Stack Docker (deploy in produzione)
 
-Da eseguire sul server, dalla root del repo (richiedono `deploy/docker/stack/.env`).
+Da eseguire sul server, dalla root del repo (richiedono `deploy/docker/production/.env`).
 Guida completa: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
 
 ```sh
-just stack-up             # build + avvio dello stack completo
-just stack-down           # ferma lo stack (i volumi restano)
-just stack-ps             # stato dei servizi
-just stack-logs           # log in tail di tutti i servizi
-just stack-superuser      # crea l'utente admin
-just stack-refresh-prices # aggiorna i prezzi degli asset (one-shot)
-just stack-backup         # dump del database (scripts/backup_db.sh)
+just production-up             # build + avvio dello stack completo
+just production-down           # ferma lo stack (i volumi restano)
+just production-ps             # stato dei servizi
+just production-logs           # log in tail di tutti i servizi
+just production-superuser      # crea l'utente admin
+just production-refresh-prices # aggiorna i prezzi degli asset (one-shot)
+just production-backup         # dump del database (scripts/backup_db.sh)
 ```
 
 > I comandi con ⚠️ sono distruttivi e non chiedono conferma.

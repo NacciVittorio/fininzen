@@ -26,22 +26,22 @@ postgres ◀─ backend ─▶ redis
 git clone <URL-del-repo> fininzen && cd fininzen
 
 # 2. Configura l'ambiente
-cp deploy/docker/stack/.env.example deploy/docker/stack/.env
+cp deploy/docker/production/.env.example deploy/docker/production/.env
 #    Genera i segreti:
 python3 -c "import secrets; print(secrets.token_urlsafe(64))"                 # DJANGO_SECRET_KEY
 python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"  # FIELD_ENCRYPTION_KEYS
-#    Poi modifica deploy/docker/stack/.env: incolla i segreti, imposta
+#    Poi modifica deploy/docker/production/.env: incolla i segreti, imposta
 #    POSTGRES_PASSWORD, e sostituisci OGNI "CHANGE_ME_VM_IP" con l'IP della VM
 #    (in DJANGO_ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, WEBAUTHN_*).
-nano deploy/docker/stack/.env
+nano deploy/docker/production/.env
 
 # 3. Build + avvio
-docker compose --env-file deploy/docker/stack/.env \
-  -f deploy/docker/stack/compose.yml up -d --build
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml up -d --build
 
 # 4. Crea il primo utente (admin)
-docker compose --env-file deploy/docker/stack/.env \
-  -f deploy/docker/stack/compose.yml exec backend python manage.py createsuperuser
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml exec backend python manage.py createsuperuser
 ```
 
 Apri `http://<VM-IP>` dal browser. `migrate` e `collectstatic` vengono eseguiti
@@ -51,7 +51,7 @@ automaticamente dall'entrypoint del backend a ogni avvio.
 
 ```bash
 # Alias comodo (eseguilo nella shell per non ripetere i flag):
-alias dc='docker compose --env-file deploy/docker/stack/.env -f deploy/docker/stack/compose.yml'
+alias dc='docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml'
 
 dc ps                      # stato dei servizi
 dc logs -f backend         # log del backend
@@ -86,7 +86,7 @@ dc exec postgres pg_dump -U fininzen fininzen > backup_$(date +%F).sql
 ## Passare a dominio reale + HTTPS
 
 1. Punta un record DNS (o `/etc/hosts`) all'IP della VM e apri 80+443.
-2. In `deploy/docker/stack/Caddyfile` sostituisci `:80 {` con `tuo.dominio {`
+2. In `deploy/docker/production/Caddyfile` sostituisci `:80 {` con `tuo.dominio {`
    (Caddy ottiene il certificato Let's Encrypt da solo) e aggiungi
    `- "443:443"` ai `ports` di caddy nel compose.
 3. Nel `.env`: `DJANGO_SECURE_SSL_REDIRECT=1`, `DJANGO_SECURE_COOKIES=1`,
