@@ -6,6 +6,13 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.2.0 (2026-06-30)
+
+### Refactor
+
+- **docker**: rename deploy/docker/stack/ → production/
+- **docker**: rename prod/ → backend/ for the Django image
+
 ## v0.1.0 (2026-06-29)
 
 ### Feat
