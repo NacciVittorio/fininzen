@@ -4,7 +4,7 @@
 # rotazione e cifratura at-rest opzionale. Pensato per il cron dell'host nello
 # stack Docker (vedi wiki/DOCKER_DEPLOY.md §8).
 #
-# Variabili (lette da deploy/docker/stack/.env oppure dall'ambiente):
+# Variabili (lette da deploy/docker/production/.env oppure dall'ambiente):
 #   BACKUP_DIR              dove scrivere i dump (default <repo>/backups)
 #   BACKUP_RETENTION_DAYS   giorni di retention (default 14)
 #   BACKUP_ENC_PASSPHRASE   se impostata, cifra il dump con AES-256 (openssl)
@@ -14,8 +14,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/stack/.env}"
-COMPOSE=(docker compose --env-file "$ENV_FILE" -f "${REPO_ROOT}/deploy/docker/stack/compose.yml")
+ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/production/.env}"
+COMPOSE=(docker compose --env-file "$ENV_FILE" -f "${REPO_ROOT}/deploy/docker/production/compose.yml")
 
 if [[ -f "$ENV_FILE" ]]; then
     # shellcheck disable=SC1090

@@ -4,9 +4,9 @@
 # brings the whole app online behind Caddy on port 80. Intended for a trusted
 # LAN deploy over plain HTTP (e.g. a Proxmox VM). See ./README.md.
 #
-#   cp deploy/docker/stack/.env.example deploy/docker/stack/.env   # then edit
-#   docker compose --env-file deploy/docker/stack/.env \
-#     -f deploy/docker/stack/compose.yml up -d --build
+#   cp deploy/docker/production/.env.example deploy/docker/production/.env   # then edit
+#   docker compose --env-file deploy/docker/production/.env \
+#     -f deploy/docker/production/compose.yml up -d --build
 services:
   postgres:
     image: postgres:18-alpine

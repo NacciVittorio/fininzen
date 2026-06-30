@@ -5,8 +5,8 @@ sviluppo) al PostgreSQL dello stack Docker, con cifratura applicativa
 AES-256-GCM dei campi sensibili. Dopo lo switch la produzione gira solo su
 Postgres dentro i container.
 
-Presuppone lo stack già in piedi (`just stack-up`) e un `.env` completo in
-`deploy/docker/stack/.env` — vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md).
+Presuppone lo stack già in piedi (`just production-up`) e un `.env` completo in
+`deploy/docker/production/.env` — vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md).
 
 ## Cosa viene cifrato
 
@@ -41,7 +41,7 @@ finirebbero in chiaro) a meno di `--allow-plaintext` esplicito.
 ## 0. Prerequisiti
 
 Lo schema su Postgres viene già creato dall'entrypoint del container backend
-(`manage.py migrate` all'avvio), quindi al primo `stack-up` il DB ha solo le
+(`manage.py migrate` all'avvio), quindi al primo `production-up` il DB ha solo le
 righe seed (es. `InvestmentType` di default), che il command cancella prima di
 copiare. Serve solo che `FIELD_ENCRYPTION_KEYS` sia valorizzata nel `.env`:
 
@@ -55,7 +55,7 @@ cifra, le altre restano valide per la decifratura (rotazione chiavi).
 
 > **Ordine consigliato:** migra *prima* di creare un superuser a mano. Il sorgente
 > porta già i suoi utenti (admin incluso). Se hai già lanciato
-> `just stack-superuser`, vedi la nota su `--force` al passo 3.
+> `just production-superuser`, vedi la nota su `--force` al passo 3.
 
 ## 1. Sul Mac (o macchina di sviluppo) — prepara e trasferisci il sorgente
 
@@ -72,7 +72,7 @@ scp /tmp/fininzen_src.sqlite3 dockerapp@VM_IP:/opt/fininzen/migrate_src.sqlite3
 
 ```bash
 cd /opt/fininzen
-DC="docker compose --env-file deploy/docker/stack/.env -f deploy/docker/stack/compose.yml"
+DC="docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
 
 # Il db.sqlite3 è in .dockerignore (non è dentro l'immagine): va copiato
 # nel backend in esecuzione.
@@ -91,7 +91,7 @@ $DC exec backend python manage.py migrate_sqlite_to_postgres \
     --sqlite-path /tmp/migrate_src.sqlite3 --apply
 ```
 
-> **Se hai già creato un superuser** (`just stack-superuser`), la destinazione ha
+> **Se hai già creato un superuser** (`just production-superuser`), la destinazione ha
 > già un utente e `--apply` si rifiuta per non sovrascrivere dati per errore.
 > Aggiungi `--force`: il command azzera la destinazione e la rimpiazza con gli
 > utenti reali del sorgente (il tuo admin è tra questi, con il suo flag

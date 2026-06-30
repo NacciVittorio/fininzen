@@ -6,7 +6,7 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 venv_python := "venv/bin/python"
 web_dir := "web"
 web_bin := "web/node_modules/.bin"
-stack := "--env-file deploy/docker/stack/.env -f deploy/docker/stack/compose.yml"
+production := "--env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
 
 default: doctor lint test
 
@@ -71,28 +71,28 @@ docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
 # ── Full Docker stack (production deploy: Caddy + Next.js + Django + PG + Redis) ─
-# Run these on the server from the repo root. Require deploy/docker/stack/.env.
+# Run these on the server from the repo root. Require deploy/docker/production/.env.
 # Full guide: wiki/DOCKER_DEPLOY.md
 
-stack-up:
-    docker compose {{stack}} up -d --build
+production-up:
+    docker compose {{production}} up -d --build
 
-stack-down:
-    docker compose {{stack}} down
+production-down:
+    docker compose {{production}} down
 
-stack-ps:
-    docker compose {{stack}} ps
+production-ps:
+    docker compose {{production}} ps
 
-stack-logs:
-    docker compose {{stack}} logs -f
+production-logs:
+    docker compose {{production}} logs -f
 
-stack-superuser:
-    docker compose {{stack}} exec backend python manage.py createsuperuser
+production-superuser:
+    docker compose {{production}} exec backend python manage.py createsuperuser
 
-stack-refresh-prices:
-    docker compose {{stack}} exec -T backend python manage.py refresh_asset_prices
+production-refresh-prices:
+    docker compose {{production}} exec -T backend python manage.py refresh_asset_prices
 
-stack-backup:
+production-backup:
     bash scripts/backup_db.sh
 
 # ── Code quality ─────────────────────────────────────────────────────────────
