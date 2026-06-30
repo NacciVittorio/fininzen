@@ -17,6 +17,16 @@ from django.conf import settings
 REFRESH_COOKIE_NAME = "fn_refresh"
 CSRF_COOKIE_NAME = "fn_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
+# Native clients (the iOS/Capacitor app) cannot rely on the httpOnly refresh
+# cookie: a WKWebView with a custom scheme (capacitor://localhost) does not
+# round-trip the cross-site cookie reliably, and a fully native client has no
+# cookie jar at all. Such a client sends `X-Client: mobile` and gets the refresh
+# token in the JSON body instead — it stores it in the Keychain and replays it in
+# the body on refresh/logout. This is not a CSRF risk: like the access token, a
+# body/header credential is not auto-attached by a browser, so the double-submit
+# token (which only guards the *cookie*-authenticated path) is not needed here.
+CLIENT_HEADER_NAME = "X-Client"
+MOBILE_CLIENT = "mobile"
 # The httpOnly refresh cookie is scoped to the auth endpoints so it is not
 # attached to every /api/* request (only refresh/logout need it). The path is
 # the *browser-visible* one (see settings.REFRESH_COOKIE_PATH): behind the
@@ -85,3 +95,8 @@ def verify_csrf(request):
     header = request.headers.get(CSRF_HEADER_NAME)
     if not cookie or not header or not secrets.compare_digest(cookie, header):
         raise CsrfError()
+
+
+def is_mobile_client(request) -> bool:
+    """True when the request comes from the native app (body-based refresh flow)."""
+    return request.headers.get(CLIENT_HEADER_NAME, "").strip().lower() == MOBILE_CLIENT
