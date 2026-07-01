@@ -52,6 +52,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
     themeColor: "#f4f8ff",
+    viewportFit: "cover",
 };
 
 // iOS standalone splash screens. The Metadata API has no field for
