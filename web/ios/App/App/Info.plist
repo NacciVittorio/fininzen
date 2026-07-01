@@ -48,7 +48,7 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<!-- DEV ONLY — REMOVE BEFORE RELEASE (M4). The mobile build talks to the
-	     local Docker over plain HTTP on the LAN (http://192.168.1.7/fininzen/api).
+	     local Docker over plain HTTP on the LAN (http://<LAN_IP>/fininzen/api).
 	     ATS blocks cleartext by default; NSAllowsLocalNetworking permits loads to
 	     private-range/.local hosts only (never arbitrary internet HTTP). Once the
 	     API is served over HTTPS (chore/prod-https-domain), delete this key. -->
