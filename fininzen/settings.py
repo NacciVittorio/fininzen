@@ -394,6 +394,16 @@ else:
 CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS + _MOBILE_CORS_ORIGINS
 CORS_ALLOW_ALL_ORIGINS = False
 
+# The native client tags every auth request with a custom `X-Client: mobile`
+# header (see web/src/api/auth.ts) so the backend returns/accepts the refresh
+# token in the JSON body instead of the httpOnly cookie. `X-Client` is not a
+# CORS-safelisted request header, so the WKWebView preflight (OPTIONS) must be
+# told it is allowed — otherwise the login fetch is blocked before it leaves the
+# app. Same-origin web never preflights, which is why this only bites mobile.
+from corsheaders.defaults import default_headers  # noqa: E402
+
+CORS_ALLOW_HEADERS = (*default_headers, "x-client")
+
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").strip()
 _extra_csrf = (
     [o.strip() for o in _csrf_origins.split(",") if o.strip()] if _csrf_origins else []
