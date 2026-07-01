@@ -9,7 +9,7 @@
         "start": "next start",
         "generate:api": "openapi-typescript ../openapi.json -o src/api/schema.d.ts",
         "test:e2e": "playwright test",
-        "build:mobile": "BUILD_TARGET=mobile NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE:-http://192.168.1.7/fininzen/api} next build",
+        "build:mobile": "BUILD_TARGET=mobile next build",
         "ios:sync": "npm run build:mobile && npx cap sync ios",
         "ios:run": "npm run ios:sync && npx cap run ios",
         "lint": "prettier --check src/ && npm run lint:eslint && npm run lint:types",
