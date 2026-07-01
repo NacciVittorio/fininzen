@@ -19,8 +19,12 @@
     },
     "dependencies": {
         "@aparajita/capacitor-secure-storage": "^8.0.0",
+        "@capacitor/app": "^8.1.0",
         "@capacitor/core": "^8.4.1",
+        "@capacitor/haptics": "^8.0.2",
         "@capacitor/ios": "^8.4.1",
+        "@capacitor/keyboard": "^8.0.5",
+        "@capacitor/status-bar": "^8.0.2",
         "@tanstack/query-sync-storage-persister": "^5.101.2",
         "@tanstack/react-query": "^5.62.0",
         "@tanstack/react-query-persist-client": "^5.101.2",

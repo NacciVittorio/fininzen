@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import Icon from "./Icons";
 import useFabClearance from "./useFabClearance";
+import { triggerHaptic } from "../../utils/nativeHaptics";
 
 const TONE_BG: Record<string, string> = {
     accent: "var(--btn-primary-bg)",
@@ -62,7 +63,10 @@ export default function Fab({
         <button
             type="button"
             data-testid={testId}
-            onClick={onClick}
+            onClick={() => {
+                triggerHaptic();
+                onClick?.();
+            }}
             aria-label={label}
             title={label}
             className={["fab", className].filter(Boolean).join(" ")}

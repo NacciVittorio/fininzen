@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from "@capacitor/cli";
+import { KeyboardResize } from "@capacitor/keyboard";
 
 // Capacitor wraps the Next static export (`BUILD_TARGET=mobile` → `output: 'export'`,
 // emitted to `web/out/`) in a native WKWebView shell. The bundle is loaded LOCALLY
@@ -13,6 +14,14 @@ const config: CapacitorConfig = {
         // Let the web content manage the safe-area insets itself (the layout already
         // uses env(safe-area-inset-*)); Capacitor should not add its own inset.
         contentInset: "never",
+    },
+    plugins: {
+        // Native resize mode is set again at runtime (nativeKeyboard.ts) via
+        // Keyboard.setResizeMode — this config value is the native-side default
+        // used before that JS call runs during app launch.
+        Keyboard: {
+            resize: KeyboardResize.Native,
+        },
     },
 };
 

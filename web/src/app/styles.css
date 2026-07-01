@@ -394,13 +394,16 @@ textarea.inp {
     }
 }
 
-/* ── Mobile: show brand mark in slim AppHeader (sidebar hidden) ────────────── */
+/* ── Mobile: show brand mark + logout in slim AppHeader (sidebar hidden) ──── */
 @media (max-width: 760px) {
     .app-header-brand-mobile {
         display: flex !important;
     }
     .app-header-actions {
         margin-left: 0 !important;
+    }
+    .app-header-logout-mobile {
+        display: inline-flex !important;
     }
 }
 
