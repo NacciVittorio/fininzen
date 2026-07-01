@@ -24,11 +24,11 @@ is `0` the public API is considered unstable, so `commitizen` is configured with
 `major_version_zero = true`: during beta a breaking change bumps the **minor**
 (`0.x.0`) instead of jumping to `1.0.0`.
 
-| Commit while in 0.x          | Result          |
-| ---------------------------- | --------------- |
-| `fix:`                       | `0.0.1 → 0.0.2` |
-| `feat:`                      | `0.0.1 → 0.1.0` |
-| `feat!:` / `BREAKING CHANGE` | `0.0.1 → 0.1.0` |
+| Commit while in 0.x          | Result (es. da `0.2.1`) |
+| ---------------------------- | ----------------------- |
+| `fix:`                       | `0.2.1 → 0.2.2`         |
+| `feat:`                      | `0.2.1 → 0.3.0`         |
+| `feat!:` / `BREAKING CHANGE` | `0.2.1 → 0.3.0`         |
 
 When the app is ready for its first stable release, flip `major_version_zero` to
 `false` in `.cz.toml` (or run `cz bump --increment MAJOR`) to cut `1.0.0`.
@@ -63,7 +63,7 @@ Do not edit these numbers by hand: use `just release` (below).
 ## Where the version is visible
 
 - **Settings → About** in the web app (the real value instead of the old `dev`).
-- **`GET /api/health/`** → `{"status":"ok","database":"ok","version":"0.0.1"}`.
+- **`GET /api/health/`** → `{"status":"ok","database":"ok","version":"0.2.1"}`.
 - **OpenAPI contract** (`openapi.json`, field `info.version`).
 - **GitHub → Releases** and git tags `vX.Y.Z`.
 
