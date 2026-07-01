@@ -376,6 +376,10 @@ if os.environ.get("REDIS_URL"):
     }
 
 # CORS: in dev whitelist del solo origin Vite; in produzione passare CORS_ALLOWED_ORIGINS="https://x,https://y"
+# The native iOS app (Capacitor in a WKWebView) sends Origin `capacitor://localhost`
+# (and `ionic://localhost` on older shells); these are constant regardless of the
+# deploy, so they are always allowed in addition to the configured web origins.
+_MOBILE_CORS_ORIGINS = ["capacitor://localhost", "ionic://localhost"]
 _cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").strip()
 if _cors_origins:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(",") if o.strip()]
@@ -387,6 +391,7 @@ else:
         "http://127.0.0.1:5173",
         "https://fininzen.nacci.eu",
     ]
+CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS + _MOBILE_CORS_ORIGINS
 CORS_ALLOW_ALL_ORIGINS = False
 
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").strip()
