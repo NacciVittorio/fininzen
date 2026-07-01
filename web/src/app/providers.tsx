@@ -6,6 +6,15 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 import { useState } from "react";
 import { AppProvider } from "../context/AppProvider";
 import { IS_MOBILE_BUILD } from "../utils/platform";
+import { registerNativeSecureStore } from "../utils/nativeSecureStore";
+
+// Plug the iOS Keychain into the refresh-token seam at module load — before any
+// component renders or the session controller attempts a silent refresh. Guarded
+// by the compile-time build flag so the web bundle dead-code-eliminates it; on
+// the native prerender it is a no-op until the app runs on a real device/sim.
+if (IS_MOBILE_BUILD) {
+    registerNativeSecureStore();
+}
 
 // Offline read: in the native build the query cache is persisted so the app can
 // open and show the last-fetched data with no network. We persist ONLY in the
