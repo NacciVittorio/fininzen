@@ -305,4 +305,4 @@ cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
 - `deploy/docker/production/README.md` — riferimento rapido dei comandi dello stack.
 - `wiki/OPS_HARDENING.md` — checklist di hardening lato deploy.
 - `wiki/VERSIONING.md` — schema di versionamento unico backend/frontend.
-- `wiki/POSTGRES_MIGRATION.md` — note di migrazione SQLite → PostgreSQL.
+- `wiki/archive/POSTGRES_MIGRATION.md` — note storiche di migrazione SQLite → PostgreSQL (cutover completato).

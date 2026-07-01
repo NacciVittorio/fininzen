@@ -1,12 +1,18 @@
 # Migrazione SQLite → PostgreSQL + cifratura campi
 
+> ✅ **Cutover a Postgres completato — documento archiviato, conservato solo per
+> storico.** La produzione gira ormai su PostgreSQL. Il tooling
+> (`manage.py migrate_sqlite_to_postgres`) resta nel codice per riferimento, ma
+> questo runbook non fa più parte del flusso operativo. Per backup/restore in stato
+> stazionario vedi [DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md) §8.
+
 Questa guida copre il passaggio una-tantum dal vecchio `db.sqlite3` (database di
 sviluppo) al PostgreSQL dello stack Docker, con cifratura applicativa
 AES-256-GCM dei campi sensibili. Dopo lo switch la produzione gira solo su
 Postgres dentro i container.
 
 Presuppone lo stack già in piedi (`just production-up`) e un `.env` completo in
-`deploy/docker/production/.env` — vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md).
+`deploy/docker/production/.env` — vedi [DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md).
 
 ## Cosa viene cifrato
 
@@ -23,7 +29,7 @@ importi, date, FK, owner, tipi transazione, ticker, e `Expense.description`
 trigram produrrebbe falsi positivi e gonfierebbe i totali).
 
 I backup (`pg_dump`) contengono comunque importi/date in chiaro: cifrali a riposo
-con `BACKUP_ENC_PASSPHRASE` (vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) §8).
+con `BACKUP_ENC_PASSPHRASE` (vedi [DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md) §8).
 
 ## Come funziona la cifratura in migrazione
 
@@ -146,24 +152,7 @@ Postgres non è completa.
 
 ## 7. Backup & restore (steady state, Postgres)
 
-Esegui `scripts/backup_db.sh` periodicamente (pg_dump `--format=custom` dal
-container, con rotazione e cifratura at-rest opzionale) — vedi
-[DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) §8. `scripts/backup_offsite.sh` replica
-off-site i file `*.dump` / `*.dump.enc`.
-
-Restore dentro lo stack:
-
-```bash
-# Se cifrato, decifra prima:
-openssl enc -d -aes-256-cbc -pbkdf2 -in fininzen_YYYYMMDD.dump.enc \
-    -out fininzen_YYYYMMDD.dump -pass env:BACKUP_ENC_PASSPHRASE
-
-# Ripristina nel container postgres (DROP + ricrea oggetti):
-$DC cp fininzen_YYYYMMDD.dump postgres:/tmp/restore.dump
-$DC exec -T postgres sh -c \
-    'pg_restore --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/restore.dump'
-$DC exec postgres rm -f /tmp/restore.dump
-```
-
-I valori cifrati nel dump sono leggibili solo con la `FIELD_ENCRYPTION_KEYS`
-corrispondente: conserva la chiave separata dai backup.
+Il backup/restore in stato stazionario **non** fa più parte di questo runbook di
+migrazione. La procedura canonica (dump `--format=custom`, rotazione, cifratura
+at-rest, replica off-site e restore nello stack) vive in
+[DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md) §8.

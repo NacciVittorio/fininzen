@@ -5,9 +5,11 @@ enabled from repository code alone.
 
 ## Rate Limits
 
-- Set `REDIS_URL` in the production environment and install the `redis` Python
-  package on the host so DRF throttle buckets are shared across gunicorn workers.
-- On the 1 GB VPS, keep Redis bounded, for example:
+- Set `REDIS_URL` in the production environment so DRF throttle buckets are shared
+  across gunicorn workers. In the Docker stack the `redis` Python package ships
+  inside the backend image and the `redis` service is part of the compose topology —
+  nothing to install on the host.
+- Keep Redis bounded on a small VM, for example:
   `maxmemory 64mb` and `maxmemory-policy volatile-lru` (already set in the stack
   compose `redis` service).
 - Edge rate-limiting is a future hardening item for the internet-facing/HTTPS
@@ -25,7 +27,7 @@ enabled from repository code alone.
 
 ## Gunicorn
 
-- Keep workers at `2` or lower on the current 1 vCPU / 1 GB VPS.
+- Keep workers at `2` or lower on a small VM (1–2 vCPU).
 - Configure worker recycling, for example `--max-requests 1000
   --max-requests-jitter 100`. In the Docker stack this is set in the gunicorn
   command of `deploy/docker/backend/Dockerfile`.

@@ -70,6 +70,12 @@ dc up -d --build           # rebuild immagini; migrate/collectstatic automatici
 
 ## Backup del database
 
+Metodo **ufficiale**: `just production-backup` (→ `scripts/backup_db.sh`), che fa un
+`pg_dump --format=custom` dal container con rotazione e cifratura at-rest opzionale.
+Vedi [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md) §8 per schedulazione e restore.
+
+Dump **rapido ad-hoc** (SQL semplice, senza rotazione/cifratura):
+
 ```bash
 dc exec postgres pg_dump -U fininzen fininzen > backup_$(date +%F).sql
 ```
