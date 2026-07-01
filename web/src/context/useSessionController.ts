@@ -5,6 +5,8 @@ import type { TokenResponse } from "../api/auth";
 import type { GrantsResponse } from "../api/sharing";
 import type { ProfileResponse } from "../api/profile";
 import { clearAccessToken, setAccessToken } from "../utils/api";
+import { IS_MOBILE_BUILD } from "../utils/platform";
+import { clearRefreshToken, setRefreshToken } from "../utils/refreshTokenStore";
 import { logError } from "../utils/logger";
 import {
     authenticateWithBiometric,
@@ -186,6 +188,11 @@ export function useSessionController(providerState: AppProviderState) {
                 const data = (await res.json()) as TokenResponse;
                 resetClientState();
                 setAccessToken(data.access);
+                // Native build: the refresh token comes back in the body and is
+                // held client-side (Keychain); the web build uses the cookie.
+                if (IS_MOBILE_BUILD && data.refresh) {
+                    await setRefreshToken(data.refresh);
+                }
                 localStorage.setItem("fn_session", "1");
                 localStorage.setItem("auth_email", email);
                 localStorage.removeItem("is_demo");
@@ -222,6 +229,9 @@ export function useSessionController(providerState: AppProviderState) {
             const data = (await res.json()) as TokenResponse;
             resetClientState();
             setAccessToken(data.access);
+            if (IS_MOBILE_BUILD && data.refresh) {
+                await setRefreshToken(data.refresh);
+            }
             localStorage.setItem("fn_session", "1");
             localStorage.setItem("is_demo", "true");
             localStorage.setItem("auth_email", "demo@demo.com");
@@ -367,6 +377,8 @@ export function useSessionController(providerState: AppProviderState) {
             /* ignore */
         }
         clearAccessToken();
+        // Native build: drop the stored refresh token alongside the access token.
+        if (IS_MOBILE_BUILD) void clearRefreshToken();
         resetClientState();
         localStorage.removeItem("fn_session");
         localStorage.removeItem("is_demo");
