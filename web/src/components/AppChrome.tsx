@@ -1,50 +1,41 @@
 "use client";
 
-import type { Dispatch, ReactNode, SetStateAction } from "react";
-import type { FeatureKey } from "../context/appContextHelpers";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useApp } from "../context/useApp";
-import type { Translator } from "../types";
 import { Icon, NavItem } from "./ui";
-
-const NAV_DEFINITIONS = [
-    ["dashboard", "dashboard", "dashboard"],
-    ["expenses", "cashflow", "cashflow"],
-    ["accounts", "accounts", "accounts"],
-    ["portfolio", "investments", "investments"],
-    ["fire", "fire", "fire"],
-    ["settings", null, "settings"],
-] as const satisfies readonly (readonly [string, FeatureKey | null, string])[];
+import { triggerHaptic } from "../utils/nativeHaptics";
 
 export type NavigationItem = {
-    id: string;
-    feature: FeatureKey | null;
+    href: string;
     icon: ReactNode;
     labelKey: string;
     shortKey: string;
 };
 
+const NAV_DEFINITIONS = [
+    ["/dashboard", "dashboard", "dashboard"],
+    ["/cashflow", "cashflow", "cashflow"],
+    ["/accounts", "accounts", "accounts"],
+    ["/portfolio", "investments", "investments"],
+    ["/fire", "fire", "fire"],
+    ["/settings", "settings", "settings"],
+] as const satisfies readonly (readonly [string, string, string])[];
+
 export const NAV_ITEMS: NavigationItem[] = NAV_DEFINITIONS.map(
-    ([id, feature, icon]) => ({
-        id,
-        feature,
+    ([href, key, icon]) => ({
+        href,
         icon: <Icon name={icon} />,
-        labelKey: `tab_${id === "expenses" ? "cashflow" : id === "portfolio" ? "investments" : id}`,
-        shortKey: `tab_${id === "expenses" ? "cashflow" : id === "portfolio" ? "investments" : id}_short`,
+        labelKey: `tab_${key}`,
+        shortKey: `tab_${key}_short`,
     }),
 );
 
-type NavigationProps = {
-    tab: string;
-    setTab: Dispatch<SetStateAction<string>>;
-    T: Translator;
-    navItems: readonly NavigationItem[];
-};
+export function Sidebar() {
+    const { T, logout, user, isDemo } = useApp();
+    const pathname = usePathname();
 
-type SidebarProps = NavigationProps & {
-    isDemo: boolean;
-};
-
-export function Sidebar({ tab, setTab, T, navItems, isDemo }: SidebarProps) {
     return (
         <aside
             className="app-sidebar"
@@ -109,20 +100,62 @@ export function Sidebar({ tab, setTab, T, navItems, isDemo }: SidebarProps) {
                     DEMO
                 </div>
             )}
-            {navItems.map((item) => (
-                <NavItem
-                    key={item.id}
-                    icon={item.icon}
-                    label={T(item.labelKey)}
-                    active={tab === item.id}
-                    onClick={() => setTab(item.id)}
-                />
-            ))}
+            <div style={{ flex: 1, overflowY: "auto" }}>
+                {NAV_ITEMS.map((item) => (
+                    <NavItem
+                        key={item.href}
+                        href={item.href}
+                        icon={item.icon}
+                        label={T(item.labelKey)}
+                        active={pathname.startsWith(item.href)}
+                    />
+                ))}
+            </div>
+            <div
+                style={{
+                    borderTop: "1px solid var(--rule)",
+                    marginTop: 12,
+                    paddingTop: 12,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                }}
+            >
+                {user && (
+                    <span
+                        style={{
+                            padding: "0 12px",
+                            fontSize: 12,
+                            color: "var(--fg-soft)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        {user}
+                    </span>
+                )}
+                <button
+                    type="button"
+                    onClick={logout}
+                    className="btn touch-target"
+                    style={{
+                        margin: "0 12px",
+                        fontSize: 13,
+                        padding: "6px 14px",
+                    }}
+                >
+                    {T("logout_button")}
+                </button>
+            </div>
         </aside>
     );
 }
 
-export function MobileBottomNav({ tab, setTab, T, navItems }: NavigationProps) {
+export function MobileBottomNav() {
+    const { T } = useApp();
+    const pathname = usePathname();
+
     return (
         <nav
             className="app-bottom-nav"
@@ -143,17 +176,18 @@ export function MobileBottomNav({ tab, setTab, T, navItems }: NavigationProps) {
                 boxShadow: "var(--shadow-soft)",
             }}
         >
-            {navItems.map((item) => {
-                const active = tab === item.id;
+            {NAV_ITEMS.map((item) => {
+                const active = pathname.startsWith(item.href);
                 return (
-                    <button
-                        key={item.id}
-                        type="button"
+                    <Link
+                        key={item.href}
+                        href={item.href}
                         className="pressable"
-                        onClick={() => setTab(item.id)}
+                        onClick={() => triggerHaptic()}
                         aria-current={active ? "page" : undefined}
                         aria-label={T(item.labelKey)}
                         style={{
+                            textDecoration: "none",
                             flex: "1 1 0",
                             minWidth: 0,
                             background: active
@@ -200,7 +234,7 @@ export function MobileBottomNav({ tab, setTab, T, navItems }: NavigationProps) {
                         >
                             {T(item.shortKey)}
                         </span>
-                    </button>
+                    </Link>
                 );
             })}
         </nav>
@@ -208,7 +242,7 @@ export function MobileBottomNav({ tab, setTab, T, navItems }: NavigationProps) {
 }
 
 export function AppHeader() {
-    const { T, viewAs, switchAccount, grants } = useApp();
+    const { T, viewAs, switchAccount, grants, logout } = useApp();
     const receivedGrants = grants?.received ?? [];
     return (
         <div
@@ -259,6 +293,7 @@ export function AppHeader() {
             >
                 {receivedGrants.length > 0 && (
                     <select
+                        className="touch-target"
                         value={viewAs ? viewAs.userId : ""}
                         onChange={(event) => {
                             if (!event.target.value) return switchAccount(null);
@@ -289,6 +324,18 @@ export function AppHeader() {
                         ))}
                     </select>
                 )}
+                <button
+                    type="button"
+                    onClick={logout}
+                    className="btn app-header-logout-mobile touch-target"
+                    style={{
+                        display: "none",
+                        fontSize: 13,
+                        padding: "6px 14px",
+                    }}
+                >
+                    {T("logout_button")}
+                </button>
             </div>
         </div>
     );
