@@ -7,6 +7,9 @@ import { useState } from "react";
 import { AppProvider } from "../context/AppProvider";
 import { IS_MOBILE_BUILD } from "../utils/platform";
 import { registerNativeSecureStore } from "../utils/nativeSecureStore";
+import { registerNativeStatusBar } from "../utils/nativeStatusBar";
+import { registerNativeKeyboard } from "../utils/nativeKeyboard";
+import { registerNativeAppLifecycle } from "../utils/nativeAppLifecycle";
 
 // Plug the iOS Keychain into the refresh-token seam at module load — before any
 // component renders or the session controller attempts a silent refresh. Guarded
@@ -14,6 +17,9 @@ import { registerNativeSecureStore } from "../utils/nativeSecureStore";
 // the native prerender it is a no-op until the app runs on a real device/sim.
 if (IS_MOBILE_BUILD) {
     registerNativeSecureStore();
+    registerNativeStatusBar();
+    registerNativeKeyboard();
+    registerNativeAppLifecycle();
 }
 
 // Offline read: in the native build the query cache is persisted so the app can

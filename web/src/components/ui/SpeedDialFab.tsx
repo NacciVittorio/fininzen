@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import Icon from "./Icons";
 import useFabClearance from "./useFabClearance";
+import { triggerHaptic } from "../../utils/nativeHaptics";
 
 type SpeedDialAction = {
     label?: ReactNode;
@@ -69,6 +70,7 @@ export default function SpeedDialFab({
                         type="button"
                         data-testid={action.testId || `speed-dial-action-${i}`}
                         onClick={() => {
+                            triggerHaptic();
                             setOpen(false);
                             action.onClick();
                         }}
@@ -112,7 +114,10 @@ export default function SpeedDialFab({
                 data-testid="speed-dial-main"
                 aria-label={mainLabel}
                 title={mainLabel}
-                onClick={() => setOpen((p) => !p)}
+                onClick={() => {
+                    triggerHaptic();
+                    setOpen((p) => !p);
+                }}
                 style={{
                     width: 56,
                     height: 56,
