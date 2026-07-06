@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApp } from "../context/useApp";
 import { Icon, NavItem } from "./ui";
-import { triggerHaptic } from "../utils/nativeHaptics";
 
 export type NavigationItem = {
     href: string;
@@ -183,7 +182,6 @@ export function MobileBottomNav() {
                         key={item.href}
                         href={item.href}
                         className="pressable"
-                        onClick={() => triggerHaptic()}
                         aria-current={active ? "page" : undefined}
                         aria-label={T(item.labelKey)}
                         style={{

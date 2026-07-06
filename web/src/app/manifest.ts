@@ -1,10 +1,5 @@
 import type { MetadataRoute } from "next";
 
-// The manifest is fully static, so emit it as a static file. This is required
-// for the mobile `output: export` build (which has no server to render a route
-// handler on demand) and is a harmless no-op for the SSR web build.
-export const dynamic = "force-static";
-
 // PWA manifest, served at /manifest.webmanifest via Next's app-router
 // convention. Ported verbatim from the legacy Vite frontend's public/
 // manifest.json so the installable-app experience (standalone display,

@@ -1,15 +1,13 @@
 # Wiki — Fininzen
 
 Mappa della documentazione di progetto. Il [README](../README.md) alla root copre
-installazione, avvio, comandi `just` e l'app iOS; questa cartella raccoglie le guide
+installazione, avvio e comandi `just`; questa cartella raccoglie le guide
 approfondite.
 
 ## Deploy & operatività
 
 - [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) — runbook canonico: da VM vuota a stack online
   (Caddy + Next.js + Django + Postgres + Redis), price cron, backup/restore, HTTPS.
-- [IOS_DEPLOY.md](IOS_DEPLOY.md) — deploy dell'app iOS su un iPhone reale (via cavo con
-  Apple ID gratuito, oppure Apple Developer + TestFlight / App Store).
 - [OPS_HARDENING.md](OPS_HARDENING.md) — checklist di hardening lato deploy (rate limit,
   backup, gunicorn, price refresh) + log dei finding accettati.
 

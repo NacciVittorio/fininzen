@@ -6,7 +6,6 @@ App personale per tracciare spese quotidiane e portafoglio investimenti (ETF, az
 
 - Backend: Django + Django REST Framework su PostgreSQL (SQLite per i test locali rapidi)
 - Frontend: Next.js 15 (App Router, SSR) + React 19 + TypeScript
-- Mobile: app iOS nativa via Capacitor (stesso build Next.js in static export dentro un WKWebView) — vedi [App iOS](#-app-ios-capacitor)
 - Prezzi: yfinance (Yahoo Finance non ufficiale) + Borsa Italiana/FIDA, con fonte selezionabile Auto/Yahoo/Borsa per asset
 
 ## Installazione
@@ -65,81 +64,6 @@ L'applicazione sarà raggiungibile su:
 Backend: http://localhost:8000
 Web: http://localhost:3000
 ```
-
-## 📱 App iOS (Capacitor)
-
-L'app iOS è lo **stesso** frontend Next.js buildato in *static export* e impacchettato
-in un WKWebView nativo con [Capacitor](https://capacitorjs.com/). Nessun secondo
-codebase: web e mobile differiscono solo per configurazione di build. Il flusso mobile
-vive negli **npm script di `web/`** (non nel `justfile`).
-
-> Per il **deploy su un iPhone reale** (via cavo gratis o TestFlight) segui il manuale
-> dedicato: [wiki/IOS_DEPLOY.md](/wiki/IOS_DEPLOY.md).
-
-### Prerequisiti
-
-- Xcode + toolchain attiva (`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`,
-  poi `xcodebuild -runFirstLaunch`).
-- Node.js 22+, Docker Desktop (o Colima) per il backend.
-
-### 1. Avvia il backend Docker
-
-L'app mobile non usa `localhost`: parla con il tuo stack Docker via IP LAN. Avvia lo
-stack (Caddy espone la **:80**):
-
-```bash
-just production-up
-# oppure, esplicito:
-docker compose --env-file deploy/docker/production/.env \
-  -f deploy/docker/production/compose.yml up -d --build
-```
-
-Il device (Simulatore o iPhone) deve stare sulla **stessa LAN** del Docker host.
-Se non vedi i container in Docker Desktop, controlla il contesto: `docker context show`
-deve essere `desktop-linux` (non `colima`); nella tab *Containers* sono raggruppati sotto
-il progetto compose **`production`**.
-
-### 2. Configura l'IP LAN
-
-Il build mobile punta di default a `http://192.168.1.7/fininzen/api` (hardcoded come
-fallback nello script `build:mobile`). Se il tuo IP è diverso, ricavalo con
-`ipconfig getifaddr en0` e prima del build esporta:
-
-```bash
-export NEXT_PUBLIC_API_BASE=http://<TUO-IP>/fininzen/api
-```
-
-Aggiungi lo stesso IP a `DJANGO_ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS` in
-`deploy/docker/production/.env`, poi riavvia il backend (`just production-up`).
-
-### 3. Esegui sul Simulatore (gratis, senza account Apple)
-
-```bash
-cd web
-npm run ios:run          # build:mobile + cap sync ios + cap run ios
-```
-
-Elenca i simulatori disponibili con `xcrun simctl list devices available`. L'app ha
-bundle id `eu.nacci.fininzen`; per provare usa il login demo `demo@demo.com`.
-
-### 4. Su un iPhone reale
-
-Due strade (via cavo con Apple ID gratuito, oppure TestFlight con Apple Developer
-Program): il procedimento completo è in **[wiki/IOS_DEPLOY.md](/wiki/IOS_DEPLOY.md)**.
-
-### Lettura offline
-
-I dati sono persistiti in cache (TanStack Query persister, chiave `fn_query_cache`).
-Con Caddy fermo (`docker stop production-caddy-1`) riaprendo l'app gli ultimi dati
-restano visibili.
-
-### Note di sicurezza
-
-- L'eccezione ATS `NSAllowsLocalNetworking` in `web/ios/App/App/Info.plist` è
-  **solo per lo sviluppo** (permette HTTP sulla LAN): va rimossa prima della release,
-  quando il backend passa a HTTPS.
-- Il refresh token è custodito nel **Keychain** iOS (mai in `localStorage`);
-  l'access token vive solo in memoria; il DB resta interno a Docker.
 
 ## Comandi Just
 
