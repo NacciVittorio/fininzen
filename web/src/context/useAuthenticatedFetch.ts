@@ -1,7 +1,5 @@
 import { useCallback, useRef } from "react";
 import { authHeaders, fetchWithTimeout, setAccessToken } from "../utils/api";
-import { IS_MOBILE_BUILD } from "../utils/platform";
-import { setRefreshToken } from "../utils/refreshTokenStore";
 import { requestTokenRefresh } from "../api/auth";
 import type { ApiFetcher } from "../api/client";
 
@@ -51,14 +49,8 @@ export function useAuthenticatedFetch({
                         }
                         const data = (await refreshResponse.json()) as {
                             access: string;
-                            refresh?: string;
                         };
                         setAccessToken(data.access);
-                        // Native build rotates the refresh token in the body;
-                        // persist the new one for the next refresh.
-                        if (IS_MOBILE_BUILD && data.refresh) {
-                            await setRefreshToken(data.refresh);
-                        }
                         return true;
                     } catch {
                         logout();
