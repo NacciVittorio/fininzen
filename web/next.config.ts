@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
 
 // Unified app version: read the repo-root VERSION file (the single source of
@@ -45,4 +46,13 @@ const nextConfig: NextConfig = {
     },
 };
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+    swSrc: "src/app/sw.ts",
+    swDest: "public/sw.js",
+    // Precaching every hashed Next chunk here would fight with server-rendered
+    // pages (route data isn't static); the app shell + API cache above already
+    // cover the offline-read use case, so disable it instead of fighting churn.
+    disable: process.env.NODE_ENV === "development",
+});
+
+export default withSerwist(nextConfig);
