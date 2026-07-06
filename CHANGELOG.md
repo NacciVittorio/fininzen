@@ -6,6 +6,24 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.3.0 (2026-07-06)
+
+### Feat
+
+- **pwa**: show an offline banner and disable write actions when offline
+- **pwa**: offline read via persisted query cache + Serwist service worker
+- **mobile**: add native status bar, keyboard, haptics and lifecycle plugins
+- **mobile-nav**: replace top nav bar with responsive Sidebar/MobileBottomNav
+- **mobile**: add native iOS Capacitor project (M3)
+- **mobile**: Capacitor config + Keychain refresh-token backend
+- **web**: static-export mobile build target + offline cache + body-auth wiring
+- **auth**: body-based JWT refresh for native mobile clients
+
+### Fix
+
+- **mobile**: set viewport-fit=cover to activate safe-area insets
+- **auth**: allow X-Client header in CORS preflight for mobile login
+
 ## v0.2.1 (2026-06-30)
 
 ### Fix

@@ -1,29 +1,34 @@
-# Full Docker stack (Caddy + Next.js + Django + Postgres + Redis)
+# Docker stack (Next.js + Django + Postgres + Redis) — TLS dal Caddy di sistema
 
-"Tutto in Docker": un solo `docker compose up` mette online l'intera app dietro
-Caddy sulla porta 80. Pensato per un deploy su LAN affidabile in HTTP puro (es.
-una VM Debian su Proxmox). Per il dominio reale + HTTPS vedi l'ultima sezione.
+Questa cartella NON include più un servizio Caddy in Docker. TLS e la porta
+pubblica 80/443 restano al Caddy di sistema (systemd) già presente sulla VPS,
+che serve anche altri domini: aggiungere un secondo Caddy in Docker sulle
+stesse porte fallirebbe (`address already in use`). Il compose qui pubblica
+backend/frontend solo su `127.0.0.1`; il file `./Caddyfile` è uno snippet di
+riferimento da incollare come nuovo blocco nel Caddyfile di sistema
+(`/etc/caddy/Caddyfile`). Guida completa: `wiki/VPS_DEPLOY_CHECKLIST.md`.
 
 ```
-browser ──http://<VM-IP>──▶ caddy:80
-                             ├─ /static/*        → volume staticfiles
-                             ├─ /fininzen/api/*  → backend:8000  (Django, gunicorn)
-                             ├─ /api/*           → backend:8000
-                             └─ /*               → frontend:3000 (Next.js)
-backend ◀── SSR (DJANGO_ORIGIN=http://backend:8000) ── frontend
+browser ──https://fininzen.nacci.eu──▶ caddy (systemd, :80/:443)
+                             ├─ /static/*        → /opt/fininzen/staticfiles (bind mount)
+                             ├─ /fininzen/api/*  → 127.0.0.1:8010  (Django, gunicorn)
+                             ├─ /api/*           → 127.0.0.1:8010
+                             └─ /*               → 127.0.0.1:3010 (Next.js)
+backend ◀── SSR (DJANGO_ORIGIN=http://backend:8000, rete compose interna) ── frontend
 postgres ◀─ backend ─▶ redis
 ```
 
 ## Prerequisiti sulla VM
 
-- Debian con Docker Engine + plugin Compose (`docker compose version` deve funzionare).
-- Le porte 80 libere sulla VM. Annotati l'IP LAN della VM: `ip -4 addr` o `hostname -I`.
+- Docker Engine + plugin Compose (`docker compose version` deve funzionare).
+- Caddy di sistema già attivo e raggiungibile su 80/443, con `fininzen.nacci.eu`
+  aggiunto come nuovo site block (vedi `./Caddyfile`).
 
 ## Deploy
 
 ```bash
-# 1. Clona il repo sulla VM
-git clone <URL-del-repo> fininzen && cd fininzen
+# 1. Clona il repo sulla VM (in /opt/fininzen, così i path relativi combaciano)
+git clone <URL-del-repo> /opt/fininzen && cd /opt/fininzen
 
 # 2. Configura l'ambiente
 cp deploy/docker/production/.env.example deploy/docker/production/.env
@@ -31,21 +36,25 @@ cp deploy/docker/production/.env.example deploy/docker/production/.env
 python3 -c "import secrets; print(secrets.token_urlsafe(64))"                 # DJANGO_SECRET_KEY
 python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"  # FIELD_ENCRYPTION_KEYS
 #    Poi modifica deploy/docker/production/.env: incolla i segreti, imposta
-#    POSTGRES_PASSWORD, e sostituisci OGNI "CHANGE_ME_VM_IP" con l'IP della VM
-#    (in DJANGO_ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, WEBAUTHN_*).
+#    POSTGRES_PASSWORD, DJANGO_ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS/WEBAUTHN_*
+#    con fininzen.nacci.eu, e (se differiscono dal default) BACKEND_PORT/FRONTEND_PORT.
 nano deploy/docker/production/.env
 
-# 3. Build + avvio
+# 3. Aggiungi il site block di ./Caddyfile al Caddy di sistema
+#    (es. /etc/caddy/Caddyfile), poi ricarica:
+systemctl reload caddy
+
+# 4. Build + avvio dello stack Docker (senza Caddy)
 docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml up -d --build
 
-# 4. Crea il primo utente (admin)
+# 5. Crea il primo utente (admin)
 docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml exec backend python manage.py createsuperuser
 ```
 
-Apri `http://<VM-IP>` dal browser. `migrate` e `collectstatic` vengono eseguiti
-automaticamente dall'entrypoint del backend a ogni avvio.
+Apri `https://fininzen.nacci.eu` dal browser. `migrate` e `collectstatic` vengono
+eseguiti automaticamente dall'entrypoint del backend a ogni avvio.
 
 ## Comandi utili
 
@@ -55,10 +64,13 @@ alias dc='docker compose --env-file deploy/docker/production/.env -f deploy/dock
 
 dc ps                      # stato dei servizi
 dc logs -f backend         # log del backend
-dc logs -f caddy           # log del reverse proxy
 dc exec backend python manage.py shell
 dc down                    # ferma (i dati restano nei volume)
 dc up -d --build           # ricostruisci dopo un git pull
+
+# Il reverse proxy è il Caddy di sistema, non un container:
+journalctl -u caddy -f               # log del servizio
+tail -f /var/log/caddy_fininzen_access.log   # log accessi del site fininzen
 ```
 
 ## Aggiornamenti
@@ -80,21 +92,10 @@ Dump **rapido ad-hoc** (SQL semplice, senza rotazione/cifratura):
 dc exec postgres pg_dump -U fininzen fininzen > backup_$(date +%F).sql
 ```
 
-## Note di sicurezza (HTTP-only)
+## Note di sicurezza
 
-- `DJANGO_SECURE_COOKIES=0` e `DJANGO_SECURE_SSL_REDIRECT=0` permettono il
-  funzionamento su HTTP: senza, il browser scarta i cookie di auth `Secure` e
-  login/refresh si rompono in silenzio. Vanno bene **solo** su LAN fidata.
-- **WebAuthn/passkey** richiede HTTPS o `localhost`: da un altro PC via
-  `http://<VM-IP>` non funziona. Login con username+password sì.
-- Nessuna porta DB/Redis è esposta sull'host: solo Caddy pubblica la :80.
-
-## Passare a dominio reale + HTTPS
-
-1. Punta un record DNS (o `/etc/hosts`) all'IP della VM e apri 80+443.
-2. In `deploy/docker/production/Caddyfile` sostituisci `:80 {` con `tuo.dominio {`
-   (Caddy ottiene il certificato Let's Encrypt da solo) e aggiungi
-   `- "443:443"` ai `ports` di caddy nel compose.
-3. Nel `.env`: `DJANGO_SECURE_SSL_REDIRECT=1`, `DJANGO_SECURE_COOKIES=1`,
-   aggiorna `CSRF_TRUSTED_ORIGINS=https://tuo.dominio` e `WEBAUTHN_*` con il
-   dominio, poi `dc up -d`.
+- `DJANGO_SECURE_COOKIES=1` e `DJANGO_SECURE_SSL_REDIRECT=1`: richiedono HTTPS,
+  già garantito dal Caddy di sistema su `fininzen.nacci.eu`.
+- Nessuna porta DB/Redis è esposta sull'host. `backend`/`frontend` sono
+  pubblicati solo su `127.0.0.1` (non raggiungibili da internet): solo il
+  Caddy di sistema pubblica `:80`/`:443`.
