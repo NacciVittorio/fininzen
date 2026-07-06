@@ -1008,6 +1008,10 @@ const en: Record<string, string> = {
         "This action is not available in demo mode. Create your personal account to start tracking your finances.",
     demo_modal_register: "Create account",
     demo_modal_continue: "Continue exploring",
+
+    // Offline
+    offline_banner_text: "You're offline — showing the last synced data.",
+    offline_action_unavailable: "Not available offline",
 };
 
 export default en;

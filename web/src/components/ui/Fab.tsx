@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { useApp } from "../../context/useApp";
+import { useOnlineStatus } from "../../utils/useOnlineStatus";
 import Icon from "./Icons";
 import useFabClearance from "./useFabClearance";
 
@@ -44,6 +46,8 @@ export default function Fab({
     className,
     testId,
 }: FabProps) {
+    const { T } = useApp();
+    const online = useOnlineStatus();
     const [hover, setHover] = useState(false);
     const [active, setActive] = useState(false);
     useFabClearance();
@@ -58,13 +62,19 @@ export default function Fab({
             ? { left: "calc(var(--sp-6) + env(safe-area-inset-left))" }
             : { right: "calc(var(--sp-6) + env(safe-area-inset-right))" };
 
+    // Every Fab in this app opens a "create" form; there is no offline write
+    // queue (see wiki), so disable rather than let the user believe an
+    // offline submission was saved.
+    const title = online ? label : T("offline_action_unavailable");
+
     return (
         <button
             type="button"
             data-testid={testId}
+            disabled={!online}
             onClick={onClick}
-            aria-label={label}
-            title={label}
+            aria-label={title}
+            title={title}
             className={["fab", className].filter(Boolean).join(" ")}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => {
@@ -92,7 +102,8 @@ export default function Fab({
                 border: 0,
                 borderRadius: "var(--r-pill)",
                 boxShadow: "var(--shadow)",
-                cursor: "pointer",
+                cursor: online ? "pointer" : "not-allowed",
+                opacity: online ? 1 : 0.5,
                 alignItems: "center",
                 justifyContent: "center",
                 gap: extended ? 8 : 0,

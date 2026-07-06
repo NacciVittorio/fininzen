@@ -1016,6 +1016,11 @@ const it: Record<string, string> = {
         "Questa azione non è disponibile in modalità demo. Crea il tuo account personale per iniziare a tracciare le tue finanze.",
     demo_modal_register: "Crea account",
     demo_modal_continue: "Continua a esplorare",
+
+    // Offline
+    offline_banner_text:
+        "Sei offline — vengono mostrati gli ultimi dati sincronizzati.",
+    offline_action_unavailable: "Non disponibile offline",
 };
 
 export default it;

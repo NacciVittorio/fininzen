@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import { useApp } from "../../context/useApp";
+import { useOnlineStatus } from "../../utils/useOnlineStatus";
 import Icon from "./Icons";
 import useFabClearance from "./useFabClearance";
 
@@ -29,13 +31,15 @@ export default function SpeedDialFab({
     mainLabel,
     hidden = false,
 }: SpeedDialFabProps) {
+    const { T } = useApp();
+    const online = useOnlineStatus();
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     useFabClearance();
 
     useEffect(() => {
-        if (hidden) setOpen(false);
-    }, [hidden]);
+        if (hidden || !online) setOpen(false);
+    }, [hidden, online]);
 
     useEffect(() => {
         if (!open) return;
@@ -110,8 +114,11 @@ export default function SpeedDialFab({
             <button
                 type="button"
                 data-testid="speed-dial-main"
-                aria-label={mainLabel}
-                title={mainLabel}
+                disabled={!online}
+                aria-label={
+                    online ? mainLabel : T("offline_action_unavailable")
+                }
+                title={online ? mainLabel : T("offline_action_unavailable")}
                 onClick={() => setOpen((p) => !p)}
                 style={{
                     width: 56,
@@ -121,7 +128,8 @@ export default function SpeedDialFab({
                     border: 0,
                     borderRadius: "var(--r-pill)",
                     boxShadow: "var(--shadow)",
-                    cursor: "pointer",
+                    cursor: online ? "pointer" : "not-allowed",
+                    opacity: online ? 1 : 0.5,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
