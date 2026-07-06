@@ -3,6 +3,7 @@ import {
     Sidebar,
     MobileBottomNav,
     AppHeader,
+    OfflineBanner,
 } from "../../components/AppChrome";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     }}
                 >
                     <main className="app-content">
+                        <OfflineBanner />
                         <AppHeader />
                         {children}
                     </main>

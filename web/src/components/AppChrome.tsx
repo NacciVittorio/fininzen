@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApp } from "../context/useApp";
+import { useOnlineStatus } from "../utils/useOnlineStatus";
 import { Icon, NavItem } from "./ui";
 
 export type NavigationItem = {
@@ -408,4 +409,11 @@ export function Banner({ tone = "info", children, onClose }: BannerProps) {
             )}
         </div>
     );
+}
+
+export function OfflineBanner() {
+    const { T } = useApp();
+    const online = useOnlineStatus();
+    if (online) return null;
+    return <Banner tone="warning">{T("offline_banner_text")}</Banner>;
 }
