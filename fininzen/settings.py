@@ -376,10 +376,6 @@ if os.environ.get("REDIS_URL"):
     }
 
 # CORS: in dev whitelist del solo origin Vite; in produzione passare CORS_ALLOWED_ORIGINS="https://x,https://y"
-# The native iOS app (Capacitor in a WKWebView) sends Origin `capacitor://localhost`
-# (and `ionic://localhost` on older shells); these are constant regardless of the
-# deploy, so they are always allowed in addition to the configured web origins.
-_MOBILE_CORS_ORIGINS = ["capacitor://localhost", "ionic://localhost"]
 _cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").strip()
 if _cors_origins:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(",") if o.strip()]
@@ -391,18 +387,7 @@ else:
         "http://127.0.0.1:5173",
         "https://fininzen.nacci.eu",
     ]
-CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS + _MOBILE_CORS_ORIGINS
 CORS_ALLOW_ALL_ORIGINS = False
-
-# The native client tags every auth request with a custom `X-Client: mobile`
-# header (see web/src/api/auth.ts) so the backend returns/accepts the refresh
-# token in the JSON body instead of the httpOnly cookie. `X-Client` is not a
-# CORS-safelisted request header, so the WKWebView preflight (OPTIONS) must be
-# told it is allowed — otherwise the login fetch is blocked before it leaves the
-# app. Same-origin web never preflights, which is why this only bites mobile.
-from corsheaders.defaults import default_headers  # noqa: E402
-
-CORS_ALLOW_HEADERS = (*default_headers, "x-client")
 
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").strip()
 _extra_csrf = (

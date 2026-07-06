@@ -25,7 +25,6 @@ from fininzen.jwt_cookies import (
     REFRESH_COOKIE_NAME,
     CsrfError,
     clear_auth_cookies,
-    is_mobile_client,
     set_auth_cookies,
     verify_csrf,
 )
@@ -63,10 +62,7 @@ class TokenObtainPairView(_BaseTokenView):
         # move the refresh token into an httpOnly cookie.
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200 and "refresh" in response.data:
-            # Mobile clients (X-Client: mobile) keep the refresh in the body and
-            # store it in the Keychain; browsers move it into the httpOnly cookie.
-            if not is_mobile_client(request):
-                set_auth_cookies(response, response.data.pop("refresh"))
+            set_auth_cookies(response, response.data.pop("refresh"))
         return response
 
 
@@ -80,30 +76,19 @@ class CookieTokenRefreshView(_BaseRefreshView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        # Mobile clients send the refresh token in the body (no cookie, so no
-        # double-submit CSRF) and get the rotated refresh back in the body.
-        mobile = is_mobile_client(request)
-        if mobile:
-            token = request.data.get("refresh")
-            if not token:
-                return Response(
-                    {"detail": "No refresh token."},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-        else:
-            try:
-                verify_csrf(request)
-            except CsrfError:
-                return Response(
-                    {"detail": "CSRF verification failed."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            token = request.COOKIES.get(REFRESH_COOKIE_NAME)
-            if not token:
-                return Response(
-                    {"detail": "No refresh cookie."},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
+        try:
+            verify_csrf(request)
+        except CsrfError:
+            return Response(
+                {"detail": "CSRF verification failed."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+        if not token:
+            return Response(
+                {"detail": "No refresh cookie."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
         serializer = self.get_serializer(data={"refresh": token})
         try:
             serializer.is_valid(raise_exception=True)
@@ -112,14 +97,9 @@ class CookieTokenRefreshView(_BaseRefreshView):
                 {"detail": "Refresh token invalid or expired."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-            return response if mobile else clear_auth_cookies(response)
+            return clear_auth_cookies(response)
         data = dict(serializer.validated_data)
         new_refresh = data.pop("refresh", None)
-        if mobile:
-            # Return the rotated refresh in the body; the app re-stores it.
-            if new_refresh:
-                data["refresh"] = new_refresh
-            return Response(data)
         response = Response(data)
         if new_refresh:
             set_auth_cookies(response, new_refresh)
@@ -132,27 +112,21 @@ class LogoutView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # Mobile clients send the refresh in the body (no cookie / CSRF); browsers
-        # use the httpOnly cookie guarded by the double-submit token.
-        mobile = is_mobile_client(request)
-        if mobile:
-            token = request.data.get("refresh")
-        else:
-            try:
-                verify_csrf(request)
-            except CsrfError:
-                return Response(
-                    {"detail": "CSRF verification failed."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+        try:
+            verify_csrf(request)
+        except CsrfError:
+            return Response(
+                {"detail": "CSRF verification failed."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        token = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if token:
             try:
                 RefreshToken(token).blacklist()
             except (TokenError, InvalidToken):
                 pass
         response = Response(status=status.HTTP_205_RESET_CONTENT)
-        return response if mobile else clear_auth_cookies(response)
+        return clear_auth_cookies(response)
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -221,15 +195,12 @@ class DemoLoginView(APIView):
                 )
 
         refresh = RefreshToken.for_user(demo_user)
-        body = {
-            "access": str(refresh.access_token),
-            "is_demo": True,
-        }
-        if is_mobile_client(request):
-            # Native client keeps the refresh in the body (Keychain), no cookie.
-            body["refresh"] = str(refresh)
-            return Response(body)
-        response = Response(body)
+        response = Response(
+            {
+                "access": str(refresh.access_token),
+                "is_demo": True,
+            }
+        )
         return set_auth_cookies(response, refresh)
 
 
