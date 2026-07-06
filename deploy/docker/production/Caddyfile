@@ -1,11 +1,10 @@
-# Full-stack reverse proxy — plain HTTP on :80 for a trusted-LAN deploy.
+# Full-stack reverse proxy — fininzen.nacci.eu with automatic Let's Encrypt TLS.
 #
 # Same routing contract as the bare-metal Caddyfile at the repo root, but talks
 # to the compose service names instead of localhost, and serves static assets
-# from the shared `staticfiles` volume. When you move to a real domain + TLS,
-# replace `:80` with `your.domain {` and Caddy will provision a certificate
-# automatically (then flip DJANGO_SECURE_COOKIES back to 1).
-:80 {
+# from the shared `staticfiles` volume. Caddy provisions and renews the
+# certificate on its own from the domain name below — no certbot needed.
+fininzen.nacci.eu {
 	encode gzip
 
 	header {
