@@ -1,25 +1,23 @@
-# Reference snippet — NOT consumed by docker compose.
+# Full-stack reverse proxy — plain HTTP on :80 (of the container), temporarily
+# published on an alternate host port (HTTP_PORT) instead of the real 80/443,
+# because this VPS's host already runs a separate systemd Caddy on those for
+# another domain (finnet.nacci.eu). That host Caddy gets the Let's Encrypt
+# certificate for fininzen.nacci.eu and relays to this container:
 #
-# This VPS already runs a system-wide, systemd-managed Caddy bound to the
-# host's :80/:443 (serving finnet.nacci.eu). A second Caddy trying to bind
-# those same ports from inside docker compose would fail to start
-# ("address already in use"). So the Docker stack here only runs
-# Postgres/Redis/Django/Next.js, publishing backend/frontend on 127.0.0.1
-# (see ../production/compose.yml), and this block is added instead as a new
-# site to the HOST's own Caddyfile (typically /etc/caddy/Caddyfile),
-# alongside the existing finnet.nacci.eu block. After editing it there:
-#   systemctl reload caddy
+#   fininzen.nacci.eu {
+#       reverse_proxy 127.0.0.1:<HTTP_PORT>
+#   }
 #
-# Ports below (8010/3010) must match BACKEND_PORT/FRONTEND_PORT in
-# deploy/docker/production/.env (defaults shown here).
-fininzen.nacci.eu {
-	log {
-		output file /var/log/caddy_fininzen_access.log
-	}
+# added as an extra site block in its own Caddyfile (e.g. /etc/caddy/Caddyfile),
+# then `systemctl reload caddy`. See wiki/VPS_DEPLOY_CHECKLIST.md.
+#
+# When that host Caddy is eventually retired, flip this block back to
+# `fininzen.nacci.eu {` (auto-TLS), set HTTP_PORT=80, and add `443:443` to the
+# `caddy` service's ports in ./compose.yml — no other changes needed.
+:80 {
 	encode gzip
 
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Frame-Options "DENY"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -27,11 +25,9 @@ fininzen.nacci.eu {
 	}
 
 	# Django's collected static assets (admin + DRF browsable API). handle_path
-	# strips the /static prefix so the path maps directly into the folder root.
-	# Must match the bind-mount host path in compose.yml (../../../staticfiles
-	# resolved from /opt/fininzen).
+	# strips the /static prefix so the path maps directly into the volume root.
 	handle_path /static/* {
-		root * /opt/fininzen/staticfiles
+		root * /srv/staticfiles
 		header Cache-Control "public, max-age=31536000, immutable"
 		file_server
 	}
@@ -41,16 +37,16 @@ fininzen.nacci.eu {
 	# /fininzen/api prefix and Django would see /auth/... → 404 on every call.
 	handle /fininzen/api/* {
 		uri strip_prefix /fininzen
-		reverse_proxy 127.0.0.1:8010
+		reverse_proxy backend:8000
 	}
 
 	# Legacy unprefixed API, kept reachable for direct callers.
 	handle /api/* {
-		reverse_proxy 127.0.0.1:8010
+		reverse_proxy backend:8000
 	}
 
 	# Everything else → the Next.js server (SPA + SSR).
 	handle {
-		reverse_proxy 127.0.0.1:3010
+		reverse_proxy frontend:3000
 	}
 }
