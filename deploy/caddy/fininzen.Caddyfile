@@ -7,7 +7,7 @@
 #   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 #   systemctl reload caddy
 #
-# Upstream in bare-metal: Django/gunicorn su 127.0.0.1:8000 (fininzen.service),
+# Upstream in bare-metal: Django/gunicorn su 127.0.0.1:8001 (fininzen.service),
 # Next.js SSR su 127.0.0.1:3000 (fininzen-web.service). Nessun container.
 fininzen.nacci.eu {
 	encode gzip
@@ -29,14 +29,15 @@ fininzen.nacci.eu {
 
 	# Path API visibile dal browser. Si strippa SOLO il segmento /fininzen così
 	# Django riceve comunque /api/* (strippare /fininzen/api darebbe 404).
+	# Upstream su 8001: la 8000 è già occupata da finnet (stesso software forkato).
 	handle /fininzen/api/* {
 		uri strip_prefix /fininzen
-		reverse_proxy 127.0.0.1:8000
+		reverse_proxy 127.0.0.1:8001
 	}
 
 	# API legacy senza prefisso, per chiamanti diretti.
 	handle /api/* {
-		reverse_proxy 127.0.0.1:8000
+		reverse_proxy 127.0.0.1:8001
 	}
 
 	# Tutto il resto → server Next.js (SPA + SSR).

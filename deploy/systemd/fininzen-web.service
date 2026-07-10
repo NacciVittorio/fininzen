@@ -16,7 +16,7 @@ EnvironmentFile=/etc/fininzen.env
 # VPS da 1 GB: cap dell'heap così Next/Node non contende con gunicorn.
 Environment=NODE_ENV=production
 Environment=PORT=3000
-Environment=DJANGO_ORIGIN=http://127.0.0.1:8000
+Environment=DJANGO_ORIGIN=http://127.0.0.1:8001
 Environment=NODE_OPTIONS=--max-old-space-size=384
 # Richiede un precedente `npm ci && npm run build` in /opt/fininzen/web.
 ExecStart=/usr/bin/npm run start

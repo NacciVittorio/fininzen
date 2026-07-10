@@ -118,7 +118,7 @@ install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.service /et
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.timer   /etc/systemd/system/
 
 systemctl daemon-reload
-systemctl enable --now fininzen              # gunicorn su 127.0.0.1:8000
+systemctl enable --now fininzen              # gunicorn su 127.0.0.1:8001
 systemctl enable --now fininzen-web          # next start su 127.0.0.1:3000
 systemctl enable --now fininzen-refresh-prices.timer   # refresh prezzi orario
 
@@ -128,7 +128,7 @@ systemctl status fininzen fininzen-web --no-pager
 - `fininzen.service` — gunicorn (WSGI), 2 worker, `ReadWritePaths=/opt/fininzen`
   (SQLite WAL crea `db.sqlite3-wal`/`-shm` accanto al DB).
 - `fininzen-web.service` — Next.js SSR, heap capato a 384 MB (`NODE_OPTIONS`),
-  `DJANGO_ORIGIN=http://127.0.0.1:8000` per le fetch server-side.
+  `DJANGO_ORIGIN=http://127.0.0.1:8001` per le fetch server-side.
 - `fininzen-refresh-prices.{service,timer}` — `manage.py refresh_asset_prices`
   ogni ora (`Nice=10`, `IOSchedulingClass=idle`).
 
@@ -150,7 +150,7 @@ systemctl reload caddy
 ```
 
 Caddy ottiene automaticamente il certificato Let's Encrypt per `fininzen.nacci.eu`
-e instrada: `/fininzen/api/*` → `127.0.0.1:8000` (Django), `/static/*` dal
+e instrada: `/fininzen/api/*` → `127.0.0.1:8001` (Django), `/static/*` dal
 filesystem, tutto il resto → `127.0.0.1:3000` (Next.js).
 
 ## 9. Test finale
