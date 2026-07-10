@@ -1,0 +1,46 @@
+# Site-block bare-metal per fininzen (deploy senza Docker).
+#
+# Da aggiungere al Caddyfile host gestito da systemd (es. /etc/caddy/Caddyfile),
+# accanto agli altri domini già serviti dal VPS. Caddy ottiene automaticamente il
+# certificato Let's Encrypt per fininzen.nacci.eu. Dopo la modifica:
+#
+#   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+#   systemctl reload caddy
+#
+# Upstream in bare-metal: Django/gunicorn su 127.0.0.1:8000 (fininzen.service),
+# Next.js SSR su 127.0.0.1:3000 (fininzen-web.service). Nessun container.
+fininzen.nacci.eu {
+	encode gzip
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Static Django (admin + DRF browsable API), serviti dal filesystem dell'app.
+	# L'utente caddy deve poter leggere /opt/fininzen/staticfiles.
+	handle_path /static/* {
+		root * /opt/fininzen/staticfiles
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Path API visibile dal browser. Si strippa SOLO il segmento /fininzen così
+	# Django riceve comunque /api/* (strippare /fininzen/api darebbe 404).
+	handle /fininzen/api/* {
+		uri strip_prefix /fininzen
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	# API legacy senza prefisso, per chiamanti diretti.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	# Tutto il resto → server Next.js (SPA + SSR).
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

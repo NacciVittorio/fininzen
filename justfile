@@ -61,6 +61,32 @@ web:
 start:
     DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
 
+# ── Bare-metal production (systemd, no Docker) ───────────────────────────────
+# Da eseguire sul VPS come utente fininzen dentro /opt/fininzen. La produzione
+# usa SQLite (ALLOW_SQLITE_IN_PRODUCTION=1 in /etc/fininzen.env). Guida completa:
+# wiki/DEPLOY.md. I comandi manage.py sono management command → non attivano il
+# guard di boot, quindi non servono le env di sicurezza per migrate/collectstatic.
+
+migrate-prod:
+    DJANGO_DEBUG=0 {{venv_python}} manage.py migrate --noinput
+
+collectstatic-prod:
+    DJANGO_DEBUG=0 {{venv_python}} manage.py collectstatic --noinput
+
+build-frontend-prod:
+    cd {{web_dir}} && npm ci && npm run build
+
+# Aggiorna il codice e riavvia i servizi systemd. Uso: just deploy-prod [branch]
+deploy-prod BRANCH="main":
+    git fetch origin '{{BRANCH}}' && git reset --hard && git checkout -B '{{BRANCH}}' FETCH_HEAD
+    bash scripts/backup_db.sh
+    just install-backend
+    just migrate-prod
+    just collectstatic-prod
+    just build-frontend-prod
+    sudo systemctl restart fininzen fininzen-web
+    scripts/smoke_test.sh "${FININZEN_PUBLIC_URL:-https://fininzen.nacci.eu}" 20
+
 docker-local-up:
     docker compose -f deploy/docker/local/compose.yml up -d postgres redis
 
