@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Fininzen asset price refresh on a schedule
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=10m
+Persistent=true
+Unit=fininzen-refresh-prices.service
+
+[Install]
+WantedBy=timers.target

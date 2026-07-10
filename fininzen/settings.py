@@ -250,13 +250,28 @@ if not _field_keys_raw:
     _field_keys_raw = os.environ.get("FIELD_ENCRYPTION_KEY", "").strip()
 FIELD_ENCRYPTION_KEYS = [k.strip() for k in _field_keys_raw.split(",") if k.strip()]
 
+# Opt-in per far girare la produzione su SQLite (VPS con poca RAM/disco: SQLite in
+# WAL è un solo file, nessun processo/RAM extra rispetto a Postgres). Va impostato
+# esplicitamente in modo che un deploy non finisca su SQLite per errore.
+_allow_sqlite_prod = os.environ.get(
+    "ALLOW_SQLITE_IN_PRODUCTION", ""
+).strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
 # Fail closed for the running server (not maintenance commands / tests): production
-# must use Postgres and must have an encryption key, or we refuse to boot.
+# must use Postgres (o SQLite con opt-in esplicito) e deve avere una chiave di
+# cifratura, o rifiutiamo il boot.
 if not _is_management_cmd and not DEBUG:
-    if not DEFAULT_DB_IS_POSTGRES:
+    if not DEFAULT_DB_IS_POSTGRES and not _allow_sqlite_prod:
         raise ImproperlyConfigured(
             "SECURITY: la produzione (DEBUG=False) richiede PostgreSQL. "
-            "Imposta DATABASE_URL=postgres://... oppure le variabili POSTGRES_*."
+            "Imposta DATABASE_URL=postgres://... oppure le variabili POSTGRES_*. "
+            "Per usare SQLite in produzione (VPS piccola) imposta esplicitamente "
+            "ALLOW_SQLITE_IN_PRODUCTION=1."
         )
     if not FIELD_ENCRYPTION_KEYS:
         raise ImproperlyConfigured(

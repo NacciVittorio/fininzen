@@ -1,0 +1,28 @@
+[Unit]
+Description=Fininzen Django application (gunicorn/WSGI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fininzen
+Group=fininzen
+WorkingDirectory=/opt/fininzen
+# /etc/fininzen.env deve contenere DJANGO_DEBUG=0, DJANGO_SECRET_KEY,
+# FIELD_ENCRYPTION_KEYS e — usando SQLite in produzione — ALLOW_SQLITE_IN_PRODUCTION=1.
+EnvironmentFile=/etc/fininzen.env
+ExecStartPre=/bin/bash /opt/fininzen/scripts/rotate_logs.sh
+ExecStart=/opt/fininzen/venv/bin/gunicorn fininzen.wsgi:application --bind 127.0.0.1:8001 --workers 2 --max-requests 1000 --max-requests-jitter 100 --access-logfile /opt/fininzen/logs/gunicorn_access.log --error-logfile /opt/fininzen/logs/gunicorn_error.log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+# SQLite in WAL crea db.sqlite3-wal e db.sqlite3-shm accanto al database, oltre a
+# logs/ e staticfiles/: la directory dell'app deve restare scrivibile.
+ReadWritePaths=/opt/fininzen
+
+[Install]
+WantedBy=multi-user.target
