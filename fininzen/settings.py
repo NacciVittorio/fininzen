@@ -253,7 +253,9 @@ FIELD_ENCRYPTION_KEYS = [k.strip() for k in _field_keys_raw.split(",") if k.stri
 # Opt-in per far girare la produzione su SQLite (VPS con poca RAM/disco: SQLite in
 # WAL è un solo file, nessun processo/RAM extra rispetto a Postgres). Va impostato
 # esplicitamente in modo che un deploy non finisca su SQLite per errore.
-_allow_sqlite_prod = os.environ.get("ALLOW_SQLITE_IN_PRODUCTION", "").strip().lower() in (
+_allow_sqlite_prod = os.environ.get(
+    "ALLOW_SQLITE_IN_PRODUCTION", ""
+).strip().lower() in (
     "1",
     "true",
     "yes",
