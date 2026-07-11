@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApp } from "../context/useApp";
+import type { EnabledFeatures, FeatureKey } from "../context/appContextHelpers";
 import { useOnlineStatus } from "../utils/useOnlineStatus";
 import { Icon, NavItem } from "./ui";
 
@@ -12,7 +13,17 @@ export type NavigationItem = {
     icon: ReactNode;
     labelKey: string;
     shortKey: string;
+    // Feature flag gating this tab; undefined ⇒ always visible (e.g. Settings).
+    feature?: FeatureKey;
 };
+
+const FEATURE_KEYS = new Set<string>([
+    "dashboard",
+    "cashflow",
+    "accounts",
+    "investments",
+    "fire",
+]);
 
 const NAV_DEFINITIONS = [
     ["/dashboard", "dashboard", "dashboard"],
@@ -29,12 +40,22 @@ export const NAV_ITEMS: NavigationItem[] = NAV_DEFINITIONS.map(
         icon: <Icon name={icon} />,
         labelKey: `tab_${key}`,
         shortKey: `tab_${key}_short`,
+        feature: FEATURE_KEYS.has(key) ? (key as FeatureKey) : undefined,
     }),
 );
 
+// Keep only the tabs whose feature flag is enabled (Settings has no flag, so it
+// always stays). Mirrors the settings sub-nav gating in useDerivedAppData.
+function visibleNavItems(enabledFeatures: EnabledFeatures): NavigationItem[] {
+    return NAV_ITEMS.filter(
+        (item) => !item.feature || enabledFeatures[item.feature],
+    );
+}
+
 export function Sidebar() {
-    const { T, logout, user, isDemo } = useApp();
+    const { T, logout, user, isDemo, enabledFeatures } = useApp();
     const pathname = usePathname();
+    const items = visibleNavItems(enabledFeatures);
 
     return (
         <aside
@@ -101,7 +122,7 @@ export function Sidebar() {
                 </div>
             )}
             <div style={{ flex: 1, overflowY: "auto" }}>
-                {NAV_ITEMS.map((item) => (
+                {items.map((item) => (
                     <NavItem
                         key={item.href}
                         href={item.href}
@@ -153,8 +174,9 @@ export function Sidebar() {
 }
 
 export function MobileBottomNav() {
-    const { T } = useApp();
+    const { T, enabledFeatures } = useApp();
     const pathname = usePathname();
+    const items = visibleNavItems(enabledFeatures);
 
     return (
         <nav
@@ -176,7 +198,7 @@ export function MobileBottomNav() {
                 boxShadow: "var(--shadow-soft)",
             }}
         >
-            {NAV_ITEMS.map((item) => {
+            {items.map((item) => {
                 const active = pathname.startsWith(item.href);
                 return (
                     <Link
