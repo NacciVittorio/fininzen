@@ -27,6 +27,21 @@ export function middleware(request: NextRequest) {
         ? "'self' 'unsafe-eval' 'unsafe-inline'"
         : `'self' 'nonce-${nonce}' 'strict-dynamic'`;
 
+    // Allow a cross-origin API base in connect-src. Prod serves the API
+    // same-origin (default `/fininzen/api`, a relative path → no extra origin),
+    // but a build pointed at an absolute NEXT_PUBLIC_API_BASE would otherwise be
+    // blocked by `connect-src 'self'`.
+    let apiOrigin = "";
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE;
+    if (apiBase && /^https?:\/\//i.test(apiBase)) {
+        try {
+            apiOrigin = new URL(apiBase).origin;
+        } catch {
+            apiOrigin = "";
+        }
+    }
+    const connectSrc = apiOrigin ? `'self' ${apiOrigin}` : "'self'";
+
     const csp = [
         "default-src 'self'",
         `script-src ${scriptSrc}`,
@@ -35,7 +50,7 @@ export function middleware(request: NextRequest) {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
         "font-src 'self'",
-        "connect-src 'self'",
+        `connect-src ${connectSrc}`,
         "worker-src 'self'",
         "base-uri 'self'",
         "form-action 'self'",
