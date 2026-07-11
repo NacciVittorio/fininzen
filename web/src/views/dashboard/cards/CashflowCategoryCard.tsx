@@ -78,7 +78,9 @@ export function CashflowCategoryCard({
         const rest = sorted.slice(5);
         if (rest.length > 0) {
             top.push({
-                name: T("dash_other"),
+                // Show the grouped count so this bucket is distinguishable from a
+                // real category the user may have literally named "Other"/"Altro".
+                name: `${T("dash_other")} (${rest.length})`,
                 total: rest.reduce((sum, c) => sum + Number(c.total || 0), 0),
                 color: "var(--chart-6)",
                 catId: null,
