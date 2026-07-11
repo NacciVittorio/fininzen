@@ -136,18 +136,25 @@ export default function CategorySelect({
         };
     }, [open, usePortal]);
 
-    const roots = categories.filter(
+    // Defensive: some callers (e.g. BulkEditFields) type `categories` as `unknown`,
+    // and the `= []` default only guards `undefined`. A non-array value from an
+    // error/loading state would otherwise throw "filter is not a function".
+    const catList: readonly Category[] = Array.isArray(categories)
+        ? categories
+        : [];
+
+    const roots = catList.filter(
         (c) =>
             !c.parent &&
             (categoryType === "all" || c.category_type === categoryType),
     );
 
     const childrenOf = (parentId: number) =>
-        categories.filter((c) => c.parent === parentId);
+        catList.filter((c) => c.parent === parentId);
 
-    const selected = categories.find((c) => String(c.id) === String(value));
+    const selected = catList.find((c) => String(c.id) === String(value));
     const selectedValues = values.map(String);
-    const selectedMany = categories.filter((c) =>
+    const selectedMany = catList.filter((c) =>
         selectedValues.includes(String(c.id)),
     );
 
