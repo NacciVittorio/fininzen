@@ -136,7 +136,14 @@ export function CashflowCategoryCard({
                     }}
                 >
                     <PieChart
-                        data={donutRows.map((r) => ({
+                        data={donutRows.map((r, i) => ({
+                            // Unique key per slice: a real category can share the
+                            // aggregated bucket's translated name ("Other"/"Altro"),
+                            // which would collide in PieChart's name-based sliceKey
+                            // (React "duplicate key" + dropped/duplicated slices).
+                            category__id: r.isOther
+                                ? "__other__"
+                                : (r.catId ?? `cat-${i}`),
                             total: r.total,
                             category__color: r.color,
                             category__name: r.name,
