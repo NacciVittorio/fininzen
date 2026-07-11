@@ -24,6 +24,10 @@ const DJANGO_ORIGIN = process.env.DJANGO_ORIGIN ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
+    // Disable the Next dev-tools indicator during E2E only: at the mobile
+    // viewport the tests run at, its bottom-left button overlaps the bottom nav
+    // and intercepts Playwright's clicks. Normal `next dev` keeps the indicator.
+    ...(process.env.E2E === "1" ? { devIndicators: false as const } : {}),
     env: { NEXT_PUBLIC_APP_VERSION: APP_VERSION },
     // Django's API endpoints require trailing slashes (and the typed client uses
     // them). Without this, Next 308-redirects `/fininzen/api/auth/x/` to the

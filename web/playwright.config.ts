@@ -10,11 +10,19 @@ export default defineConfig({
     workers: 1,
     use: {
         baseURL: "http://localhost:3000",
+        // The primary nav is a bottom bar (a `<nav>`) only at ≤760px; on desktop
+        // it is a sidebar `<aside>`. The specs drive navigation via `nav a[href]`,
+        // so run at a mobile viewport where that `<nav>` is rendered and visible.
+        viewport: { width: 390, height: 844 },
     },
     webServer: {
         command: "npm run dev",
         url: "http://localhost:3000/login",
         reuseExistingServer: true,
         timeout: 120_000,
+        // E2E=1 hides the dev indicator (see next.config.ts); pinning the API
+        // base to the same-origin default keeps a developer's local .env.local
+        // (e.g. a LAN IP for device testing) from breaking the run via CSP.
+        env: { E2E: "1", NEXT_PUBLIC_API_BASE: "/fininzen/api" },
     },
 });

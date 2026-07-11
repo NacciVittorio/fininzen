@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { loginAsDemo } from "./helpers/auth";
 
+// The Monthly Net Worth toolbar (single/compare toggle + year controls) is part
+// of the desktop layout; the default mobile viewport doesn't render it. Run this
+// suite at a desktop viewport so those controls exist.
+test.use({ viewport: { width: 1280, height: 900 } });
+
 test.describe("Compare mode — Monthly Net Worth", () => {
     test.beforeEach(async ({ page }) => {
         await loginAsDemo(page);
