@@ -174,6 +174,10 @@ export function useAppQueries({
             filterYear,
             cashflowDir,
             filterVerified,
+            // The backend resolves month/year to an accounting window via the
+            // stored start day, so the cache must re-key when that day changes
+            // even if the {month, year} label is unchanged.
+            accountingMonthStartDay,
         ],
         queryFn: () => {
             const params = new URLSearchParams();
@@ -194,7 +198,16 @@ export function useAppQueries({
     });
 
     const expSummaryQuery = useQuery({
-        queryKey: ["expSummary", scope, filterMonth, filterYear],
+        // Re-key on accountingMonthStartDay: the backend resolves month/year to
+        // the accounting window, so the cache must refetch when the start day
+        // changes even if the {month, year} label stays the same.
+        queryKey: [
+            "expSummary",
+            scope,
+            filterMonth,
+            filterYear,
+            accountingMonthStartDay,
+        ],
         queryFn: () => {
             const params = new URLSearchParams();
             params.set("month", String(filterMonth));
@@ -204,26 +217,13 @@ export function useAppQueries({
         enabled: isAuthenticated && Boolean(filterMonth),
     });
 
-    const expSummaryCurrentMonthQuery = useQuery({
-        queryKey: ["expSummaryCurrentMonth", scope, accountingMonthStartDay],
+    const recurringStatusQuery = useQuery({
+        queryKey: ["recurringStatus", scope, accountingMonthStartDay],
         queryFn: () => {
             const period = currentAccountingMonth(accountingMonthStartDay);
             const params = new URLSearchParams();
             params.set("month", String(period.month));
             params.set("year", String(period.year));
-            params.set("type", "expense");
-            return fetchExpenseSummaryData(apiFetch, params);
-        },
-        enabled: isAuthenticated,
-    });
-
-    const recurringStatusQuery = useQuery({
-        queryKey: ["recurringStatus", scope],
-        queryFn: () => {
-            const now = new Date();
-            const params = new URLSearchParams();
-            params.set("month", String(now.getMonth() + 1));
-            params.set("year", String(now.getFullYear()));
             return fetchRecurringStatusData(apiFetch, params);
         },
         enabled: isAuthenticated,
@@ -366,10 +366,6 @@ export function useAppQueries({
         () => invalidate("expSummary"),
         [invalidate],
     );
-    const fetchExpSummaryCurrentMonth = useCallback(
-        () => invalidate("expSummaryCurrentMonth"),
-        [invalidate],
-    );
     const fetchRecurringStatus = useCallback(
         () => invalidate("recurringStatus"),
         [invalidate],
@@ -435,8 +431,6 @@ export function useAppQueries({
         summary: summaryQuery.data ?? null,
         expSummary,
         recurringStatus: recurringStatusQuery.data ?? null,
-        expSummaryCurrentMonth:
-            expSummaryCurrentMonthQuery.data ?? EMPTY_EXP_SUMMARY,
         monthlyInvestmentStats: monthlyInvestmentStatsQuery.data ?? null,
         investmentTypes,
         contributionSources:
@@ -461,7 +455,6 @@ export function useAppQueries({
         fetchAssets,
         fetchPortfolioSummary,
         fetchExpSummary,
-        fetchExpSummaryCurrentMonth,
         fetchRecurringStatus,
         fetchMonthlyInvestmentStats,
         fetchInvestmentTypes,

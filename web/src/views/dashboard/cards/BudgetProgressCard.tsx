@@ -9,7 +9,7 @@ import type { NumericValue, Translator } from "../../../types";
 type BudgetProgressCardProps = {
     budgets: Budget[];
     categories: Category[];
-    expSummaryCurrentMonth: ExpenseSummaryResponse;
+    expSummary: ExpenseSummaryResponse | null;
     T: Translator;
     formatEur: (value: NumericValue) => string;
 };
@@ -17,7 +17,7 @@ type BudgetProgressCardProps = {
 export function BudgetProgressCard({
     budgets,
     categories,
-    expSummaryCurrentMonth,
+    expSummary,
     T,
     formatEur,
 }: BudgetProgressCardProps) {
@@ -30,7 +30,11 @@ export function BudgetProgressCard({
     }
 
     const spentMap: Record<number, number> = {};
-    for (const c of expSummaryCurrentMonth?.by_category || []) {
+    for (const c of expSummary?.by_category || []) {
+        // expSummary carries both income and expense categories (no type
+        // filter), so restrict the spend rollup to expense categories — budgets
+        // are always expense categories.
+        if (c.category__category_type === "income") continue;
         const amount = Number(c.total || 0);
         if (c.category__id == null) continue;
         spentMap[c.category__id] = (spentMap[c.category__id] || 0) + amount;

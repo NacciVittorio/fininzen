@@ -12,7 +12,7 @@ import {
     MonthPager,
     SegmentedControl,
 } from "../../../components/ui";
-import { currentMonth, currentYear } from "../../../utils/formatters";
+import { currentAccountingMonth } from "../../../context/appContextHelpers";
 import { EmptyCardText, SectionLabel } from "./DashboardCardPrimitives";
 
 type CashflowDirection = "expense" | "income";
@@ -23,6 +23,7 @@ type CashflowCategoryCardProps = {
     setCardCashflowDir: Dispatch<SetStateAction<CashflowDirection>>;
     filterMonth: number;
     filterYear: number;
+    accountingMonthStartDay: number;
     setFilterMonth: AppContextValue["setFilterMonth"];
     setFilterYear: AppContextValue["setFilterYear"];
     setFilterCat: AppContextValue["setFilterCat"];
@@ -40,6 +41,7 @@ export function CashflowCategoryCard({
     setCardCashflowDir,
     filterMonth,
     filterYear,
+    accountingMonthStartDay,
     setFilterMonth,
     setFilterYear,
     setFilterCat,
@@ -91,6 +93,10 @@ export function CashflowCategoryCard({
     }, [cardCashflowRows, categories, T]);
     const donutTotal = donutRows.reduce((sum, r) => sum + r.total, 0);
 
+    // The pager's "can't go past the current month" boundary must follow the
+    // accounting month (not the calendar month) so it matches the summary window.
+    const currentAccounting = currentAccountingMonth(accountingMonthStartDay);
+
     return (
         <Card>
             <div
@@ -106,8 +112,8 @@ export function CashflowCategoryCard({
                         setFilterYear(year);
                     }}
                     disableForward={
-                        filterYear === currentYear &&
-                        filterMonth >= currentMonth
+                        filterYear === currentAccounting.year &&
+                        filterMonth >= currentAccounting.month
                     }
                     minWidth={110}
                 />
