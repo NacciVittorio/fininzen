@@ -1,6 +1,7 @@
 import { API } from "../utils/api";
 import { parseAmount, parseMoneyToString, today } from "../utils/formatters";
 import { REFRESH_REASONS } from "../utils/refreshReasons";
+import { showToast } from "../utils/toastStore";
 import { buildExpenseForm, buildTransferForm } from "./formBuilders";
 import type { ApiFetcher } from "../api/client";
 import type { EntityId } from "./feedTypes";
@@ -139,7 +140,9 @@ export function useExpenseActions({
         }
         const parsedExpAmount = parseAmount(expForm.amount, decimalSeparator);
         if (isNaN(parsedExpAmount) || parsedExpAmount <= 0) {
-            setExpError(null);
+            // Previously this cleared the error and bailed silently, so the
+            // "Add" button appeared dead. Surface why nothing happened instead.
+            setExpError(T("error_invalid_amount"));
             return;
         }
         setExpError(null);
@@ -164,6 +167,7 @@ export function useExpenseActions({
                 : null,
             is_verified: expForm.is_verified,
         };
+        const wasEditing = Boolean(editingExpenseId);
         const res = await apiFetch(url, {
             method: editingExpenseId ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json" },
@@ -174,12 +178,49 @@ export function useExpenseActions({
             setExpError(responseErrorMessage(err) || T("error_save_failed"));
             return;
         }
+        const created = wasEditing
+            ? null
+            : ((await res.json().catch(() => null)) as {
+                  id?: EntityId;
+              } | null);
         closeExpenseModal();
         refreshAfter(
-            editingExpenseId
+            wasEditing
                 ? REFRESH_REASONS.EXPENSE_UPDATED
                 : REFRESH_REASONS.EXPENSE_CREATED,
         );
+        // Confirm the save so the user isn't left wondering whether it happened
+        // (a source of duplicate entries). On a fresh create, offer Undo, which
+        // deletes the just-created expense.
+        if (wasEditing) {
+            showToast({ message: T("toast_changes_saved") });
+        } else {
+            const isIncome =
+                categories.find(
+                    (c) => String(c.id) === String(expForm.category),
+                )?.category_type === "income";
+            const newId = created?.id;
+            showToast({
+                message: isIncome
+                    ? T("toast_income_added")
+                    : T("toast_expense_added"),
+                action:
+                    newId != null
+                        ? {
+                              label: T("toast_undo"),
+                              onAction: () => {
+                                  void apiFetch(`${API}/expenses/${newId}/`, {
+                                      method: "DELETE",
+                                  }).then(() =>
+                                      refreshAfter(
+                                          REFRESH_REASONS.EXPENSE_DELETED,
+                                      ),
+                                  );
+                              },
+                          }
+                        : undefined,
+            });
+        }
     };
 
     const deleteExpense = async (id: number | string): Promise<void> => {

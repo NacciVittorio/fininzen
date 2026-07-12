@@ -229,6 +229,8 @@ export default function CfTransactionRow({
                     {!isVerified && (
                         <span
                             data-testid={`cf-row-unverified-${item.id}`}
+                            role="img"
+                            aria-label={T("cf_unverified")}
                             title={T("cf_unverified")}
                             style={{
                                 width: 8,

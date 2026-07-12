@@ -10,12 +10,16 @@ const PrivacyValue = PrivacyValueRaw as unknown as ComponentType<
     Record<string, unknown>
 >;
 
-// One summary card replacing the old 3-KpiCard strip: big net balance for the
-// month (red only when negative), an income/expense split bar, and two tappable
-// totals that toggle the type filter. Net / income / outcome are computed by the
-// caller from cfSummary (verified-only, backend formula) — this card only renders.
+// One summary card leading with the month's SPEND (the number the user most
+// wants to track), a small signed month balance beneath it, an income/expense
+// split bar, and two tappable totals that toggle the type filter. Income vs
+// expense is signalled by an arrow glyph (↑/↓) in addition to colour, so the
+// distinction survives without colour perception. Net / income / outcome are
+// computed by the caller from cfSummary (verified-only, backend formula) — this
+// card only renders.
 type LegendButtonProps = {
     dotColor: string;
+    arrow: string;
     label: ReactNode;
     children?: ReactNode;
     active: boolean;
@@ -27,6 +31,7 @@ type LegendButtonProps = {
 
 function LegendButton({
     dotColor,
+    arrow,
     label,
     children,
     active,
@@ -48,6 +53,7 @@ function LegendButton({
                 cursor: "pointer",
                 borderRadius: 12,
                 padding: "8px 10px",
+                minHeight: 44,
                 background: active ? activeBg : "transparent",
                 outline: active ? `1.5px solid ${activeRing}` : "none",
                 fontFamily: "inherit",
@@ -67,13 +73,22 @@ function LegendButton({
                 <span
                     aria-hidden="true"
                     style={{
-                        width: 8,
-                        height: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 16,
+                        height: 16,
                         borderRadius: 99,
                         background: dotColor,
+                        color: "#fff",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        lineHeight: 1,
                         flexShrink: 0,
                     }}
-                />
+                >
+                    {arrow}
+                </span>
                 {label}
             </span>
             <span
@@ -127,6 +142,7 @@ export default function CfSummaryCard({
                 marginBottom: 14,
             }}
         >
+            {/* headline: how much was spent this month */}
             <div
                 style={{
                     fontSize: 13,
@@ -134,23 +150,48 @@ export default function CfSummaryCard({
                     fontWeight: 600,
                 }}
             >
-                {T("cf_balance_of").replace("{month}", monthLabel)}
+                {T("cf_spent_of").replace("{month}", monthLabel)}
             </div>
             <div style={{ marginTop: 2 }}>
                 <span
                     style={{
-                        fontSize: 32,
+                        fontSize: 34,
                         fontWeight: 800,
                         letterSpacing: "-0.01em",
-                        color: netNegative ? "var(--danger)" : "var(--fg)",
+                        color: "var(--fg)",
                         fontVariantNumeric: "tabular-nums",
                     }}
                 >
                     <PrivacyValue
                         scope="cashflow"
-                        field="deficit"
+                        field="outcome"
                         revealControl
                     >
+                        {formatEur(outcome)}
+                    </PrivacyValue>
+                </span>
+            </div>
+
+            {/* secondary: month balance (signed, coloured by sign) */}
+            <div
+                style={{
+                    marginTop: 4,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "var(--fg-soft)",
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 6,
+                }}
+            >
+                <span>{T("cf_month_balance_short")}</span>
+                <span
+                    style={{
+                        color: netNegative ? "var(--danger)" : "var(--success)",
+                        fontVariantNumeric: "tabular-nums",
+                    }}
+                >
+                    <PrivacyValue scope="cashflow" field="deficit">
                         {`${net >= 0 ? "+" : ""}${formatEur(net)}`}
                     </PrivacyValue>
                 </span>
@@ -158,6 +199,8 @@ export default function CfSummaryCard({
 
             {/* income / expense split bar */}
             <div
+                role="img"
+                aria-label={`${T("direction_income")} ${incPct}% · ${T("direction_expense")} ${expPct}%`}
                 style={{
                     display: "flex",
                     height: 9,
@@ -188,6 +231,7 @@ export default function CfSummaryCard({
                 <LegendButton
                     testId="cf-kpi-income"
                     dotColor="var(--success)"
+                    arrow="↑"
                     label={T("direction_income")}
                     active={activeType === "income"}
                     activeBg="var(--success-soft)"
@@ -201,6 +245,7 @@ export default function CfSummaryCard({
                 <LegendButton
                     testId="cf-kpi-outcome"
                     dotColor="var(--danger)"
+                    arrow="↓"
                     label={T("direction_expense")}
                     active={activeType === "outcome"}
                     activeBg="var(--danger-soft)"

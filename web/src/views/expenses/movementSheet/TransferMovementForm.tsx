@@ -36,9 +36,10 @@ export default function TransferMovementForm({
     return (
         <>
             <div>
-                <FieldLabel text={T("transfer_from")} />
+                <FieldLabel text={T("transfer_from")} htmlFor="transfer-from" />
                 <div style={selectLikeCategoryShellStyle}>
                     <select
+                        id="transfer-from"
                         className="inp"
                         data-testid="transfer-from-account"
                         value={transferForm.from_account_id}
@@ -66,9 +67,10 @@ export default function TransferMovementForm({
                 </div>
             </div>
             <div>
-                <FieldLabel text={T("transfer_to")} />
+                <FieldLabel text={T("transfer_to")} htmlFor="transfer-to" />
                 <div style={selectLikeCategoryShellStyle}>
                     <select
+                        id="transfer-to"
                         className="inp"
                         data-testid="transfer-to-account"
                         value={transferForm.to_account_id}
@@ -102,8 +104,12 @@ export default function TransferMovementForm({
                 </div>
             </div>
             <div>
-                <FieldLabel text={T("label_description_optional")} />
+                <FieldLabel
+                    text={T("label_description_optional")}
+                    htmlFor="transfer-notes"
+                />
                 <input
+                    id="transfer-notes"
                     className="inp"
                     placeholder={T("placeholder_description")}
                     value={transferForm.notes}
@@ -116,8 +122,12 @@ export default function TransferMovementForm({
                 />
             </div>
             <div>
-                <FieldLabel text={T("transfer_amount")} />
+                <FieldLabel
+                    text={T("transfer_amount")}
+                    htmlFor="transfer-amount"
+                />
                 <input
+                    id="transfer-amount"
                     className="inp"
                     type="text"
                     inputMode="decimal"
@@ -134,9 +144,10 @@ export default function TransferMovementForm({
                 />
             </div>
             <div>
-                <FieldLabel text={T("label_date")} />
+                <FieldLabel text={T("label_date")} htmlFor="transfer-date" />
                 <div style={{ overflow: "hidden", borderRadius: 10 }}>
                     <input
+                        id="transfer-date"
                         className="inp"
                         type="date"
                         value={transferForm.date}
