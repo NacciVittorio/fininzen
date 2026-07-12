@@ -34,21 +34,26 @@ export default function MovementTypeTabs({
                     {
                         key: "expense",
                         label: T("direction_expense"),
+                        glyph: "↓",
                         color: "var(--danger)",
                     },
                     {
                         key: "income",
                         label: T("direction_income"),
+                        glyph: "↑",
                         color: "var(--success)",
                     },
                     {
                         key: "transfer",
                         label: T("direction_transfer"),
+                        glyph: "⇄",
                         color: "var(--chart-4)",
                     },
                 ].map((type) => (
                     <button
                         key={type.key}
+                        type="button"
+                        aria-pressed={modalDir === type.key}
                         onClick={() => {
                             setModalDir(type.key);
                             setExpForm((previous) => ({
@@ -68,6 +73,11 @@ export default function MovementTypeTabs({
                         }}
                         style={{
                             flex: 1,
+                            minHeight: 44,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
                             padding: "6px 10px",
                             borderRadius: 6,
                             border: "none",
@@ -86,6 +96,9 @@ export default function MovementTypeTabs({
                             transition: "all 0.15s",
                         }}
                     >
+                        <span aria-hidden="true" style={{ fontWeight: 800 }}>
+                            {type.glyph}
+                        </span>
                         {type.label}
                     </button>
                 ))}

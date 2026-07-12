@@ -566,6 +566,10 @@ const en: Record<string, string> = {
 
     // Misc
     action_cannot_be_undone: "This action cannot be undone.",
+    toast_expense_added: "Expense added",
+    toast_income_added: "Income added",
+    toast_changes_saved: "Changes saved",
+    toast_undo: "Undo",
     demo_warning:
         "This will permanently replace all your current data with randomly generated demo data.",
     no_category: "— No category —",
@@ -628,6 +632,8 @@ const en: Record<string, string> = {
     net_saving: "Savings",
     net_deficit: "Deficit",
     cf_balance_of: "Balance · {month}",
+    cf_spent_of: "Spent · {month}",
+    cf_month_balance_short: "Balance",
     of_income: "of income",
     modal_new_income: "New Income",
     modal_edit_income: "Edit Income",
@@ -703,6 +709,7 @@ const en: Record<string, string> = {
     dash_reset: "Reset",
     kpi_monthly_income: "Monthly Income",
     monthly_expenses: "Monthly Expenses",
+    kpi_spent_this_month: "Monthly spending",
     kpi_month_balance: "Month Balance",
     investment_kpi_label: "Investments",
     kpi_invested: "Invested",

@@ -5,6 +5,7 @@ import {
     AppHeader,
     OfflineBanner,
 } from "../../components/AppChrome";
+import ToastHost from "../../components/ui/ToastHost";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -35,6 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </main>
                 </div>
                 <MobileBottomNav />
+                <ToastHost />
             </div>
         </AuthGate>
     );

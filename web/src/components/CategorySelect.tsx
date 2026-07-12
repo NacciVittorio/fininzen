@@ -45,6 +45,7 @@ export default function CategorySelect({
     categories = [],
     usePortal = false,
     disabled = false,
+    id,
 }: {
     value?: string | number;
     values?: Array<string | number>;
@@ -58,6 +59,7 @@ export default function CategorySelect({
     categories?: readonly Category[];
     usePortal?: boolean;
     disabled?: boolean;
+    id?: string;
 }) {
     const [open, setOpen] = useState(disabled ? false : initialOpen);
     const [expandedParent, setExpandedParent] = useState<number | null>(null);
@@ -192,9 +194,12 @@ export default function CategorySelect({
         <div ref={ref} style={{ position: "relative", width: "100%" }}>
             <button
                 ref={triggerRef}
+                id={id}
                 data-testid="category-select-trigger"
                 type="button"
                 disabled={disabled}
+                aria-haspopup="listbox"
+                aria-expanded={open}
                 onClick={() => !disabled && setOpen((o) => !o)}
                 style={{
                     background: "var(--card-inset)",

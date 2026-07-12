@@ -60,7 +60,7 @@ export function CashflowFeedControls({
                         border: "1px solid var(--rule)",
                         borderRadius: 10,
                         color: "var(--fg)",
-                        padding: "9px 36px 9px 36px",
+                        padding: "9px 44px 9px 36px",
                         fontSize: 14,
                         fontFamily: "inherit",
                         outline: "none",
@@ -77,16 +77,20 @@ export function CashflowFeedControls({
                         aria-label={T("cf_search_clear")}
                         style={{
                             position: "absolute",
-                            right: 8,
+                            right: 2,
                             top: "50%",
                             transform: "translateY(-50%)",
                             background: "transparent",
                             border: 0,
                             color: "var(--fg-soft)",
                             cursor: "pointer",
-                            padding: 4,
+                            width: 40,
+                            height: "100%",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                             lineHeight: 1,
-                            fontSize: 16,
+                            fontSize: 18,
                             fontFamily: "inherit",
                         }}
                     >

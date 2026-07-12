@@ -49,8 +49,9 @@ export default function IncomeOutcomeMovementForm({
     return (
         <>
             <div>
-                <FieldLabel text={T("label_category")} />
+                <FieldLabel text={T("label_category")} htmlFor="exp-category" />
                 <CategorySelect
+                    id="exp-category"
                     value={expForm.category}
                     onChange={handleExpenseCategoryChange}
                     categoryType={modalDir}
@@ -59,8 +60,12 @@ export default function IncomeOutcomeMovementForm({
                 />
             </div>
             <div style={{ position: "relative" }}>
-                <FieldLabel text={T("label_description")} />
+                <FieldLabel
+                    text={T("label_description")}
+                    htmlFor="exp-description"
+                />
                 <input
+                    id="exp-description"
                     className="inp"
                     placeholder={T("placeholder_description")}
                     value={expForm.description}
@@ -135,9 +140,10 @@ export default function IncomeOutcomeMovementForm({
                 )}
             </div>
             <div>
-                <FieldLabel text={T("label_amount")} />
+                <FieldLabel text={T("label_amount")} htmlFor="exp-amount" />
                 <div style={{ position: "relative" }}>
                     <input
+                        id="exp-amount"
                         className="inp"
                         type="text"
                         inputMode="decimal"
@@ -169,9 +175,10 @@ export default function IncomeOutcomeMovementForm({
                 </div>
             </div>
             <div>
-                <FieldLabel text={T("label_date")} />
+                <FieldLabel text={T("label_date")} htmlFor="exp-date" />
                 <div style={{ overflow: "hidden", borderRadius: 10 }}>
                     <input
+                        id="exp-date"
                         className="inp"
                         type="date"
                         value={expForm.date}
@@ -185,9 +192,13 @@ export default function IncomeOutcomeMovementForm({
                 </div>
             </div>
             <div>
-                <FieldLabel text={T("label_linked_asset")} />
+                <FieldLabel
+                    text={T("label_linked_asset")}
+                    htmlFor="exp-linked-asset"
+                />
                 <div style={selectLikeCategoryShellStyle}>
                     <select
+                        id="exp-linked-asset"
                         className="inp"
                         value={expForm.linked_asset}
                         onChange={(event) =>
