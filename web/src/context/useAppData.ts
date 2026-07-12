@@ -43,9 +43,9 @@ type SessionDataState = Pick<
 type UseAppDataArgs = ProviderDataState &
     SessionDataState & {
         setCfFilters: Dispatch<SetStateAction<CashflowFilters>>;
-        // Invalidators from useAppQueries that updateAccountingMonthStartDay
-        // must trigger after the accounting period shifts.
-        fetchExpSummaryCurrentMonth: () => unknown;
+        // Invalidator from useAppQueries that updateAccountingMonthStartDay
+        // must trigger after the accounting period shifts (the month-scoped
+        // summary/expenses queries re-key on the start day themselves).
         fetchMonthlyOverview: (year?: number) => unknown;
     };
 
@@ -54,7 +54,6 @@ export function useAppData({
     apiFetch,
     applyProfileData,
     enabledFeatures,
-    fetchExpSummaryCurrentMonth,
     fetchMonthlyOverview,
     logout,
     privacyPreferences,
@@ -142,10 +141,10 @@ export function useAppData({
                     date_from: period.from,
                     date_to: period.to,
                 }));
-                // accountingMonthStartDay change re-keys the current-month
-                // summary query, but the monthly overview is keyed on year only
-                // and must be invalidated explicitly since its buckets shift.
-                fetchExpSummaryCurrentMonth();
+                // The month-scoped summary/expenses queries re-key on
+                // accountingMonthStartDay and refetch on their own. The monthly
+                // overview is keyed on year only, so it must be invalidated
+                // explicitly since its accounting buckets shift.
                 fetchMonthlyOverview();
                 return true;
             } catch (e) {
@@ -156,7 +155,6 @@ export function useAppData({
         [
             apiFetch,
             applyProfileData,
-            fetchExpSummaryCurrentMonth,
             fetchMonthlyOverview,
             setCfFilters,
             setFilterMonth,

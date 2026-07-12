@@ -10,7 +10,6 @@ type UseRefreshOrchestratorArgs = {
     fetchCategories: RefreshFunction;
     fetchContributionSources: RefreshFunction;
     fetchExpSummary: RefreshFunction;
-    fetchExpSummaryCurrentMonth: RefreshFunction;
     fetchExpenses: RefreshFunction;
     fetchInvestmentTypes: RefreshFunction;
     fetchMonthlyOverview: (year?: number) => unknown;
@@ -26,7 +25,6 @@ export function useRefreshOrchestrator({
     fetchCategories,
     fetchContributionSources,
     fetchExpSummary,
-    fetchExpSummaryCurrentMonth,
     fetchExpenses,
     fetchInvestmentTypes,
     fetchMonthlyOverview,
@@ -54,16 +52,9 @@ export function useRefreshOrchestrator({
     const refreshExpenseArea = useCallback(() => {
         fetchExpenses();
         fetchExpSummary();
-        fetchExpSummaryCurrentMonth();
         fetchTrends();
         fetchRecurringStatus();
-    }, [
-        fetchExpenses,
-        fetchExpSummary,
-        fetchExpSummaryCurrentMonth,
-        fetchTrends,
-        fetchRecurringStatus,
-    ]);
+    }, [fetchExpenses, fetchExpSummary, fetchTrends, fetchRecurringStatus]);
 
     const refreshPortfolioArea = useCallback(
         ({

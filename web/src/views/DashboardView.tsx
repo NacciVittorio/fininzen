@@ -39,7 +39,7 @@ export default function DashboardView() {
         s,
         investments,
         expSummary,
-        expSummaryCurrentMonth,
+        accountingMonthStartDay,
         recurringStatus,
         investmentTypes,
         bankAccounts,
@@ -158,6 +158,7 @@ export default function DashboardView() {
                 setCardCashflowDir={setCardCashflowDir}
                 filterMonth={filterMonth}
                 filterYear={filterYear}
+                accountingMonthStartDay={accountingMonthStartDay}
                 setFilterMonth={setFilterMonth}
                 setFilterYear={setFilterYear}
                 setFilterCat={setFilterCat}
@@ -211,7 +212,7 @@ export default function DashboardView() {
             <BudgetProgressCard
                 budgets={budgets}
                 categories={categories}
-                expSummaryCurrentMonth={expSummaryCurrentMonth}
+                expSummary={expSummary}
                 T={T}
                 formatEur={formatEur}
             />

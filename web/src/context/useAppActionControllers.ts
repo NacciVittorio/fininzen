@@ -112,6 +112,7 @@ export function useAppActionControllers({
         transferForm,
     } = providerState;
     const {
+        accountingMonthStartDay,
         apiFetch,
         decimalSeparator,
         enabledFeatures,
@@ -275,6 +276,7 @@ export function useAppActionControllers({
     const derivedDataController = useDerivedAppData({
         MONTHS,
         T,
+        accountingMonthStartDay,
         assetForm,
         assets,
         cashflowDir,

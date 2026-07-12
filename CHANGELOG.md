@@ -6,6 +6,18 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.3.1 (2026-07-12)
+
+### Fix
+
+- **web**: align all month charts to the accounting month-start day
+- **web**: disambiguate the aggregated "Other" bucket in the cashflow donut
+- **web**: allow a cross-origin API base in the CSP connect-src
+- **web**: guard CategorySelect against non-array categories
+- **web**: theme tokens for description-suggestions dropdown
+- **web**: unique pie-slice keys for cashflow category donut
+- **web**: hide nav tabs for disabled features
+
 ## v0.3.0 (2026-07-06)
 
 ### Feat

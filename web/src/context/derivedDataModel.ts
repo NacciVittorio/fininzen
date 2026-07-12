@@ -1,4 +1,5 @@
 import type { NumericValue } from "../types";
+import { accountingMonthLabelForDate } from "./appContextHelpers";
 
 type CategoryRecord = {
     id: number;
@@ -175,38 +176,53 @@ export function buildKpiData(
     return { monthlyExp, monthlyInc, returnRate, expenseRatio };
 }
 
-function getYearMonthFromIso(
-    value: string | null | undefined,
-): { year: number; month: number } | null {
-    const match = String(value || "").match(/^(\d{4})-(\d{2})/);
+function localDateFromIso(value: string | null | undefined): Date | null {
+    // Parse a YYYY-MM-DD string into a *local* Date. `new Date("YYYY-MM-DD")`
+    // parses as UTC midnight and can shift a day in negative timezones, which
+    // would misclassify transactions near an accounting-month boundary.
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!match) return null;
-    return {
-        year: parseInt(match[1]!, 10),
-        month: parseInt(match[2]!, 10),
-    };
+    return new Date(
+        parseInt(match[1]!, 10),
+        parseInt(match[2]!, 10) - 1,
+        parseInt(match[3]!, 10),
+    );
 }
 
 export function buildMonthlyTrend(
     items: readonly DatedAmountRecord[],
     monthLabels: readonly string[],
+    startDay: unknown = 1,
     now = new Date(),
 ): Array<{ month: string; value: number }> {
+    // Bucket by accounting month (honoring the custom start day) rather than the
+    // calendar month, so the 12-month trend aligns with the summary/cashflow
+    // windows. Accounting months are labeled by a calendar month number, so the
+    // monthLabels[month - 1] display mapping is unchanged.
+    const totalsByPeriod = new Map<string, number>();
+    for (const item of items) {
+        const local = localDateFromIso(item.date);
+        if (!local) continue;
+        const period = accountingMonthLabelForDate(local, startDay);
+        const key = `${period.year}-${period.month}`;
+        totalsByPeriod.set(
+            key,
+            (totalsByPeriod.get(key) ?? 0) +
+                Number.parseFloat(String(item.amount || 0)),
+        );
+    }
+
+    const current = accountingMonthLabelForDate(now, startDay);
     const trend: Array<{ month: string; value: number }> = [];
     for (let offset = 11; offset >= 0; offset -= 1) {
-        const date = new Date(now);
-        date.setMonth(date.getMonth() - offset);
-        const month = date.getMonth() + 1;
-        const year = date.getFullYear();
-        const value = items
-            .filter((item) => {
-                const itemPeriod = getYearMonthFromIso(item.date);
-                return itemPeriod?.month === month && itemPeriod.year === year;
-            })
-            .reduce(
-                (sum, item) =>
-                    sum + Number.parseFloat(String(item.amount || 0)),
-                0,
-            );
+        // Step back `offset` accounting months from the current label.
+        let month = current.month - offset;
+        let year = current.year;
+        while (month <= 0) {
+            month += 12;
+            year -= 1;
+        }
+        const value = totalsByPeriod.get(`${year}-${month}`) ?? 0;
         trend.push({ month: monthLabels[month - 1] ?? String(month), value });
     }
     return trend;

@@ -31,7 +31,7 @@ type DerivedProviderState = Pick<
     >;
 
 type UseDerivedAppDataArgs = DerivedProviderState &
-    Pick<SessionController, "enabledFeatures"> & {
+    Pick<SessionController, "enabledFeatures" | "accountingMonthStartDay"> & {
         MONTHS: string[];
         T: Translator;
     };
@@ -45,6 +45,7 @@ export type SettingsNavigationItem = {
 export function useDerivedAppData({
     MONTHS,
     T,
+    accountingMonthStartDay,
     assetForm,
     assets,
     cashflowDir,
@@ -127,13 +128,13 @@ export function useDerivedAppData({
     const kpiData = useMemo(() => buildKpiData(expSummary, s), [expSummary, s]);
 
     const monthlyTrend = useMemo(
-        () => buildMonthlyTrend(trendExpenses, MONTHS),
-        [trendExpenses, MONTHS],
+        () => buildMonthlyTrend(trendExpenses, MONTHS, accountingMonthStartDay),
+        [trendExpenses, MONTHS, accountingMonthStartDay],
     );
 
     const monthlyIncomeTrend = useMemo(
-        () => buildMonthlyTrend(trendIncomes, MONTHS),
-        [trendIncomes, MONTHS],
+        () => buildMonthlyTrend(trendIncomes, MONTHS, accountingMonthStartDay),
+        [trendIncomes, MONTHS, accountingMonthStartDay],
     );
 
     const hasConfigurableDataFeatures =
