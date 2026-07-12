@@ -195,7 +195,10 @@ test.describe("Settings CSV import", () => {
             headers,
         });
         if (accsRes.ok()) {
-            const accs: { id: number; name: string }[] = await accsRes.json();
+            const accsBody = await accsRes.json();
+            const accs: { id: number; name: string }[] = Array.isArray(accsBody)
+                ? accsBody
+                : (accsBody?.results ?? []);
             for (const a of accs.filter((a) => a.name === ACCOUNT_NAME)) {
                 await page.request.delete(`/fininzen/api/portfolio/${a.id}/`, {
                     headers,
@@ -207,7 +210,12 @@ test.describe("Settings CSV import", () => {
             { headers },
         );
         if (typesRes.ok()) {
-            const types: { id: number; name: string }[] = await typesRes.json();
+            const typesBody = await typesRes.json();
+            const types: { id: number; name: string }[] = Array.isArray(
+                typesBody,
+            )
+                ? typesBody
+                : (typesBody?.results ?? []);
             for (const t of types.filter((t) => t.name === ACCOUNT_TYPE_NAME)) {
                 await page.request.delete(
                     `/fininzen/api/portfolio/investment-types/${t.id}/`,

@@ -26,7 +26,10 @@ async function cleanupOrphans(page: Page, token: string): Promise<void> {
         headers,
     });
     if (assetsRes.ok()) {
-        const assets: { id: number; name: string }[] = await assetsRes.json();
+        const body = await assetsRes.json();
+        const assets: { id: number; name: string }[] = Array.isArray(body)
+            ? body
+            : (body?.results ?? []);
         for (const a of assets.filter((a) =>
             [ACCOUNT_A_NAME, ACCOUNT_B_NAME].includes(a.name),
         )) {
@@ -41,7 +44,10 @@ async function cleanupOrphans(page: Page, token: string): Promise<void> {
         { headers },
     );
     if (typesRes.ok()) {
-        const types: { id: number; name: string }[] = await typesRes.json();
+        const typesBody = await typesRes.json();
+        const types: { id: number; name: string }[] = Array.isArray(typesBody)
+            ? typesBody
+            : (typesBody?.results ?? []);
         for (const t of types.filter((t) => t.name === ACCOUNT_TYPE_NAME)) {
             await page.request.delete(
                 `/fininzen/api/portfolio/investment-types/${t.id}/`,
@@ -91,7 +97,9 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
         await page.waitForLoadState("networkidle");
         await page.click('[data-testid="expenses-add-fab"]');
         await expect(
-            page.locator(".bottom-sheet__panel").getByText(/New Expense|Nuova Spesa/),
+            page
+                .locator(".bottom-sheet__panel")
+                .getByText(/New Expense|Nuova Spesa/),
         ).toBeVisible({ timeout: 5000 });
         await expect(
             page.locator(
@@ -201,9 +209,7 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
             await Promise.all([
                 page.waitForResponse(
                     (r) =>
-                        r
-                            .url()
-                            .includes("/fininzen/api/portfolio/transfer/") &&
+                        r.url().includes("/fininzen/api/portfolio/transfer/") &&
                         r.ok(),
                 ),
                 page.click(

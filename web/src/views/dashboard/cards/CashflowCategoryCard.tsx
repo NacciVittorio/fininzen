@@ -78,7 +78,9 @@ export function CashflowCategoryCard({
         const rest = sorted.slice(5);
         if (rest.length > 0) {
             top.push({
-                name: T("dash_other"),
+                // Show the grouped count so this bucket is distinguishable from a
+                // real category the user may have literally named "Other"/"Altro".
+                name: `${T("dash_other")} (${rest.length})`,
                 total: rest.reduce((sum, c) => sum + Number(c.total || 0), 0),
                 color: "var(--chart-6)",
                 catId: null,
@@ -136,7 +138,14 @@ export function CashflowCategoryCard({
                     }}
                 >
                     <PieChart
-                        data={donutRows.map((r) => ({
+                        data={donutRows.map((r, i) => ({
+                            // Unique key per slice: a real category can share the
+                            // aggregated bucket's translated name ("Other"/"Altro"),
+                            // which would collide in PieChart's name-based sliceKey
+                            // (React "duplicate key" + dropped/duplicated slices).
+                            category__id: r.isOther
+                                ? "__other__"
+                                : (r.catId ?? `cat-${i}`),
                             total: r.total,
                             category__color: r.color,
                             category__name: r.name,
