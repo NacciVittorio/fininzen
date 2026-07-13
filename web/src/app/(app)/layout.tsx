@@ -6,38 +6,45 @@ import {
     OfflineBanner,
 } from "../../components/AppChrome";
 import ToastHost from "../../components/ui/ToastHost";
+import { AppLockGate } from "../../components/AppLockGate";
+import DemoModal from "../../components/DemoModal";
+import TaxPropagationModal from "../../components/TaxPropagationModal";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <AuthGate>
-            <div
-                className="app-root"
-                style={{
-                    minHeight: "100vh",
-                    background: "var(--bg-2)",
-                    color: "var(--fg)",
-                    fontFamily: "var(--font-sans)",
-                    display: "flex",
-                }}
-            >
-                <Sidebar />
+            <AppLockGate>
                 <div
+                    className="app-root"
                     style={{
-                        flex: 1,
-                        minWidth: 0,
+                        minHeight: "100vh",
+                        background: "var(--bg-2)",
+                        color: "var(--fg)",
+                        fontFamily: "var(--font-sans)",
                         display: "flex",
-                        flexDirection: "column",
                     }}
                 >
-                    <main className="app-content">
-                        <OfflineBanner />
-                        <AppHeader />
-                        {children}
-                    </main>
+                    <Sidebar />
+                    <div
+                        style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                        }}
+                    >
+                        <main className="app-content">
+                            <OfflineBanner />
+                            <AppHeader />
+                            {children}
+                        </main>
+                    </div>
+                    <MobileBottomNav />
+                    <ToastHost />
+                    <DemoModal />
+                    <TaxPropagationModal />
                 </div>
-                <MobileBottomNav />
-                <ToastHost />
-            </div>
+            </AppLockGate>
         </AuthGate>
     );
 }
