@@ -1004,6 +1004,7 @@ const en: Record<string, string> = {
         "Biometric lock isn't configured for this domain. Please contact support.",
     applock_exit: "Sign out",
     faceid_unavailable: "Biometric unlock is not available on this device.",
+    login_biometric: "Sign in with Face ID",
 
     // Demo mode
     try_demo: "Explore Demo →",
