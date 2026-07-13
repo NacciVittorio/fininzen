@@ -53,7 +53,7 @@ function visibleNavItems(enabledFeatures: EnabledFeatures): NavigationItem[] {
 }
 
 export function Sidebar() {
-    const { T, logout, user, isDemo, enabledFeatures } = useApp();
+    const { T, user, isDemo, enabledFeatures } = useApp();
     const pathname = usePathname();
     const items = visibleNavItems(enabledFeatures);
 
@@ -156,18 +156,6 @@ export function Sidebar() {
                         {user}
                     </span>
                 )}
-                <button
-                    type="button"
-                    onClick={logout}
-                    className="btn touch-target"
-                    style={{
-                        margin: "0 12px",
-                        fontSize: 13,
-                        padding: "6px 14px",
-                    }}
-                >
-                    {T("logout_button")}
-                </button>
             </div>
         </aside>
     );
@@ -263,7 +251,7 @@ export function MobileBottomNav() {
 }
 
 export function AppHeader() {
-    const { T, viewAs, switchAccount, grants, logout } = useApp();
+    const { T, viewAs, switchAccount, grants } = useApp();
     const receivedGrants = grants?.received ?? [];
     return (
         <div
@@ -345,18 +333,6 @@ export function AppHeader() {
                         ))}
                     </select>
                 )}
-                <button
-                    type="button"
-                    onClick={logout}
-                    className="btn app-header-logout-mobile touch-target"
-                    style={{
-                        display: "none",
-                        fontSize: 13,
-                        padding: "6px 14px",
-                    }}
-                >
-                    {T("logout_button")}
-                </button>
             </div>
         </div>
     );

@@ -132,27 +132,25 @@ export function SettingsRoot({
                 </div>
             ))}
 
-            {!isDemo && (
-                <div className="grouped-list" style={{ marginBottom: 20 }}>
-                    <button
-                        type="button"
-                        data-testid="settings-root-logout"
-                        className="grouped-list__item pressable"
-                        onClick={logout}
-                        style={{ width: "100%", justifyContent: "center" }}
+            <div className="grouped-list" style={{ marginBottom: 20 }}>
+                <button
+                    type="button"
+                    data-testid="settings-root-logout"
+                    className="grouped-list__item pressable"
+                    onClick={logout}
+                    style={{ width: "100%", justifyContent: "center" }}
+                >
+                    <span
+                        style={{
+                            fontSize: 15,
+                            fontWeight: 600,
+                            color: "var(--danger)",
+                        }}
                     >
-                        <span
-                            style={{
-                                fontSize: 15,
-                                fontWeight: 600,
-                                color: "var(--danger)",
-                            }}
-                        >
-                            {T("logout_button")}
-                        </span>
-                    </button>
-                </div>
-            )}
+                        {T("logout_button")}
+                    </span>
+                </button>
+            </div>
 
             {!isDemo && !viewAs && (
                 <div style={{ marginBottom: 20 }}>

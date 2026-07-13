@@ -30,9 +30,11 @@ test.describe('Authentication', () => {
   test('logout returns to login form', async ({ page }) => {
     await loginAsDemo(page);
     await expect(page.locator('.app-net-worth')).toBeVisible({ timeout: 15000 });
-    // The placeholder shell logs out via the nav "Sign Out" button (the old SPA
-    // used a demo-logout CTA inside the demo banner, which the shell lacks yet).
-    await page.getByRole('button', { name: /Sign Out|Logout|Esci/ }).click();
+    // Sign-out lives only in Settings now (removed from the header/sidebar), so
+    // reach it via the Settings tab and click the Settings sign-out button.
+    await page.click('nav a[href="/settings"]');
+    await expect(page).toHaveURL(/\/settings$/);
+    await page.getByTestId('settings-root-logout').click();
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });
