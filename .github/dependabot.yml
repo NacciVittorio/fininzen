@@ -1,0 +1,47 @@
+# Dependabot keeps the pinned dependencies current with grouped weekly PRs.
+# The repo pins everything (requirements.txt, package-lock.json) but nothing
+# updated them automatically until now. Updates are grouped so a week's bumps
+# arrive as one PR per ecosystem instead of a flood of single-package PRs.
+version: 2
+updates:
+  # Backend — Django/DRF and friends (root requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+    groups:
+      backend-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Frontend — Next.js / React app (web/package-lock.json)
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      web-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # CI — GitHub Actions used by the workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
