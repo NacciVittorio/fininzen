@@ -6,6 +6,18 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.4.0 (2026-07-14)
+
+### Feat
+
+- **web**: add biometric (Face ID / Touch ID) sign-in to the login screen
+- **web**: mount dormant UI shells (error boundary, app-lock, demo & tax modals)
+- **web**: surface spending clearly and improve entry a11y
+
+### Fix
+
+- **web**: keep sign-off only in Settings, remove from header/sidebar
+
 ## v0.3.1 (2026-07-12)
 
 ### Fix

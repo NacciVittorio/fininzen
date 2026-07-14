@@ -4,6 +4,7 @@ import "./tokens.css";
 import "./styles.css";
 import "./globals.css";
 import { Providers } from "./providers";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 export const metadata: Metadata = {
     title: "fininzen",
@@ -83,7 +84,9 @@ export default async function RootLayout({
                 ))}
             </head>
             <body>
-                <Providers>{children}</Providers>
+                <ErrorBoundary>
+                    <Providers>{children}</Providers>
+                </ErrorBoundary>
             </body>
         </html>
     );

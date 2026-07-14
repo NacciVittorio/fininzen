@@ -1012,6 +1012,7 @@ const it: Record<string, string> = {
     applock_exit: "Esci",
     faceid_unavailable:
         "Sblocco biometrico non disponibile su questo dispositivo.",
+    login_biometric: "Accedi con Face ID",
 
     // Demo mode
     try_demo: "Esplora Demo →",

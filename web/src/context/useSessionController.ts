@@ -241,6 +241,36 @@ export function useSessionController(providerState: AppProviderState) {
         }
     }, [resetClientState, setDemoConfirm, setDemoUnderstood, setTab]);
 
+    // Passwordless sign-in from the login screen for a device that already
+    // registered a passkey (via app-lock). Identifies the user by the stored
+    // auth_email, then runs the same session setup as a password login.
+    const biometricLogin = useCallback(async () => {
+        const email = localStorage.getItem("auth_email");
+        if (!email) return false;
+        try {
+            const tokens = await authenticateWithBiometric(email);
+            if (!tokens?.access) return false;
+            resetClientState();
+            setAccessToken(tokens.access);
+            localStorage.setItem("fn_session", "1");
+            localStorage.setItem("auth_email", email);
+            localStorage.removeItem("is_demo");
+            setShowDemoModal(false);
+            setDemoConfirm(false);
+            setDemoUnderstood(false);
+            setIsAuthenticated(true);
+            setIsDemo(false);
+            setUser(email);
+            setIsLocked(false);
+            setTab("dashboard");
+            scrollToTop();
+            setAuthSessionNonce((n) => n + 1);
+            return true;
+        } catch {
+            return false;
+        }
+    }, [resetClientState, setDemoConfirm, setDemoUnderstood, setTab]);
+
     const [decimalSeparator, setDecimalSeparator] = useState<"," | ".">(",");
     const [accountingMonthStartDay, setAccountingMonthStartDay] = useState(1);
     const [profile, setProfile] = useState<UserProfile>({
@@ -498,6 +528,7 @@ export function useSessionController(providerState: AppProviderState) {
         logout,
         register,
         demoLogin,
+        biometricLogin,
         guardDemo,
         decimalSeparator,
         setDecimalSeparator,

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useApp } from "../context/useApp";
+import { getStoredCredentialId, isWebAuthnAvailable } from "../utils/webauthn";
 
 type AuthMode = "login" | "register";
 
 export default function LoginForm() {
-    const { T, login, register, demoLogin } = useApp();
+    const { T, login, register, demoLogin, biometricLogin } = useApp();
     const [mode, setMode] = useState<AuthMode>("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -15,6 +16,24 @@ export default function LoginForm() {
     const [error, setError] = useState<string | unknown[] | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+    // Offer passwordless sign-in only when this device has a registered passkey
+    // (stored when app-lock was enabled), a remembered email to identify the
+    // user, and a working platform authenticator. All checks are client-only,
+    // so they run after mount to avoid a hydration mismatch.
+    useEffect(() => {
+        let cancelled = false;
+        void (async () => {
+            if (!getStoredCredentialId() || !localStorage.getItem("auth_email"))
+                return;
+            const ok = await isWebAuthnAvailable();
+            if (!cancelled) setBiometricAvailable(ok);
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     function switchMode(next: AuthMode) {
         setMode(next);
@@ -26,6 +45,20 @@ export default function LoginForm() {
     async function handleDemoLogin() {
         setLoading(true);
         await demoLogin();
+        setLoading(false);
+    }
+
+    async function handleBiometricLogin() {
+        setError(null);
+        setLoading(true);
+        try {
+            const ok = await biometricLogin();
+            if (!ok) setError(T("login_error"));
+        } catch (err) {
+            // User dismissed the Face ID / Touch ID prompt — stay silent
+            if ((err as { name?: string })?.name !== "NotAllowedError")
+                setError(T("login_error"));
+        }
         setLoading(false);
     }
 
@@ -300,7 +333,31 @@ export default function LoginForm() {
                             />
                         </div>
 
+                        {biometricAvailable && (
+                            <button
+                                type="button"
+                                onClick={handleBiometricLogin}
+                                disabled={loading}
+                                style={{
+                                    width: "100%",
+                                    marginTop: 14,
+                                    padding: "10px 0",
+                                    background: "transparent",
+                                    border: "1px solid var(--accent)",
+                                    borderRadius: "var(--r-pill)",
+                                    color: "var(--accent)",
+                                    fontSize: 13,
+                                    cursor: loading ? "not-allowed" : "pointer",
+                                    fontWeight: 700,
+                                    opacity: loading ? 0.6 : 1,
+                                }}
+                            >
+                                {loading ? "…" : T("login_biometric")}
+                            </button>
+                        )}
+
                         <button
+                            type="button"
                             onClick={handleDemoLogin}
                             disabled={loading}
                             style={{
