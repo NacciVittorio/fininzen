@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Fininzen database backup daily
+
+[Timer]
+# Daily at 03:00 local, with jitter to avoid a thundering herd on shared hosts.
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=15m
+# Catch up on the next boot if the machine was off at the scheduled time.
+Persistent=true
+Unit=fininzen-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,24 @@
+[Unit]
+Description=Fininzen daily database backup (consistent SQLite .backup)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=fininzen
+Group=fininzen
+WorkingDirectory=/opt/fininzen
+EnvironmentFile=/etc/fininzen.env
+# Consistent, WAL-safe SQLite backup with integrity check, gzip, optional
+# at-rest encryption and retention-based rotation. Off-site replication
+# (scripts/backup_offsite.sh) is opt-in and runs from its own cron once
+# OFFSITE_RSYNC_TARGET is configured — it is kept out of this unit so the
+# hardened sandbox (ProtectHome) doesn't interfere with the rsync/SSH transport.
+ExecStart=/opt/fininzen/scripts/backup_db.sh
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ReadWritePaths=/opt/fininzen

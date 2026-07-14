@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# backup_offsite.sh — Replica off-site dei dump Postgres prodotti da backup_db.sh.
+# backup_offsite.sh — Replica off-site dei backup del database prodotti da backup_db.sh.
 #
 # Il backup locale alla VM è single-point-of-failure (ransomware, corruzione FS,
 # perdita del provider). Questo script spinge i dump verso una destinazione
@@ -51,12 +51,13 @@ if [[ ! -d "$BACKUP_DIR" ]]; then
     fail "BACKUP_DIR '$BACKUP_DIR' non esiste o non è una directory"
 fi
 
-# Cerca i dump Postgres (custom-format, eventualmente cifrati .enc) prodotti da
-# backup_db.sh.
+# Cerca i backup prodotti da backup_db.sh: SQLite gz (deploy bare-metal) o dump
+# Postgres (stack Docker), eventualmente cifrati .enc.
 mapfile -t BACKUPS < <(find "$BACKUP_DIR" -maxdepth 1 -type f \
-    \( -name '*.dump' -o -name '*.dump.enc' \) -print)
+    \( -name '*.sqlite3.gz' -o -name '*.sqlite3.gz.enc' \
+       -o -name '*.dump' -o -name '*.dump.enc' \) -print)
 if [[ ${#BACKUPS[@]} -eq 0 ]]; then
-    fail "Nessun backup Postgres (*.dump/*.dump.enc) in $BACKUP_DIR — backup_db.sh ha già girato?"
+    fail "Nessun backup (*.sqlite3.gz/*.dump) in $BACKUP_DIR — backup_db.sh ha già girato?"
 fi
 
 log "Off-site sync: ${#BACKUPS[@]} file da $BACKUP_DIR → $OFFSITE_RSYNC_TARGET"
