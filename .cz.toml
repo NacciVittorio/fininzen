@@ -4,7 +4,7 @@
 # updates CHANGELOG.md and creates the `vX.Y.Z` tag. See wiki/VERSIONING.md.
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.4.0"
+version = "0.5.0"
 tag_format = "v$version"
 update_changelog_on_bump = true
 # Create annotated tags so `git push --follow-tags` actually pushes them

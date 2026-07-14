@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.5.0 (2026-07-14)
+
+### Feat
+
+- **deploy**: daily DB backup timer + fix off-site glob for SQLite
+
 ## v0.4.0 (2026-07-14)
 
 ### Feat
