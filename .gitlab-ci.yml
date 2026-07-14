@@ -1,0 +1,116 @@
+# GitLab CI — mirrors the GitHub Actions jobs in .github/workflows/ci.yml.
+# Stages run in order; jobs within a stage run in parallel.
+
+stages:
+  - lint
+  - test
+  - build
+
+# ── Shared config ─────────────────────────────────────────────────────────────
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+  # Shared Django vars for non-production jobs (no DB guard, no security checks).
+  DJANGO_SECRET_KEY: "ci-secret-key-for-fininzen-tests-with-more-than-50-characters"
+  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+
+.python:
+  image: python:3.12-slim
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/pip
+
+.node:
+  image: node:22-alpine
+  cache:
+    key: npm-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/npm
+
+.postgres-service:
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+
+# ── Lint ──────────────────────────────────────────────────────────────────────
+
+backend-lint:
+  extends: .python
+  stage: lint
+  script:
+    - bash ci-tools/install-backend.sh
+    - bash ci-tools/lint-backend.sh
+
+web-lint:
+  extends: .node
+  stage: lint
+  script:
+    - bash ci-tools/install-web.sh
+    - bash ci-tools/lint-web.sh
+
+# ── Test ──────────────────────────────────────────────────────────────────────
+
+# Mirrors GitHub's `backend` job: migration drift check + full pytest suite.
+backend-test:
+  extends:
+    - .python
+    - .postgres-service
+  stage: test
+  variables:
+    POSTGRES_DB: fininzen_test
+    POSTGRES_USER: fininzen
+    POSTGRES_PASSWORD: fininzen
+    DATABASE_URL: "postgres://fininzen:fininzen@postgres/fininzen_test"
+  script:
+    - bash ci-tools/install-backend.sh
+    - bash ci-tools/check-migrations.sh
+    - bash ci-tools/test-backend.sh
+
+# Mirrors GitHub's `backend-postgres` job: verifies migrate + pytest on the
+# production engine (sequences, JSON/array SQL, encrypted columns).
+backend-postgres:
+  extends:
+    - .python
+    - .postgres-service
+  stage: test
+  variables:
+    POSTGRES_DB: fininzen
+    POSTGRES_USER: fininzen
+    POSTGRES_PASSWORD: fininzen
+    DATABASE_URL: "postgres://fininzen:fininzen@postgres/fininzen"
+  script:
+    - bash ci-tools/install-backend.sh
+    - bash ci-tools/migrate.sh
+    - bash ci-tools/test-backend.sh
+
+# Regenerate openapi.json + schema.d.ts and fail if either is stale.
+# Needs both Python and Node; uses the nikolaik combined image.
+api-contract:
+  stage: test
+  image: nikolaik/python-nodejs:python3.12-nodejs22
+  cache:
+    - key: pip-$CI_COMMIT_REF_SLUG
+      paths:
+        - .cache/pip
+    - key: npm-$CI_COMMIT_REF_SLUG
+      paths:
+        - .cache/npm
+  variables:
+    DJANGO_DEBUG: "1"
+  script:
+    - bash ci-tools/install-backend.sh
+    - bash ci-tools/install-web.sh
+    - bash ci-tools/check-api-contract.sh
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+
+web-build:
+  extends: .node
+  stage: build
+  needs:
+    - web-lint
+  script:
+    - bash ci-tools/install-web.sh
+    - bash ci-tools/build-web.sh
