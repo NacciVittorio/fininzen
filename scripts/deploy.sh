@@ -78,9 +78,12 @@ install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen.service" "${SYSTEMD_DIR}/fi
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-web.service" "${SYSTEMD_DIR}/fininzen-web.service"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.service" "${SYSTEMD_DIR}/fininzen-refresh-prices.service"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.timer" "${SYSTEMD_DIR}/fininzen-refresh-prices.timer"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-backup.service" "${SYSTEMD_DIR}/fininzen-backup.service"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-backup.timer" "${SYSTEMD_DIR}/fininzen-backup.timer"
 systemctl daemon-reload
 systemctl enable fininzen fininzen-web
 systemctl enable --now fininzen-refresh-prices.timer
+systemctl enable --now fininzen-backup.timer
 
 # Riavvia i servizi (fininzen-web ha After=fininzen.service).
 systemctl restart fininzen
