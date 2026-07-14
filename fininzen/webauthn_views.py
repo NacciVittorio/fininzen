@@ -36,8 +36,6 @@ from webauthn.helpers.structs import (
     ResidentKeyRequirement,
     PublicKeyCredentialDescriptor,
     AttestationConveyancePreference,
-    RegistrationCredential,
-    AuthenticationCredential,
 )
 from webauthn.helpers.exceptions import WebAuthnException
 
@@ -50,9 +48,10 @@ logger = logging.getLogger(__name__)
 
 # Malformed client payloads surface as these: WebAuthn verification errors
 # (all subclass WebAuthnException), bad base64 in rawId (binascii.Error ⊂
-# ValueError), and parse_raw on junk input (AttributeError). Catching this
-# tuple — instead of a bare `Exception` — turns garbage input into a 4xx while
-# letting genuine infra/programming errors propagate (and be logged) as 500s.
+# ValueError), and the JSON/struct parsing verify_* runs internally on junk
+# input (ValueError/TypeError/AttributeError). Catching this tuple — instead of
+# a bare `Exception` — turns garbage input into a 4xx while letting genuine
+# infra/programming errors propagate (and be logged) as 500s.
 _WEBAUTHN_INPUT_ERRORS = (WebAuthnException, ValueError, TypeError, AttributeError)
 
 RP_ID = settings.WEBAUTHN_RP_ID
@@ -103,21 +102,6 @@ class WebAuthnRegisterChallengeView(APIView):
             purpose=WebAuthnChallenge.REGISTER,
         )
 
-        # Python 3.12 + py-webauthn 2.x: str-enum coercion can strip the enum
-        # identity from authenticator_attachment so .value raises AttributeError.
-        if (
-            options.authenticator_selection
-            and options.authenticator_selection.authenticator_attachment is not None
-            and not hasattr(
-                options.authenticator_selection.authenticator_attachment, "value"
-            )
-        ):
-            options.authenticator_selection.authenticator_attachment = (
-                AuthenticatorAttachment(
-                    options.authenticator_selection.authenticator_attachment
-                )
-            )
-
         return Response(json.loads(options_to_json(options)))
 
 
@@ -142,9 +126,11 @@ class WebAuthnRegisterVerifyView(APIView):
         pending.delete()
 
         try:
-            credential = RegistrationCredential.parse_raw(json.dumps(request.data))
+            # py-webauthn 3.x: verify_* parses the raw client JSON itself; the
+            # RegistrationCredential/AuthenticationCredential.parse_raw shim (pydantic v1)
+            # is gone, so pass the serialized payload straight through.
             verification = verify_registration_response(
-                credential=credential,
+                credential=json.dumps(request.data),
                 expected_challenge=challenge_bytes,
                 expected_rp_id=RP_ID,
                 expected_origin=ORIGIN,
@@ -296,9 +282,8 @@ class WebAuthnAuthVerifyView(APIView):
         pending.delete()
 
         try:
-            credential = AuthenticationCredential.parse_raw(json.dumps(request.data))
             verification = verify_authentication_response(
-                credential=credential,
+                credential=json.dumps(request.data),
                 expected_challenge=challenge_bytes,
                 expected_rp_id=RP_ID,
                 expected_origin=ORIGIN,
