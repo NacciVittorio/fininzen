@@ -3,7 +3,7 @@
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-venv_python := "venv/bin/python"
+venv_python := ".devenv/state/venv/bin/python"
 web_dir := "web"
 web_bin := "web/node_modules/.bin"
 production := "--env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
@@ -21,7 +21,6 @@ doctor:
     test -x {{web_bin}}/prettier
 
 install-backend:
-    if [ ! -x {{venv_python}} ]; then python3 -m venv venv; fi
     {{venv_python}} -m pip install --upgrade pip
     {{venv_python}} -m pip install -r requirements.txt
 
@@ -48,7 +47,7 @@ reset-db:
     just migrate
 
 clear:
-    git clean -fdX -e '!db.sqlite3' -e '!venv/' -e '!venv/**' -e '!**/node_modules/' -e '!**/node_modules/**' -e '!.claude/' -e '!.claude/**'
+    git clean -fdX -e '!db.sqlite3' -e '!**/node_modules/' -e '!**/node_modules/**' -e '!.claude/' -e '!.claude/**'
 
 # ── Start ────────────────────────────────────────────────────────────────────
 
@@ -132,7 +131,7 @@ test-e2e:
 test: test-backend test-e2e
 
 lint:
-    {{venv_python}} -m ruff check .
+    ruff check .
     npm run lint --prefix {{web_dir}}
 
 # Regenerate the committed OpenAPI schema from the DRF views. The web typed
@@ -142,7 +141,7 @@ schema:
     DJANGO_DEBUG=1 {{venv_python}} manage.py spectacular --format openapi-json --file openapi.json
 
 format:
-    {{venv_python}} -m ruff format .
+    ruff format .
     npm run format --prefix {{web_dir}}
 
 # HIGH-33: install the git pre-commit hooks (ruff + prettier) from

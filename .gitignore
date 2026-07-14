@@ -42,8 +42,9 @@ htmlcov/
 .claude
 CLAUDE.md
 
-# direnv
+# direnv / devenv
 .direnv
+.devenv/
 
 # Design handoff (local-only)
 handoff/
