@@ -4770,9 +4770,17 @@
                         "maxLength": 40
                     },
                     "source_url": {
-                        "type": "string",
-                        "format": "uri",
-                        "maxLength": 500
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "uri",
+                                "maxLength": 500
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
                     },
                     "isin": {
                         "type": "string",
@@ -4984,9 +4992,17 @@
                         "maxLength": 40
                     },
                     "source_url": {
-                        "type": "string",
-                        "format": "uri",
-                        "maxLength": 500
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "uri",
+                                "maxLength": 500
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
                     },
                     "isin": {
                         "type": "string",
@@ -5706,9 +5722,17 @@
                         "maxLength": 40
                     },
                     "source_url": {
-                        "type": "string",
-                        "format": "uri",
-                        "maxLength": 500
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "uri",
+                                "maxLength": 500
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
                     },
                     "isin": {
                         "type": "string",
@@ -6524,10 +6548,18 @@
                 "type": "object",
                 "properties": {
                     "email": {
-                        "type": "string",
-                        "format": "email",
                         "title": "Indirizzo email",
-                        "maxLength": 254
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "email",
+                                "maxLength": 254
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
                     }
                 }
             },
@@ -6535,10 +6567,18 @@
                 "type": "object",
                 "properties": {
                     "email": {
-                        "type": "string",
-                        "format": "email",
                         "title": "Indirizzo email",
-                        "maxLength": 254
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "email",
+                                "maxLength": 254
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
                     },
                     "password": {
                         "type": "string",
