@@ -25,19 +25,19 @@
         "serwist": "^9.5.11"
     },
     "devDependencies": {
-        "@eslint/eslintrc": "^3.3.0",
+        "@eslint/eslintrc": "^3.3.6",
         "@eslint/js": "^9.39.2",
-        "@playwright/test": "^1.61.0",
+        "@playwright/test": "^1.61.1",
         "@types/node": "^26.1.1",
         "@types/react": "^19.2.7",
         "@types/react-dom": "^19.2.3",
-        "@typescript-eslint/eslint-plugin": "^8.50.0",
+        "@typescript-eslint/eslint-plugin": "^8.64.0",
         "@typescript-eslint/parser": "^8.50.0",
         "eslint": "^9.39.2",
         "eslint-config-next": "^15.5.0",
         "globals": "^16.5.0",
         "openapi-typescript": "^7.13.0",
-        "prettier": "^3.8.3",
+        "prettier": "^3.9.5",
         "typescript": "^5.9.3"
     },
     "overrides": {
