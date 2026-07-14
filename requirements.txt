@@ -43,7 +43,7 @@ pytest-cov==7.1.0
 djangorestframework-simplejwt==5.5.1
 gunicorn==26.0.0
 setuptools==83.0.0
-webauthn==2.7.1
+webauthn==3.0.0
 ruff==0.15.21
 pre-commit==4.6.0
 commitizen==4.16.4
