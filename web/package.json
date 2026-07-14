@@ -34,7 +34,7 @@
         "@typescript-eslint/eslint-plugin": "^8.64.0",
         "@typescript-eslint/parser": "^8.50.0",
         "eslint": "^9.39.2",
-        "eslint-config-next": "^15.5.0",
+        "eslint-config-next": "^16.2.10",
         "globals": "^16.5.0",
         "openapi-typescript": "^7.13.0",
         "prettier": "^3.9.5",
