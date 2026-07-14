@@ -1632,7 +1632,6 @@ export interface components {
             ticker?: string;
             price_source?: components["schemas"]["PriceSourceEnum"];
             source_symbol?: string;
-            /** Format: uri */
             source_url?: string;
             isin?: string;
             investment_type?: number | null;
@@ -1690,7 +1689,6 @@ export interface components {
             ticker?: string;
             price_source?: components["schemas"]["PriceSourceEnum"];
             source_symbol?: string;
-            /** Format: uri */
             source_url?: string;
             isin?: string;
             investment_type?: number | null;
@@ -1945,7 +1943,6 @@ export interface components {
             ticker?: string;
             price_source?: components["schemas"]["PriceSourceEnum"];
             source_symbol?: string;
-            /** Format: uri */
             source_url?: string;
             isin?: string;
             investment_type?: number | null;
@@ -2214,17 +2211,11 @@ export interface components {
          */
         TrackingTypeEnum: "AUTO" | "MANUAL";
         UserRegister: {
-            /**
-             * Indirizzo email
-             * Format: email
-             */
+            /** Indirizzo email */
             email?: string;
         };
         UserRegisterRequest: {
-            /**
-             * Indirizzo email
-             * Format: email
-             */
+            /** Indirizzo email */
             email?: string;
             password: string;
             password2: string;
