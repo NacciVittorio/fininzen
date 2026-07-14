@@ -12,8 +12,7 @@ import type {
 } from "./types";
 
 export type UnknownCollection<TItem = unknown> =
-    | TItem[]
-    | PaginatedResponse<TItem>;
+    TItem[] | PaginatedResponse<TItem>;
 
 export type BudgetPayload = {
     category: number;

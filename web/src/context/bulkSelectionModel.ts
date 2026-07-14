@@ -52,8 +52,7 @@ export const buildAssetTxBulkSelectionPayload = ({
     selectAllFiltered,
     selectedIds,
 }: BulkSelectionArgs<AssetTransactionFilters>):
-    | IdPayload
-    | FilteredPayload<Record<string, string | boolean>> => {
+    IdPayload | FilteredPayload<Record<string, string | boolean>> => {
     if (!selectAllFiltered) {
         return { mode: "ids", ids: Array.from(selectedIds) };
     }

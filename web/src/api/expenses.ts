@@ -3,8 +3,7 @@ import { fetchAllPagesWithFetcher, requestJsonWithFetcher } from "./client";
 import type { Category, Expense } from "./types";
 
 export type UnknownCollection<TItem = unknown> =
-    | TItem[]
-    | PaginatedResponse<TItem>;
+    TItem[] | PaginatedResponse<TItem>;
 
 const withQuery = (path: string, params?: URLSearchParams): `/${string}` => {
     const query = params?.toString();

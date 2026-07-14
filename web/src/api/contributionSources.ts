@@ -26,8 +26,7 @@ export type ContributionSource = {
 };
 
 export type ContributionSourceCollection =
-    | ContributionSource[]
-    | PaginatedResponse<ContributionSource>;
+    ContributionSource[] | PaginatedResponse<ContributionSource>;
 
 export const fetchContributionSourcesList = (
     fetcher: ApiFetcher,
