@@ -69,8 +69,7 @@ type AssetPayload = {
 };
 
 type AssetMutationResult =
-    | { ok: false; data: unknown }
-    | { ok: true; rollbackCandidates?: unknown[] };
+    { ok: false; data: unknown } | { ok: true; rollbackCandidates?: unknown[] };
 
 type PriceRefreshResponse = {
     updated?: number;

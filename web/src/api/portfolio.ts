@@ -3,8 +3,7 @@ import { fetchAllPagesWithFetcher, requestJsonWithFetcher } from "./client";
 import type { Asset } from "./types";
 
 export type UnknownCollection<TItem = unknown> =
-    | TItem[]
-    | PaginatedResponse<TItem>;
+    TItem[] | PaginatedResponse<TItem>;
 
 export type PortfolioSummaryResponse = {
     total_invested?: number | string;

@@ -36,10 +36,7 @@ type SettingsCategoryType = "expense" | "income";
 // The settings category tab spans cashflow categories plus the portfolio
 // investment/account-type panels; widen beyond SettingsCategoryType for the tab.
 export type SettingsCatTab =
-    | "expense"
-    | "income"
-    | "investments"
-    | "account_types";
+    "expense" | "income" | "investments" | "account_types";
 type ContributionSourceMode = "inherit" | "enabled" | "disabled";
 
 export type InvestmentTypeForm = {

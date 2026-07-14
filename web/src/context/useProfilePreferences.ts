@@ -70,8 +70,7 @@ type QueuedProfilePatch = {
 };
 
 type AccountActionResult =
-    | { ok: true }
-    | { ok: false; errorKey: string; detail?: unknown };
+    { ok: true } | { ok: false; errorKey: string; detail?: unknown };
 
 type TransactionPreferenceKey = keyof TransactionPreferences;
 

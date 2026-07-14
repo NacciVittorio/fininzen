@@ -7,8 +7,7 @@ import type { InvestmentType } from "./types";
 export type { InvestmentType };
 
 export type InvestmentTypeCollection =
-    | InvestmentType[]
-    | PaginatedResponse<InvestmentType>;
+    InvestmentType[] | PaginatedResponse<InvestmentType>;
 
 export const fetchInvestmentTypesList = (
     fetcher: ApiFetcher,

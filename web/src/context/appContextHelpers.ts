@@ -8,11 +8,7 @@ const CLIENT_CACHE_TTL_MS = 30_000;
 // Re-lock the app after returning from background for longer than this
 const APPLOCK_BG_MS = 30_000;
 export type FeatureKey =
-    | "dashboard"
-    | "cashflow"
-    | "accounts"
-    | "investments"
-    | "fire";
+    "dashboard" | "cashflow" | "accounts" | "investments" | "fire";
 export type EnabledFeatures = Record<FeatureKey, boolean>;
 export type TransactionPreferences = {
     cashflow_default_verified: boolean;
