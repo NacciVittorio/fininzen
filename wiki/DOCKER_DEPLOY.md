@@ -108,15 +108,15 @@ ssh-keygen -t ed25519 -C "dockerapp@$(hostname) fininzen deploy" -f ~/.ssh/id_ed
 cat ~/.ssh/id_ed25519.pub          # copia questa riga
 ```
 
-Su GitHub: repo → **Settings → Deploy keys → Add deploy key** → incolla la
-chiave, **lascia "Allow write access" deselezionato** (serve solo leggere).
+Su GitLab: repo → **Settings → Repository → Deploy keys → Add new key** →
+incolla la chiave, **lascia "Grant write permissions to this key"
+deselezionato** (serve solo leggere).
 
 Verifica:
 
 ```bash
-ssh -T git@github.com
-# atteso: "Hi NacciVittorio/fininzen! You've successfully authenticated, but
-#          GitHub does not provide shell access." (è normale)
+ssh -T git@gitlab.com
+# atteso: "Welcome to GitLab, @username!" (è normale)
 ```
 
 ---
@@ -125,13 +125,13 @@ ssh -T git@github.com
 
 ```bash
 cd /opt/fininzen
-git clone git@github.com:NacciVittorio/fininzen.git .
+git clone git@gitlab.com:fininzengroup/fininzen.git .
 git checkout main                  # o il branch desiderato
 ls deploy/docker/production/            # deve mostrare: compose.yml Caddyfile .env.example README.md
 ```
 
 > Se avevi già clonato in HTTPS, cambia solo il remote senza riclonare:
-> `git remote set-url origin git@github.com:NacciVittorio/fininzen.git`
+> `git remote set-url origin git@gitlab.com:fininzengroup/fininzen.git`
 
 ---
 

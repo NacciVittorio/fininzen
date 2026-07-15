@@ -1,5 +1,29 @@
-# GitLab CI — mirrors the GitHub Actions jobs in .github/workflows/ci.yml.
-# Stages run in order; jobs within a stage run in parallel.
+# GitLab CI — lint + test + build on every MR and on main; publish a Release on
+# a `v*` tag. The job bodies live in ci-tools/*.sh so the same commands run here
+# and locally (they are what `just lint test` shells out to).
+
+stages:
+  - lint
+  - test
+  - build
+  - release
+
+# Gate the whole pipeline: MRs, main, version tags, and the weekly Renovate
+# schedule. Without this a push to a branch with an open MR builds twice (a
+# branch pipeline and a detached MR pipeline).
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v/
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: never
+
+default:
+  # Cancel superseded pipelines when a new commit lands on the same ref.
+  interruptible: true
+
+# ── Shared config ─────────────────────────────────────────────────────────────
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -7,6 +31,16 @@ variables:
   # Shared Django vars for non-production jobs (no DB guard, no security checks).
   DJANGO_SECRET_KEY: "ci-secret-key-for-fininzen-tests-with-more-than-50-characters"
   DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+
+# The lint/test/build jobs validate a commit, so they have no reason to run on a
+# tag (the commit they point at was already green) or on the Renovate schedule.
+.ci-rules:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - when: on_success
 
 .python:
   image: python:3.12-slim
@@ -16,7 +50,8 @@ variables:
       - .cache/pip
 
 .node:
-  image: node:22-alpine
+  # Debian-based, not -alpine: the ci-tools scripts are bash, which Alpine lacks.
+  image: node:22-slim
   cache:
     key: npm-$CI_COMMIT_REF_SLUG
     paths:
@@ -30,14 +65,18 @@ variables:
 # ── Lint ──────────────────────────────────────────────────────────────────────
 
 backend-lint:
-  extends: .python
+  extends:
+    - .python
+    - .ci-rules
   stage: lint
   script:
     - bash ci-tools/install-backend.sh
     - bash ci-tools/lint-backend.sh
 
 web-lint:
-  extends: .node
+  extends:
+    - .node
+    - .ci-rules
   stage: lint
   script:
     - bash ci-tools/install-web.sh
@@ -45,11 +84,12 @@ web-lint:
 
 # ── Test ──────────────────────────────────────────────────────────────────────
 
-# Mirrors GitHub's `backend` job: migration drift check + full pytest suite.
+# Migration drift check + full pytest suite.
 backend-test:
   extends:
     - .python
     - .postgres-service
+    - .ci-rules
   stage: test
   variables:
     POSTGRES_DB: fininzen_test
@@ -61,12 +101,13 @@ backend-test:
     - bash ci-tools/check-migrations.sh
     - bash ci-tools/test-backend.sh
 
-# Mirrors GitHub's `backend-postgres` job: verifies migrate + pytest on the
-# production engine (sequences, JSON/array SQL, encrypted columns).
+# Verifies migrate + pytest on the production engine (sequences, JSON/array SQL,
+# encrypted columns) — behaviour SQLite can't cover.
 backend-postgres:
   extends:
     - .python
     - .postgres-service
+    - .ci-rules
   stage: test
   variables:
     POSTGRES_DB: fininzen
@@ -81,6 +122,7 @@ backend-postgres:
 # Regenerate openapi.json + schema.d.ts and fail if either is stale.
 # Needs both Python and Node; uses the nikolaik combined image.
 api-contract:
+  extends: .ci-rules
   stage: test
   image: nikolaik/python-nodejs:python3.12-nodejs22
   cache:
@@ -100,10 +142,56 @@ api-contract:
 # ── Build ─────────────────────────────────────────────────────────────────────
 
 web-build:
-  extends: .node
+  extends:
+    - .node
+    - .ci-rules
   stage: build
   needs:
     - web-lint
   script:
     - bash ci-tools/install-web.sh
     - bash ci-tools/build-web.sh
+
+# ── Release ───────────────────────────────────────────────────────────────────
+
+# `just release` runs `cz bump` locally (writing VERSION + CHANGELOG.md and
+# creating the annotated vX.Y.Z tag) and pushes it; this job turns that tag into
+# a GitLab Release whose notes come from the CHANGELOG. See wiki/VERSIONING.md.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  # A release must never be cancelled halfway by a subsequent pipeline.
+  interruptible: false
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  before_script:
+    # The release-cli image is Alpine; ci-tools/*.sh need bash.
+    - apk add --no-cache bash
+  script:
+    - bash ci-tools/release-notes.sh
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: $CI_COMMIT_TAG
+    description: RELEASE_NOTES.md
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+
+# Replaces Dependabot, which is GitHub-only. Runs from a weekly pipeline
+# schedule (Settings → CI/CD → Pipeline schedules) and needs RENOVATE_TOKEN — a
+# project access token with `api` + `write_repository` — as a masked CI
+# variable. Config lives in renovate.json. Until the token exists the rule keeps
+# the job from running at all.
+renovate:
+  stage: lint
+  image: renovate/renovate:latest
+  interruptible: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENOVATE_TOKEN
+  variables:
+    RENOVATE_PLATFORM: gitlab
+    RENOVATE_ENDPOINT: $CI_API_V4_URL
+    RENOVATE_REPOSITORIES: $CI_PROJECT_PATH
+    # RENOVATE_TOKEN is read straight from the masked CI variable; redefining it
+    # here would shadow it with a self-reference.
+  script:
+    - renovate

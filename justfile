@@ -160,7 +160,7 @@ hooks-run:
 # version and an incremental changelog. On every later run it bumps the unified
 # version (SemVer) from the Conventional Commits: update VERSION +
 # web/package.json + CHANGELOG.md and create the vX.Y.Z tag. Either way it pushes
-# commit + tag, and the release.yml GitHub Action then publishes the Release.
+# commit + tag, and the `release` job in .gitlab-ci.yml then publishes the Release.
 # Usage:
 #   just release            → increment inferred automatically from the commits
 #   just release patch      → force a patch increment (likewise minor / major)

@@ -65,7 +65,7 @@ Do not edit these numbers by hand: use `just release` (below).
 - **Settings → About** in the web app (the real value instead of the old `dev`).
 - **`GET /api/health/`** → `{"status":"ok","database":"ok","version":"0.2.1"}`.
 - **OpenAPI contract** (`openapi.json`, field `info.version`).
-- **GitHub → Releases** and git tags `vX.Y.Z`.
+- **GitLab → Deployments → Releases** and git tags `vX.Y.Z`.
 
 ## How to cut a release
 
@@ -99,17 +99,18 @@ the `just release` recipe.
    - updates `CHANGELOG.md` with the new section;
    - creates the release commit and the `vX.Y.Z` tag;
    - finally runs `git push --follow-tags`.
-4. Pushing the tag triggers the GitHub Action **`.github/workflows/release.yml`**,
-   which creates the **GitHub Release** with notes extracted from `CHANGELOG.md`.
+4. Pushing the tag triggers the **`release` job in `.gitlab-ci.yml`**, which
+   creates the **GitLab Release** with notes extracted from `CHANGELOG.md` by
+   `ci-tools/release-notes.sh`.
 
 > **First run (bootstrap).** `cz bump` needs an existing tag to compute the next
 > version and an incremental changelog. The very first `just release` therefore
 > detects that no tags exist and simply tags the current `VERSION` as the
-> baseline (`v0.0.1`, no bump) before pushing — this becomes the first GitHub
-> Release. From the second run on it bumps normally. You never tag by hand.
+> baseline (`v0.0.1`, no bump) before pushing — this becomes the first Release.
+> From the second run on it bumps normally. You never tag by hand.
 
 From then on the backend (at runtime) and the web app (on its next build/deploy)
-report the new version, and the Release is visible on GitHub.
+report the new version, and the Release is visible on GitLab.
 
 ### What NOT to do by hand
 
@@ -127,4 +128,5 @@ report the new version, and the Release is visible on GitHub.
 | `fininzen/views.py`               | `HealthView` exposes `version`.                     |
 | `web/next.config.ts`              | Inlines `NEXT_PUBLIC_APP_VERSION` at build time.     |
 | `justfile`                        | The `release` recipe.                               |
-| `.github/workflows/release.yml`   | Publishes the GitHub Release on tag push.            |
+| `.gitlab-ci.yml`                  | The `release` job: publishes the Release on tag push.|
+| `ci-tools/release-notes.sh`       | Extracts the tag's CHANGELOG section for the notes. |
