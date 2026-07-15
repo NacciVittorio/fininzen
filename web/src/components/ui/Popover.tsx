@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode, RefObject } from "react";
 
 type PopoverProps = {
@@ -135,7 +136,7 @@ export default function Popover({
 
     if (!open) return null;
 
-    return (
+    const panel = (
         <div
             ref={ref}
             role="dialog"
@@ -156,4 +157,14 @@ export default function Popover({
             {children}
         </div>
     );
+
+    // Portal to body: a `transform`/`filter`/`perspective` on ANY ancestor makes
+    // it the containing block for `position: fixed` descendants, so the panel
+    // would resolve the viewport coordinates computed above against that
+    // ancestor's box instead — landing off-screen. CashflowBulkToolbar's
+    // `translateX(-50%)` did exactly that. Rendering at body level keeps `fixed`
+    // viewport-relative, which is what positionPanel() assumes.
+    return typeof document !== "undefined"
+        ? createPortal(panel, document.body)
+        : panel;
 }
