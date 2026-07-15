@@ -140,6 +140,11 @@ lint:
 schema:
     DJANGO_DEBUG=1 {{venv_python}} manage.py spectacular --format openapi-json --file openapi.json
 
+# Give the pending `UNRELEASED` release-notes entry the version being cut. Run by
+# `just release` via a commitizen pre_bump_hook — you don't call this by hand.
+stamp-release-notes:
+    {{venv_python}} scripts/stamp_release_notes.py
+
 format:
     ruff format .
     npm run format --prefix {{web_dir}}

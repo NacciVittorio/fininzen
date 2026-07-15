@@ -3,9 +3,15 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useApp } from "../context/useApp";
+import { formatDate } from "../utils/formatters";
 import { getStoredCredentialId, isWebAuthnAvailable } from "../utils/webauthn";
 
 type AuthMode = "login" | "register";
+
+// The sign-in screen sits outside the (app) route group, so there's no context
+// here — read the build-time constants directly.
+const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+const releaseDate = process.env.NEXT_PUBLIC_RELEASE_DATE ?? "";
 
 export default function LoginForm() {
     const { T, login, register, demoLogin, biometricLogin } = useApp();
@@ -391,6 +397,14 @@ export default function LoginForm() {
                 }}
             >
                 © 2026 Vittorio Nacci. All rights reserved.
+                <div className="mono" style={{ marginTop: 4, opacity: 0.8 }}>
+                    {[
+                        `v${appVersion}`,
+                        releaseDate ? formatDate(releaseDate) : null,
+                    ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                </div>
             </div>
         </div>
     );

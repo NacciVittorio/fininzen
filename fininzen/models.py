@@ -76,6 +76,11 @@ class UserProfile(models.Model):
     # investments_default_verified. See TRANSACTION_PREFERENCE_KEYS.
     transaction_preferences = models.JSONField(default=dict, blank=True)
     accounting_month_start_day = models.PositiveSmallIntegerField(default=1)
+    # Last release whose notes the user has seen, so the release banner shows once
+    # per release. Empty means never seen (users who predate this field). Stored
+    # server-side rather than in localStorage so dismissing it on one device also
+    # dismisses it on the others. See wiki/VERSIONING.md.
+    last_seen_release = models.CharField(max_length=32, blank=True, default="")
 
     def __str__(self):
         return f"Profile<{self.user_id}>"

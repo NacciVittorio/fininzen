@@ -62,10 +62,55 @@ Do not edit these numbers by hand: use `just release` (below).
 
 ## Where the version is visible
 
-- **Settings → About** in the web app (the real value instead of the old `dev`).
+- **Settings → About** in the web app (the real value instead of the old `dev`),
+  together with the release date and a link to the changelog.
+- **The sign-in screen** footer, next to the copyright line.
 - **`GET /api/health/`** → `{"status":"ok","database":"ok","version":"0.2.1"}`.
 - **OpenAPI contract** (`openapi.json`, field `info.version`).
 - **GitLab → Deployments → Releases** and git tags `vX.Y.Z`.
+
+The **release date** shown in the UI is not maintained by hand: `web/next.config.ts`
+parses the `## vX.Y.Z (YYYY-MM-DD)` heading commitizen writes in `CHANGELOG.md`
+and inlines it as `NEXT_PUBLIC_RELEASE_DATE` at build time.
+
+## Release notes for users
+
+`CHANGELOG.md` is generated from Conventional Commits and speaks in commit types
+and scopes — it is for us, not for the people using the app. The user-facing notes
+are written by hand in **`web/src/content/releaseNotes.ts`**, in **both Italian and
+English**, and drive two things:
+
+- the **banner** at the bottom of the app on the first visit after an update
+  (`web/src/components/ReleaseNotesBar.tsx`);
+- the **What's new page** at `/changelog` (`web/src/views/ChangelogView.tsx`).
+
+Each user sees the banner **once per release**: dismissing it (or following it to
+the changelog) writes the version to `UserProfile.last_seen_release`, so the
+dismissal follows the user across devices rather than living in one browser.
+
+### Writing an entry
+
+Before running `just release`, add **one** entry at the top of `RELEASE_NOTES` with
+the `UNRELEASED` placeholder — the real number doesn't exist yet, commitizen
+derives it from the commits:
+
+```ts
+{
+    version: UNRELEASED,
+    date: "",
+    highlights: {
+        it: ["Ora puoi …"],
+        en: ["You can now …"],
+    },
+},
+```
+
+`just release` stamps the version and the date into it (via the
+`stamp-release-notes` pre-bump hook) and folds the result into the release commit.
+
+**A release with no pending entry is fine and normal**: one that only bumped
+dependencies has nothing to tell users, so it ships with no entry and shows no
+banner. Write entries only for changes someone would actually notice.
 
 ## How to cut a release
 
@@ -126,7 +171,10 @@ report the new version, and the Release is visible on GitLab.
 | `CHANGELOG.md`                    | History, generated/updated by commitizen.           |
 | `fininzen/settings.py`            | `APP_VERSION` read from `VERSION` at runtime.        |
 | `fininzen/views.py`               | `HealthView` exposes `version`.                     |
-| `web/next.config.ts`              | Inlines `NEXT_PUBLIC_APP_VERSION` at build time.     |
+| `fininzen/models.py`              | `UserProfile.last_seen_release` — banner shown once. |
+| `web/next.config.ts`              | Inlines `NEXT_PUBLIC_APP_VERSION` / `_RELEASE_DATE`. |
+| `web/src/content/releaseNotes.ts` | Hand-written user-facing notes (it/en).              |
+| `scripts/stamp_release_notes.py`  | Stamps the `UNRELEASED` entry during the bump.       |
 | `justfile`                        | The `release` recipe.                               |
 | `.gitlab-ci.yml`                  | The `release` job: publishes the Release on tag push.|
 | `ci-tools/release-notes.sh`       | Extracts the tag's CHANGELOG section for the notes. |

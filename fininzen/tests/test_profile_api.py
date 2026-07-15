@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 
@@ -338,6 +339,86 @@ def test_profile_patch_rejects_invalid_accounting_month_start_day(client, value)
     )
 
     assert res.status_code == 400
+
+
+def test_profile_get_defaults_last_seen_release(client, test_user):
+    res = client.get("/api/auth/profile/")
+
+    assert res.status_code == 200
+    assert res.json()["last_seen_release"] == ""
+
+
+def test_profile_patch_updates_last_seen_release(client, test_user):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"last_seen_release": "0.6.0"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert res.json()["last_seen_release"] == "0.6.0"
+    assert UserProfile.objects.get(user=test_user).last_seen_release == "0.6.0"
+
+
+def test_profile_patch_allows_clearing_last_seen_release(client, test_user):
+    profile, _ = UserProfile.objects.get_or_create(user=test_user)
+    profile.last_seen_release = "0.6.0"
+    profile.save(update_fields=["last_seen_release"])
+
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"last_seen_release": ""},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert UserProfile.objects.get(user=test_user).last_seen_release == ""
+
+
+@pytest.mark.parametrize("value", ["pippo", "1.2", "0.6.0-beta", "0.6.0 OR 1=1"])
+def test_profile_patch_rejects_invalid_last_seen_release(client, value):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"last_seen_release": value},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 400
+
+
+def test_profile_last_seen_release_is_per_user(client, test_user):
+    other = User.objects.create_user(
+        username="other-release@test.com",
+        email="other-release@test.com",
+        password="testpass123",
+    )
+    profile, _ = UserProfile.objects.get_or_create(user=other)
+    profile.last_seen_release = "0.6.0"
+    profile.save(update_fields=["last_seen_release"])
+
+    res = client.get("/api/auth/profile/")
+
+    assert res.status_code == 200
+    assert res.json()["last_seen_release"] == ""
+
+
+def test_register_marks_current_release_as_seen(db):
+    anon = APIClient()
+    res = anon.post(
+        "/api/auth/register/",
+        data={
+            "email": "newcomer@test.com",
+            "password": "SuperSecret123!",
+            "password2": "SuperSecret123!",
+        },
+        format="json",
+    )
+
+    assert res.status_code == 201
+    user = User.objects.get(username="newcomer@test.com")
+    # A brand-new account starts caught up, so its first login doesn't announce
+    # changes that predate the account.
+    assert UserProfile.objects.get(user=user).last_seen_release == settings.APP_VERSION
 
 
 def test_profile_patch_rejects_invalid_privacy_preferences(client, test_user):

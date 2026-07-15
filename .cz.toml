@@ -27,7 +27,15 @@ version_files = [
 # VERSION is bumped and before the bump commit, folding the refreshed schema
 # into it; a failure aborts the bump. Without it every release left the schema
 # stale and tripped the CI "API contract in sync" gate.
+#
+# The release-notes hook has the same shape: web/src/content/releaseNotes.ts
+# carries the user-facing notes for the release being cut under an `UNRELEASED`
+# placeholder, because the version isn't known until the line above computes it.
+# Stamping it here folds it into the bump commit. No pending entry is fine — the
+# release just ships without a banner. See wiki/VERSIONING.md.
 pre_bump_hooks = [
+    "just stamp-release-notes",
+    "git add web/src/content/releaseNotes.ts",
     "just schema",
     "git add openapi.json",
 ]

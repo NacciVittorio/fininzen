@@ -3,6 +3,7 @@ fininzen/views.py — Auth views: registration, JWT token, data-sharing grants.
 """
 
 import logging
+import re
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
@@ -156,6 +157,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             email=validated_data["email"],
             password=validated_data["password"],
         )
+        # Start new accounts already caught up on the current release, so their
+        # first login doesn't announce changes that predate the account.
+        UserProfile.objects.create(user=user, last_seen_release=settings.APP_VERSION)
         try:
             from portfolio.services import ensure_default_contribution_sources
 
@@ -367,6 +371,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "dashboard_preferences",
             "transaction_preferences",
             "accounting_month_start_day",
+            "last_seen_release",
         ]
 
     def to_representation(self, instance):
@@ -385,6 +390,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def validate_privacy_preferences(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError("privacy_preferences must be an object.")
+        return value
+
+    def validate_last_seen_release(self, value):
+        # Only a SemVer number the app could actually be running, or "" to reset.
+        # Keeps the field from becoming a free-form client scratchpad.
+        if value and not re.fullmatch(r"\d+\.\d+\.\d+", value):
+            raise serializers.ValidationError(
+                "last_seen_release must be a version like 1.2.3."
+            )
         return value
 
     def validate_enabled_features(self, value):

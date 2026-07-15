@@ -9,6 +9,7 @@ import ToastHost from "../../components/ui/ToastHost";
 import { AppLockGate } from "../../components/AppLockGate";
 import DemoModal from "../../components/DemoModal";
 import TaxPropagationModal from "../../components/TaxPropagationModal";
+import ReleaseNotesBar from "../../components/ReleaseNotesBar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -43,6 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <ToastHost />
                     <DemoModal />
                     <TaxPropagationModal />
+                    <ReleaseNotesBar />
                 </div>
             </AppLockGate>
         </AuthGate>

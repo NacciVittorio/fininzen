@@ -78,6 +78,7 @@ type UserProfile = {
     name: string;
     accounting_month_start_day: number;
     enabled_features: EnabledFeatures;
+    last_seen_release: string;
 };
 
 type ProfileApplyResult = {
@@ -278,6 +279,7 @@ export function useSessionController(providerState: AppProviderState) {
         name: "",
         accounting_month_start_day: 1,
         enabled_features: DEFAULT_ENABLED_FEATURES,
+        last_seen_release: "",
     });
     const [privacyPreferences, setPrivacyPreferences] =
         useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
@@ -314,6 +316,10 @@ export function useSessionController(providerState: AppProviderState) {
                 name: data.name ?? "",
                 accounting_month_start_day: startDay,
                 enabled_features: features,
+                last_seen_release:
+                    typeof data.last_seen_release === "string"
+                        ? data.last_seen_release
+                        : "",
             });
             setPrivacyPreferences(
                 normalizePrivacyPreferences(data.privacy_preferences),
@@ -402,6 +408,9 @@ export function useSessionController(providerState: AppProviderState) {
         localStorage.removeItem("is_demo");
         localStorage.removeItem("auth_email");
         localStorage.removeItem("demoBannerDismissed");
+        // Not per-user, so it must go: otherwise the next account to sign in on
+        // this browser would inherit the dismissal and never see the release banner.
+        localStorage.removeItem("lastSeenRelease");
         setShowDemoModal(false);
         setDemoConfirm(false);
         setDemoUnderstood(false);
@@ -420,6 +429,7 @@ export function useSessionController(providerState: AppProviderState) {
             name: "",
             accounting_month_start_day: 1,
             enabled_features: DEFAULT_ENABLED_FEATURES,
+            last_seen_release: "",
         });
         setPrivacyPreferences(DEFAULT_PRIVACY_PREFERENCES);
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);
