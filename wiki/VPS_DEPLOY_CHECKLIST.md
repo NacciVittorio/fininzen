@@ -119,12 +119,12 @@ chiedimi se ci sono modifiche di deploy in sospeso.
       ssh-keygen -t ed25519 -C "dockerapp@$(hostname) fininzen deploy" -f ~/.ssh/id_ed25519 -N ""
       cat ~/.ssh/id_ed25519.pub
       ```
-      GitHub → repo → Settings → Deploy keys → Add deploy key (**senza** write access).
-      Verifica: `ssh -T git@github.com`.
+      GitLab → repo → Settings → Repository → Deploy keys → Add new key (**senza** write access).
+      Verifica: `ssh -T git@gitlab.com`.
 - [ ] Clone:
       ```bash
       cd /opt/fininzen
-      git clone git@github.com:NacciVittorio/fininzen.git .
+      git clone git@gitlab.com:fininzengroup/fininzen.git .
       git checkout main
       ```
 - [ ] `.env` di produzione:

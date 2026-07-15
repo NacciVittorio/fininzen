@@ -57,7 +57,7 @@ privato — vedi la vecchia procedura in git history se serve):
 
 ```bash
 mkdir -p /opt/fininzen && chown fininzen:fininzen /opt/fininzen
-su - fininzen -c "git clone git@github.com:NacciVittorio/fininzen.git /opt/fininzen"
+su - fininzen -c "git clone git@gitlab.com:fininzengroup/fininzen.git /opt/fininzen"
 ```
 
 ## 5. Variabili d'ambiente

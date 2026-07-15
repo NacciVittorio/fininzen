@@ -76,10 +76,15 @@ Verificare se la issue rientra in una milestone attiva e assegnarla se pertinent
 
 ## Branch
 
-Una volta aperta la issue, creare il branch collegato direttamente da GitHub:
+Una volta aperta la issue, creare il branch collegato direttamente da GitLab:
+nella pagina della issue, il dropdown accanto a **Create merge request** →
+**Create branch**.
+
+Il nome viene generato automaticamente da GitLab come `<numero>-<titolo-slug>`
+(es. la issue #1 "Allow CI/CD" → `1-allow-ci-cd`), e il branch resta collegato
+alla issue. Poi in locale:
 
 ```bash
-gh issue develop <number> --checkout
+git fetch origin
+git checkout <numero>-<titolo-slug>
 ```
-
-Il nome del branch viene generato automaticamente da GitHub a partire dal titolo della issue.
