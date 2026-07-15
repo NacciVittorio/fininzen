@@ -53,6 +53,13 @@ class SecurityHeadersMiddleware:
         response["X-Content-Type-Options"] = "nosniff"
         response["Referrer-Policy"] = "strict-origin-when-cross-origin"
         path = request.path
+        # Financial JSON must never be reused without revalidation: Safari
+        # applies heuristic caching to responses with no freshness information,
+        # which hid writes made from another device. `private` keeps it out of
+        # shared caches (Caddy, any future CDN). Caddy strips `/fininzen`, so
+        # Django sees `/api/` in both production and dev.
+        if path.startswith("/api/"):
+            response["Cache-Control"] = "no-store, private"
         is_admin = path.startswith("/admin/") or path.startswith("/static/admin/")
         response["Content-Security-Policy"] = (
             self._ADMIN_CSP if is_admin else self._STRICT_CSP

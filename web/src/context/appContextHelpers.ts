@@ -223,6 +223,30 @@ function clearDashboardLocalCache(): void {
     }
 }
 
+// The service worker's Cache Storage is keyed by URL alone (the Authorization
+// header takes no part in the match) and the persisted query cache is a single
+// localStorage blob. Neither is segregated per user, so one account's financial
+// JSON could be served to the next one on the same device. Both are dropped on
+// every session change.
+const API_CACHE_NAMES = ["fn-api-cache-v2", "fn-api-cache"];
+
+async function clearApiResponseCaches(): Promise<void> {
+    if (typeof window === "undefined" || !("caches" in window)) return;
+    try {
+        await Promise.all(API_CACHE_NAMES.map((name) => caches.delete(name)));
+    } catch {
+        // Cache Storage may be unavailable in private or restricted contexts.
+    }
+}
+
+function clearPersistedQueryCache(): void {
+    try {
+        localStorage.removeItem("fn_query_cache");
+    } catch {
+        // Storage may be unavailable in private or restricted browser contexts.
+    }
+}
+
 // Merge a saved layout with the current catalog: drop retired sections and
 // splice in newly-added defaults (after the first two cards, preserving the
 // user's leading order). Returns null when `saved` is not a usable list.
@@ -372,6 +396,8 @@ export {
     PROFILE_PATCH_DEBOUNCE_MS,
     cloneDashConfig,
     clearDashboardLocalCache,
+    clearApiResponseCaches,
+    clearPersistedQueryCache,
     mergeDashConfig,
     VALID_MONTH_RANGES,
     smallViewportMonthRange,
