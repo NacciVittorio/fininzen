@@ -3,12 +3,15 @@
 import Link from "next/link";
 
 import { useAuth } from "../../context/useAuth";
+import { useAppVersion } from "../../hooks/useAppVersion";
 import { formatDate } from "../../utils/formatters";
 
 export function AboutSettingsSection() {
     const { T } = useAuth();
-    // Vite injected __APP_VERSION__ via `define`; Next inlines NEXT_PUBLIC_* env.
-    const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+    // Live from the backend (read from VERSION at runtime) so it stays correct
+    // even if the frontend build inlined an older version; falls back to the
+    // build-time constant while it loads or offline.
+    const appVersion = useAppVersion();
     // Empty on a checkout with no matching CHANGELOG section — omit the row then.
     const releaseDate = process.env.NEXT_PUBLIC_RELEASE_DATE ?? "";
 

@@ -3,18 +3,19 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useApp } from "../context/useApp";
+import { useAppVersion } from "../hooks/useAppVersion";
 import { formatDate } from "../utils/formatters";
 import { getStoredCredentialId, isWebAuthnAvailable } from "../utils/webauthn";
 
 type AuthMode = "login" | "register";
 
-// The sign-in screen sits outside the (app) route group, so there's no context
-// here — read the build-time constants directly.
-const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+// The release date is build-time only; the version comes live from the backend
+// (see useAppVersion) so it stays current even on a stale frontend build.
 const releaseDate = process.env.NEXT_PUBLIC_RELEASE_DATE ?? "";
 
 export default function LoginForm() {
     const { T, login, register, demoLogin, biometricLogin } = useApp();
+    const appVersion = useAppVersion();
     const [mode, setMode] = useState<AuthMode>("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
