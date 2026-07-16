@@ -537,9 +537,6 @@ body {
     .app-bottom-nav {
         display: flex !important;
     }
-    .app-content {
-        padding: 20px 16px calc(72px + env(safe-area-inset-bottom)) !important;
-    }
     .btn,
     .segmented button,
     .touch-target,
@@ -566,7 +563,8 @@ body {
 /* Pages with a floating action button reserve scroll clearance for it:
    bottom nav (72px) + gap (--sp-5) + 56px FAB + breathing room, so the last
    rows (e.g. a right-aligned toolbar button) can scroll out from under the
-   FAB. Higher specificity than the .app-content rule above, so it wins. */
+   FAB. Higher specificity than the .app-content rule in styles.css, so it wins
+   regardless of import order. */
 @media (max-width: 760px) {
     body.has-fab .app-content {
         padding-bottom: calc(162px + env(safe-area-inset-bottom)) !important;

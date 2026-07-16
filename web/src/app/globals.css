@@ -4,8 +4,10 @@
     box-sizing: border-box;
 }
 
+/* No `padding` shorthand here: this file is imported after styles.css at equal
+   specificity, so it would wipe the body's safe-area left/right insets. The
+   `* { padding: 0 }` reset in styles.css already zeroes both elements. */
 html,
 body {
     margin: 0;
-    padding: 0;
 }
