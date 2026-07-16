@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.6.1 (2026-07-16)
+
+### Fix
+
+- add changelog close button and read the app version live
+
 ## v0.6.0 (2026-07-16)
 
 ### Feat
