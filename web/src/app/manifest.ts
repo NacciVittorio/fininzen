@@ -11,6 +11,12 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Fininzen",
         description: "Tracciamento spese e portafoglio investimenti personale",
         start_url: "/",
+        // Both default to `start_url` when omitted. Declared explicitly so the
+        // app keeps one identity across reinstalls, and so no in-app route can
+        // be judged out of scope — which is what makes iOS overlay its browser
+        // bar on a standalone app.
+        id: "/",
+        scope: "/",
         display: "standalone",
         background_color: "#f4f8ff",
         theme_color: "#f4f8ff",
