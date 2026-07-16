@@ -14,6 +14,29 @@ const APP_VERSION = readFileSync(
     "utf8",
 ).trim();
 
+// Release date of the version above, read from the CHANGELOG heading commitizen
+// writes on every bump (`## v0.5.0 (2026-07-14)`). Deriving it beats maintaining
+// the date by hand, and it exists for every release — including the ones with no
+// user-facing notes. Empty when the section is missing (e.g. a checkout with no
+// release yet), and the UI omits the date in that case.
+const releaseDate = (version: string): string => {
+    try {
+        const changelog = readFileSync(
+            join(__dirname, "..", "CHANGELOG.md"),
+            "utf8",
+        );
+        const escaped = version.replace(/\./g, "\\.");
+        const match = changelog.match(
+            new RegExp(`^## v?${escaped} \\((\\d{4}-\\d{2}-\\d{2})\\)`, "m"),
+        );
+        return match?.[1] ?? "";
+    } catch {
+        return "";
+    }
+};
+
+const RELEASE_DATE = releaseDate(APP_VERSION);
+
 // In production Caddy terminates TLS on fininzen.nacci.eu and routes
 // `/fininzen/api/*` straight to Django (stripping the `/fininzen` prefix), so
 // those requests never reach Next. In local dev there is no Caddy, so Next
@@ -28,7 +51,10 @@ const nextConfig: NextConfig = {
     // viewport the tests run at, its bottom-left button overlaps the bottom nav
     // and intercepts Playwright's clicks. Normal `next dev` keeps the indicator.
     ...(process.env.E2E === "1" ? { devIndicators: false as const } : {}),
-    env: { NEXT_PUBLIC_APP_VERSION: APP_VERSION },
+    env: {
+        NEXT_PUBLIC_APP_VERSION: APP_VERSION,
+        NEXT_PUBLIC_RELEASE_DATE: RELEASE_DATE,
+    },
     // Django's API endpoints require trailing slashes (and the typed client uses
     // them). Without this, Next 308-redirects `/fininzen/api/auth/x/` to the
     // slash-less form before the rewrite runs, breaking every API call.

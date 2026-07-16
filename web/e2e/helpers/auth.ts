@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { Page } from "@playwright/test";
 
 // HIGH-21: the refresh token is an httpOnly cookie set by the auth endpoints.
@@ -16,6 +19,26 @@ import { Page } from "@playwright/test";
 
 const API = "/fininzen/api";
 
+// ReleaseNotesBar shows once per release and, being anchored to the bottom edge,
+// covers whatever sits at the foot of the page — it intercepted the Settings
+// sign-out button. A fresh browser context starts with no dismissal, so it would
+// greet every spec. Seeding the key the bar reads makes each spec start as a user
+// who has already seen this release, which is the state the specs mean to test.
+// A spec that wants the bar can clear this key.
+//
+// The value must match what next.config.ts bakes into NEXT_PUBLIC_APP_VERSION;
+// both read the VERSION file, so they cannot drift.
+const APP_VERSION = readFileSync(
+    join(__dirname, "..", "..", "..", "VERSION"),
+    "utf8",
+).trim();
+
+async function markReleaseSeen(page: Page): Promise<void> {
+    await page.evaluate((version: string) => {
+        localStorage.setItem("lastSeenRelease", version);
+    }, APP_VERSION);
+}
+
 export async function loginAsDemo(page: Page): Promise<void> {
     await page.goto("/login");
     const res = await page.request.post(`${API}/auth/demo/`);
@@ -28,6 +51,9 @@ export async function loginAsDemo(page: Page): Promise<void> {
         localStorage.setItem("is_demo", "true");
         localStorage.setItem("access_token", seedToken);
     }, access ?? "");
+    // The demo account cannot PATCH its profile (IsNotDemoUser), so localStorage
+    // is the only thing that can silence the bar for it.
+    await markReleaseSeen(page);
     await page.goto("/dashboard");
     await page.waitForSelector(".app-net-worth", { timeout: 15000 });
 }
@@ -56,6 +82,10 @@ export async function loginAsTestUser(
         localStorage.setItem("fn_session", "1");
         localStorage.setItem("access_token", seedToken);
     }, access ?? "");
+    // Registration stamps last_seen_release, but this user usually already exists
+    // (the register call above 400s), and one created before the field shipped has
+    // it empty — so seed here too rather than rely on the account being fresh.
+    await markReleaseSeen(page);
     await page.goto("/dashboard");
     await page.waitForSelector(".app-net-worth", { timeout: 15000 });
 }

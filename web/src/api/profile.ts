@@ -12,6 +12,7 @@ export type ProfileResponse = {
     transaction_preferences?: unknown;
     dashboard_config?: unknown;
     dashboard_preferences?: unknown;
+    last_seen_release?: string | null;
     [key: string]: unknown;
 };
 

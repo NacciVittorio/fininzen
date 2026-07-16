@@ -384,6 +384,18 @@ textarea.inp {
     pointer-events: auto;
 }
 
+/* ── Release banner: rides the bottom edge, clearing the mobile bottom nav ── */
+.release-bar {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+}
+/* Same breakpoint that swaps the sidebar for the bottom nav: lift the banner
+   over the 72px nav so it doesn't cover the tabs. */
+@media (max-width: 760px) {
+    .release-bar {
+        bottom: calc(88px + env(safe-area-inset-bottom));
+    }
+}
+
 /* ── BottomSheet: centered column on desktop instead of edge-to-edge ──────── */
 @media (min-width: 761px) {
     .bottom-sheet__panel {
