@@ -9,7 +9,6 @@ import ErrorBoundary from "../components/ErrorBoundary";
 export const metadata: Metadata = {
     title: "fininzen",
     description: "Personal wealth management",
-    manifest: "/manifest.webmanifest",
     icons: {
         icon: "/favicon.png",
         apple: [
@@ -17,6 +16,13 @@ export const metadata: Metadata = {
             { url: "/icon-512.png", sizes: "512x512" },
         ],
     },
+    // `capable` emits `mobile-web-app-capable`, which is what Chrome/Android
+    // read. iOS reads the `apple-` prefixed twin, which the Metadata API can no
+    // longer emit — it is written by hand in the <head> below.
+    //
+    // `statusBarStyle` is repeated from that <head> on purpose: this object
+    // always emits the meta tag, falling back to `default` when the field is
+    // absent, which would contradict the <head> copy. Keep the two in sync.
     appleWebApp: {
         capable: true,
         title: "Fininzen",
@@ -31,9 +37,11 @@ export const viewport: Viewport = {
 };
 
 // iOS standalone splash screens. The Metadata API has no field for
-// `apple-touch-startup-image`, so these <link> tags are rendered in the
-// document head below; Next hoists them automatically. The media queries
-// match the device resolutions targeted by the legacy frontend.
+// `apple-touch-startup-image`, so these <link> tags are written into the
+// document head below. They only take effect once iOS considers the app
+// standalone, i.e. together with the `apple-mobile-web-app-capable` meta tag
+// rendered alongside them. The media queries match the device resolutions
+// targeted by the legacy frontend.
 const SPLASH_SCREENS = [
     {
         href: "/splash/splash-750x1334.png",
@@ -74,6 +82,32 @@ export default async function RootLayout({
     return (
         <html lang="it">
             <head>
+                {/* iOS latches the launch mode into the home-screen icon at
+                    "Add to Home Screen" time and never recomputes it, reading
+                    these three from the <head> of the parsed document. They are
+                    written by hand rather than declared through the Metadata
+                    API because the `await headers()` call above opts every
+                    route into dynamic rendering, and Next then streams those tags
+                    into the <body> (vercel/next.js#79313) — React only hoists
+                    them into the <head> on hydration, far too late. On top of
+                    that, `apple-mobile-web-app-capable` has no Metadata API
+                    equivalent at all: `appleWebApp.capable` emits only the
+                    `mobile-web-app-capable` twin (vercel/next.js#74524), which
+                    iOS ignores. Without both of these the icon installs as a
+                    Safari shortcut, with browser chrome and no splash screen.
+
+                    The manifest link and the status bar style are emitted a
+                    second time down in the <body> — the former by the
+                    app/manifest.ts file convention, the latter by `appleWebApp`
+                    above — and cannot be suppressed there. Both copies agree,
+                    and only the first of a duplicated rel=manifest is used, so
+                    the pair below is redundant rather than harmful. */}
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta
+                    name="apple-mobile-web-app-status-bar-style"
+                    content="black-translucent"
+                />
+                <link rel="manifest" href="/manifest.webmanifest" />
                 {SPLASH_SCREENS.map((s) => (
                     <link
                         key={s.href}
