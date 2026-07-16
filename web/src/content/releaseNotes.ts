@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.6.3",
+        date: "2026-07-16",
         highlights: {
             it: [
                 "L'app aggiunta alla schermata Home torna ad aprirsi a schermo intero, senza la barra degli indirizzi e i tasti di Safari in basso, e mostra di nuovo la schermata di avvio. Per riaverla: elimina l'icona dalla Home e riaggiungila da Safari.",

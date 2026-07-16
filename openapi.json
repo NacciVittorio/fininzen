@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "Fininzen API",
-        "version": "0.6.2",
+        "version": "0.6.3",
         "description": "Wealth-management API (expenses + portfolio)."
     },
     "paths": {
