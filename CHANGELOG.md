@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.6.2 (2026-07-16)
+
+### Fix
+
+- **web**: keep PWA content clear of the notch and status bar
+
 ## v0.6.1 (2026-07-16)
 
 ### Fix

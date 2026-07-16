@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.6.2",
+        date: "2026-07-16",
         highlights: {
             it: [
                 "Sull'app installata sul telefono il contenuto non finisce più sotto la tacca e la barra di stato: i titoli in cima alle pagine sono di nuovo leggibili per intero.",
