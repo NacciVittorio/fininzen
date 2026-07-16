@@ -1,21 +1,55 @@
 "use client";
 
-import { PageHeader, Pill } from "../components/ui";
+import { useRouter } from "next/navigation";
+
+import { Icon, PageHeader, Pill } from "../components/ui";
 import { RELEASE_NOTES, UNRELEASED } from "../content/releaseNotes";
 import { useApp } from "../context/useApp";
+import { useAppVersion } from "../hooks/useAppVersion";
 import { formatDate } from "../utils/formatters";
 
 export default function ChangelogView() {
     const { T, lang } = useApp();
-    const currentVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+    const router = useRouter();
+    const currentVersion = useAppVersion();
     // An entry still waiting for `just release` to stamp it isn't public yet.
     const notes = RELEASE_NOTES.filter((note) => note.version !== UNRELEASED);
+
+    // The changelog is a full-page view with no bottom-nav entry of its own, so
+    // give it an explicit way out. Return to wherever the user came from (the
+    // release banner or Settings → About), falling back to the dashboard when
+    // there's no history to pop (deep link / hard refresh).
+    const close = () => {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push("/dashboard");
+        }
+    };
 
     return (
         <div>
             <PageHeader
                 title={T("changelog_title")}
                 subtitle={T("changelog_subtitle")}
+                actions={
+                    <button
+                        type="button"
+                        className="btn btn-g btn-sm"
+                        onClick={close}
+                        data-testid="changelog-close"
+                        aria-label={T("btn_close")}
+                        title={T("btn_close")}
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "6px 8px",
+                        }}
+                    >
+                        <Icon name="x" size={16} aria-hidden="true" />
+                    </button>
+                }
             />
             {notes.length === 0 ? (
                 <div

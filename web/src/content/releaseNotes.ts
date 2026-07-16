@@ -23,6 +23,20 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "La pagina Novità ora ha un tasto per chiuderla: prima si poteva uscire solo toccando una voce della barra di navigazione in basso.",
+                "La versione dell'app in Impostazioni → Info e nella schermata di accesso è ora sempre aggiornata, anche subito dopo un rilascio.",
+            ],
+            en: [
+                "The What's new page now has a close button: before, the only way out was to tap an item in the bottom navigation bar.",
+                "The app version in Settings → About and on the sign-in screen is now always current, even right after a release.",
+            ],
+        },
+    },
+    {
         version: "0.6.0",
         date: "2026-07-16",
         highlights: {
