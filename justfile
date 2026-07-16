@@ -3,7 +3,9 @@
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-venv_python := ".devenv/state/venv/bin/python"
+# devenv fornisce il venv in .devenv/state/venv; la produzione bare-metal (VPS,
+# senza devenv) usa un venv semplice in venv/. Rileva quale è presente.
+venv_python := if path_exists(".devenv/state/venv/bin/python") == "true" { ".devenv/state/venv/bin/python" } else { "venv/bin/python" }
 web_dir := "web"
 web_bin := "web/node_modules/.bin"
 production := "--env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
@@ -21,6 +23,7 @@ doctor:
     test -x {{web_bin}}/prettier
 
 install-backend:
+    if [ ! -x {{venv_python}} ]; then python3 -m venv venv; fi
     {{venv_python}} -m pip install --upgrade pip
     {{venv_python}} -m pip install -r requirements.txt
 
