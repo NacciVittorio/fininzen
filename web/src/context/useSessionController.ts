@@ -27,7 +27,9 @@ import {
     DEFAULT_PRIVACY_PREFERENCES,
     DEFAULT_TRANSACTION_PREFERENCES,
     clampAccountingMonthStartDay,
+    clearApiResponseCaches,
     clearDashboardLocalCache,
+    clearPersistedQueryCache,
     cloneDashConfig,
     emptyProfilePatchQueue,
     firstEnabledTab,
@@ -156,6 +158,13 @@ export function useSessionController(providerState: AppProviderState) {
         // Drop all cached server state (TanStack Query owns it now); the
         // enabled queries refetch for the new session once authenticated.
         queryClient.clear();
+        // queryClient.clear() only empties memory: the SW's Cache Storage and
+        // the persisted blob outlive it and are not scoped per user.
+        // Fire-and-forget: caches.delete is async, nothing downstream awaits
+        // it, and under NetworkFirst a lost entry only costs offline data,
+        // never correctness.
+        void clearApiResponseCaches();
+        clearPersistedQueryCache();
         resetQueuedProfilePatch();
         clearDashboardLocalCache();
         setDashConfig(cloneDashConfig());

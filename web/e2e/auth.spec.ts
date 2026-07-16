@@ -27,6 +27,32 @@ test.describe('Authentication', () => {
     await expect(page.locator('text=demo mode')).toBeVisible();
   });
 
+  // The SW's Cache Storage is keyed by URL alone and the persisted query cache
+  // is a single blob: neither is scoped per user, so one account's financial
+  // JSON could be served to the next one on this device. Seeded directly here —
+  // the Cache Storage API works without a service worker, which `next dev`
+  // disables anyway.
+  test('logout drops cached API responses', async ({ page }) => {
+    await loginAsDemo(page);
+    await expect(page.locator('.app-net-worth')).toBeVisible({ timeout: 15000 });
+    await page.evaluate(async () => {
+      const cache = await caches.open('fn-api-cache-v2');
+      await cache.put('/fininzen/api/expenses/', new Response('{"seeded":1}'));
+      localStorage.setItem('fn_query_cache', 'x');
+    });
+    await page.click('nav a[href="/settings"]');
+    await expect(page).toHaveURL(/\/settings$/);
+    await page.getByTestId('settings-root-logout').click();
+    await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 5000 });
+
+    await expect
+      .poll(() => page.evaluate(() => caches.keys()))
+      .not.toContain('fn-api-cache-v2');
+    expect(
+      await page.evaluate(() => localStorage.getItem('fn_query_cache')),
+    ).toBeNull();
+  });
+
   test('logout returns to login form', async ({ page }) => {
     await loginAsDemo(page);
     await expect(page.locator('.app-net-worth')).toBeVisible({ timeout: 15000 });

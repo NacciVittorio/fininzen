@@ -34,7 +34,11 @@ function makeQueryClient(persistCache: boolean): QueryClient {
             queries: {
                 staleTime: 30_000,
                 retry: 1,
-                refetchOnWindowFocus: false,
+                // The only cross-device sync mechanism: there is no polling,
+                // SSE or websocket, so without this a device never discovers
+                // another one's writes. staleTime 30s keeps tab switching from
+                // triggering bursts of refetches.
+                refetchOnWindowFocus: true,
                 // Keep entries around long enough to survive a cold start so the
                 // persisted cache is actually hydrated into live queries.
                 ...(persistCache ? { gcTime: PERSIST_MAX_AGE_MS } : {}),
