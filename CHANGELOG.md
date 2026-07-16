@@ -6,6 +6,22 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.6.0 (2026-07-16)
+
+### Feat
+
+- **release-notes**: notifica le novità di ogni release al primo accesso
+
+### Fix
+
+- **pwa**: serve fresh API data instead of the previous fetch
+- **ui**: portala il Popover su body così il menu non finisce fuori schermo
+- **deploy**: use bare venv path outside devenv so bare-metal deploy works
+
+### Refactor
+
+- **auth**: migrate WebAuthn views to py-webauthn 3.0 API
+
 ## v0.5.0 (2026-07-14)
 
 ### Feat
