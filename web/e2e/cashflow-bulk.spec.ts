@@ -136,6 +136,12 @@ test.describe("Cash Flow — Bulk selection", () => {
             await expect(
                 page.locator('[data-testid="cf-bulk-toolbar"]'),
             ).toBeVisible();
+            // Below the toolbar's 720px compact breakpoint Verify moves into the
+            // overflow menu, which only mounts once open.
+            await page.locator('[data-testid="cf-bulk-overflow"]').click();
+            await expect(
+                page.locator('[data-testid="cf-bulk-verify"]'),
+            ).toBeVisible();
             // Verify applies directly for selections at/under the confirm threshold
             // (25); 3 items → one-step POST, no confirmation modal.
             const verifyPromise = page.waitForResponse(
