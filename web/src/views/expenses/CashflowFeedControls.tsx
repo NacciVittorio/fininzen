@@ -119,7 +119,7 @@ export function CashflowFeedControls({
                     borderRadius: 10,
                     padding: "0 14px",
                     fontSize: 14,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     fontFamily: "inherit",
                     flexShrink: 0,
                 }}
@@ -138,7 +138,7 @@ export function CashflowFeedControls({
                             alignItems: "center",
                             justifyContent: "center",
                             fontSize: 11.5,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             padding: "0 5px",
                         }}
                     >
@@ -159,7 +159,7 @@ export function CashflowFeedControls({
                     borderRadius: 10,
                     padding: "0 14px",
                     fontSize: 14,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     fontFamily: "inherit",
                     flexShrink: 0,
                     display: "inline-flex",
@@ -212,7 +212,7 @@ export function UnverifiedCashflowBanner({
                     String(unverifiedCount),
                 )}
             </span>
-            <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+            <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
                 {T("cf_review")} ›
             </span>
         </button>
@@ -277,7 +277,7 @@ export function CashflowSelectionBanner({
             <span
                 style={{
                     color: "var(--accent-deep)",
-                    fontWeight: 700,
+                    fontWeight: 600,
                     whiteSpace: "nowrap",
                 }}
                 aria-live="polite"

@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./tokens.css";
 import "./styles.css";
 import "./globals.css";
 import { Providers } from "./providers";
 import ErrorBoundary from "../components/ErrorBoundary";
+
+// Variable-font mode: emette solo la CSS var --font-inter; l'opt-in al font
+// avviene in tokens.css via --font-sans.
+const inter = Inter({
+    subsets: ["latin"],
+    display: "swap",
+    variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
     title: "fininzen",
@@ -28,11 +37,11 @@ export const metadata: Metadata = {
         title: "Fininzen",
         statusBarStyle: "black-translucent",
     },
-    other: { "msapplication-TileColor": "#f4f8ff" },
+    other: { "msapplication-TileColor": "#f7f7f5" },
 };
 
 export const viewport: Viewport = {
-    themeColor: "#f4f8ff",
+    themeColor: "#f7f7f5",
     viewportFit: "cover",
 };
 
@@ -80,7 +89,7 @@ export default async function RootLayout({
     // request CSP header; here we only need to force dynamic rendering.
     await headers();
     return (
-        <html lang="it">
+        <html lang="it" className={inter.variable}>
             <head>
                 {/* iOS latches the launch mode into the home-screen icon at
                     "Add to Home Screen" time and never recomputes it, reading

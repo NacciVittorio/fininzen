@@ -245,7 +245,7 @@ export default function DashboardView() {
                     style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: 12,
+                        gap: 14,
                     }}
                 >
                     <LargeTitleHeader

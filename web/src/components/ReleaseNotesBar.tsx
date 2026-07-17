@@ -93,7 +93,11 @@ export default function ReleaseNotesBar() {
                 href="/changelog"
                 className="btn btn-sm"
                 onClick={markSeen}
-                style={{ whiteSpace: "nowrap", textDecoration: "none" }}
+                style={{
+                    whiteSpace: "nowrap",
+                    textDecoration: "none",
+                    color: "var(--accent-deep)",
+                }}
             >
                 {T("release_bar_view")}
             </Link>

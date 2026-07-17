@@ -138,7 +138,7 @@ export default function CfDetailSheet({
                         <div
                             style={{
                                 fontSize: 18,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 color: "var(--fg)",
                             }}
                         >
@@ -147,7 +147,7 @@ export default function CfDetailSheet({
                         <div
                             style={{
                                 fontSize: 30,
-                                fontWeight: 800,
+                                fontWeight: 600,
                                 color: typeColor,
                                 fontVariantNumeric: "tabular-nums",
                             }}
@@ -250,7 +250,7 @@ export default function CfDetailSheet({
                                 background: "var(--btn-primary-bg)",
                                 color: "var(--btn-primary-fg)",
                                 fontSize: 16,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 cursor: "pointer",
                                 fontFamily: "inherit",
                             }}
@@ -268,7 +268,7 @@ export default function CfDetailSheet({
                                 background: "var(--danger-soft)",
                                 color: "var(--danger)",
                                 fontSize: 16,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 cursor: "pointer",
                                 fontFamily: "inherit",
                             }}

@@ -42,7 +42,7 @@ export default function TransactionTotalPreview({
             <span
                 style={{
                     fontSize: 17,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     fontFamily: "var(--font-mono)",
                     color: "var(--fg)",
                 }}

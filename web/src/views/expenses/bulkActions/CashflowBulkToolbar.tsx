@@ -62,7 +62,7 @@ export default function CashflowBulkToolbar({
                 aria-live="polite"
                 style={{
                     fontSize: 13,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: "var(--accent-deep)",
                     padding: "0 8px",
                     whiteSpace: "nowrap",

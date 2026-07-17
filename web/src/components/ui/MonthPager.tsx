@@ -72,10 +72,9 @@ const MonthPager = forwardRef<HTMLDivElement, MonthPagerProps>(
                   flex: 1,
               }
             : {
-                  fontSize: 13,
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 600,
                   letterSpacing: "var(--ls-label)",
-                  textTransform: "uppercase",
                   color: "var(--fg)",
                   minWidth,
                   textAlign: "center",

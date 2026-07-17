@@ -129,7 +129,7 @@ export default function AssetTransactionsControls({
                         minHeight: 38,
                         padding: "0 14px",
                         fontSize: 14,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         fontFamily: "inherit",
                         flexShrink: 0,
                     }}
@@ -148,7 +148,7 @@ export default function AssetTransactionsControls({
                                 alignItems: "center",
                                 justifyContent: "center",
                                 fontSize: 11.5,
-                                fontWeight: 800,
+                                fontWeight: 600,
                                 padding: "0 5px",
                             }}
                         >

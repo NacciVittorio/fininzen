@@ -41,10 +41,7 @@ export default function PageHeader({
             >
                 <div style={{ minWidth: 0, flex: "1 1 280px" }}>
                     {eyebrow && (
-                        <div
-                            className="label label--accent"
-                            style={{ marginBottom: 8 }}
-                        >
+                        <div className="label" style={{ marginBottom: 8 }}>
                             {eyebrow}
                         </div>
                     )}

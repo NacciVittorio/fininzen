@@ -244,7 +244,7 @@ export const MultiLineChart = memo(function MultiLineChart({
                             <stop
                                 offset="0%"
                                 stopColor={s.color}
-                                stopOpacity="0.12"
+                                stopOpacity="0.08"
                             />
                             <stop
                                 offset="100%"
@@ -267,7 +267,7 @@ export const MultiLineChart = memo(function MultiLineChart({
                                 y1={y}
                                 x2={padding.left + chartWidth}
                                 y2={y}
-                                stroke="var(--rule)"
+                                stroke="var(--rule-soft)"
                                 strokeWidth={1}
                                 strokeDasharray="3,4"
                             />
@@ -339,7 +339,7 @@ export const MultiLineChart = memo(function MultiLineChart({
                             textAnchor="end"
                             fontSize="9"
                             fill="var(--warning)"
-                            fontFamily="Helvetica Neue, Helvetica, sans-serif"
+                            fontFamily="var(--font-sans)"
                         >
                             {goalLabel
                                 ? `${goalLabel}: ${formatEurFull(goalLine)}`
@@ -413,7 +413,7 @@ export const MultiLineChart = memo(function MultiLineChart({
                             y={tooltipY + 13}
                             fontSize="9"
                             fill="var(--fg-soft)"
-                            fontFamily="Helvetica Neue, Helvetica, sans-serif"
+                            fontFamily="var(--font-sans)"
                         >
                             {hoverDate}
                         </text>
@@ -442,7 +442,7 @@ export const MultiLineChart = memo(function MultiLineChart({
                                     textAnchor="end"
                                     fontSize="9"
                                     fill="var(--fg-soft)"
-                                    fontFamily="Helvetica Neue, Helvetica, sans-serif"
+                                    fontFamily="var(--font-sans)"
                                 >
                                     {l.label}
                                 </text>

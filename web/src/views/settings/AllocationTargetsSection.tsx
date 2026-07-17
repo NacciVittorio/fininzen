@@ -105,10 +105,10 @@ function AllocationTargetGroup({
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
+                    fontWeight: 500,
                     letterSpacing: 0,
                     color: "var(--fg-soft)",
-                    textTransform: "uppercase",
                 }}
             >
                 {group.label}
@@ -253,7 +253,7 @@ function AllocationTargetProgress({
                     <span
                         style={{
                             fontSize: 10,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             color: actionColor,
                         }}
                     >

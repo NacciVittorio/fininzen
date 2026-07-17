@@ -18,8 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
         id: "/",
         scope: "/",
         display: "standalone",
-        background_color: "#f4f8ff",
-        theme_color: "#f4f8ff",
+        background_color: "#f7f7f5",
+        theme_color: "#f7f7f5",
         orientation: "portrait-primary",
         // The legacy manifest declared each icon `purpose: "any maskable"`.
         // Next's typed Manifest only accepts a single purpose per entry, so we

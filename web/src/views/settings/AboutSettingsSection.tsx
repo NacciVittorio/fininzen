@@ -42,7 +42,7 @@ export function AboutSettingsSection() {
                     </span>
                     <span
                         className="mono"
-                        style={{ fontSize: 14, fontWeight: 700 }}
+                        style={{ fontSize: 14, fontWeight: 600 }}
                     >
                         {appVersion}
                     </span>

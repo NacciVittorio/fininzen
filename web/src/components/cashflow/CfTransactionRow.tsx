@@ -185,7 +185,7 @@ export default function CfTransactionRow({
                             justifyContent: "center",
                             color: "var(--btn-primary-fg, #fff)",
                             fontSize: 14,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             transition: "background 0.12s, border-color 0.12s",
                         }}
                     >

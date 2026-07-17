@@ -1,45 +1,51 @@
 /* ───────────────────────────────────────────────────────────────────
-   WEALTH MANAGEMENT — DESIGN TOKENS
-   Sistema a doppio tema: light (E2) · dark (E3 navy)
-   Tipografia: Helvetica Neue (system fallback) · IBM Plex Mono per numeri
+   QUIET LEDGER — DESIGN TOKENS
+   Sistema a doppio tema: light "paper" · dark "graphite"
+   Tipografia: Inter (via next/font) · numeri con tabular-nums
+   Estetica: superfici quasi monocrome, bordi hairline, ombre neutre
+   quasi invisibili, pesi max 600, un solo blu tenue usato con parsimonia.
    ─────────────────────────────────────────────────────────────────── */
 
 :root {
     /* ── Type families ─────────────────────────────────────────────── */
-    --font-sans: "Helvetica Neue", Helvetica, "Inter Tight", Arial, sans-serif;
-    --font-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+    --font-sans:
+        var(--font-inter), -apple-system, "SF Pro Text", "Helvetica Neue",
+        Arial, sans-serif;
+    /* I numeri si unificano sul sans: l'allineamento in colonna è garantito
+       da font-variant-numeric: tabular-nums (classi .num / .mono). */
+    --font-mono: var(--font-sans);
 
     /* ── Type scale (px) ───────────────────────────────────────────── */
-    --t-h1: 76px; /* hero number — patrimonio netto                */
-    --t-h2: 42px; /* page title / KPI value                        */
-    --t-h3: 32px; /* sub KPI value                                 */
-    --t-h4: 22px; /* highlighted callout                           */
-    --t-h5: 20px; /* section heading                               */
+    --t-h1: 56px; /* hero number — patrimonio netto                */
+    --t-h2: 34px; /* page title / KPI value                        */
+    --t-h3: 28px; /* sub KPI value                                 */
+    --t-h4: 21px; /* highlighted callout                           */
+    --t-h5: 18px; /* section heading                               */
     --t-body-lg: 16px; /* lead paragraph                                */
     --t-body: 14px; /* body                                          */
     --t-sm: 13px; /* secondary                                     */
     --t-xs: 12px; /* tertiary                                      */
-    --t-label: 10px; /* uppercase label                               */
+    --t-label: 13px; /* sentence-case label                           */
 
-    /* ── Type weights — gerarchia bold ─────────────────────────────── */
-    --w-display: 900; /* hero numbers, KPI values                      */
-    --w-heading: 800; /* page titles, section headers                  */
-    --w-strong: 700; /* labels (bold), inline-emphasized data         */
-    --w-body: 500; /* default text                                  */
+    /* ── Type weights — gerarchia quieta, max 600 ──────────────────── */
+    --w-display: 600; /* hero numbers, KPI values                      */
+    --w-heading: 600; /* page titles, section headers                  */
+    --w-strong: 500; /* labels, inline-emphasized data                */
+    --w-body: 400; /* default text                                  */
     --w-light: 400; /* descriptive prose                             */
 
-    /* ── Letter spacing ────────────────────────────────────────────── */
-    --ls-tight: -3.5px; /* hero number                                  */
-    --ls-h: -1.2px; /* headings                                     */
-    --ls-h-small: -0.4px; /* section titles                               */
-    --ls-label: 2px; /* uppercase labels                             */
-    --ls-label-em: 2.5px; /* accent uppercase                             */
+    /* ── Letter spacing — Inter richiede molto meno tracking ───────── */
+    --ls-tight: -1.2px; /* hero number                                  */
+    --ls-h: -0.5px; /* headings                                     */
+    --ls-h-small: -0.2px; /* section titles                               */
+    --ls-label: 0; /* labels (sentence case)                       */
+    --ls-label-em: 0; /* emphasized labels                            */
 
     /* ── Radii ─────────────────────────────────────────────────────── */
-    --r-card: 16px;
+    --r-card: 20px;
     --r-input: 12px;
     --r-pill: 999px;
-    --r-chip: 8px;
+    --r-chip: 10px;
 
     /* ── Spacing scale ─────────────────────────────────────────────── */
     --sp-1: 4px;
@@ -59,147 +65,145 @@
     --content-pad: 32px 44px;
 
     /* ════════════════════════════════════════════════════════════════
-     LIGHT THEME (default) · E2 · "Bianco + ombre Fineco"
-     - Nessun nero: il testo principale è navy pieno
-     - Sfondi: bianco + tinta blu chiarissima
-     - Accenti: blu azzurro (primario) + verde (denaro positivo)
+     LIGHT THEME (default) · "Paper"
+     - Carta calda quasi bianca, card bianche con bordo hairline
+     - Testo "ink" quasi nero, mai saturato
+     - Un solo accento: blu periwinkle tenue
      ════════════════════════════════════════════════════════════════ */
 
     /* Surfaces */
-    --bg: #ffffff; /* app background          */
-    --bg-2: #f4f8ff; /* alt surface (canvas)    */
+    --bg: #f7f7f5; /* app background          */
+    --bg-2: #f2f2ef; /* alt surface (canvas)    */
     --card: #ffffff; /* card fill               */
-    --card-inset: #f4f8ff; /* nested chip/inset       */
+    --card-inset: #f4f4f2; /* nested chip/inset       */
 
-    /* Text (sostituisce qualunque nero) */
-    --fg: #0b1628; /* primary text — navy     */
-    --fg-soft: rgba(11, 22, 40, 0.62); /* secondary               */
-    --fg-faint: rgba(11, 22, 40, 0.36); /* tertiary / placeholder  */
+    /* Text — "ink" */
+    --fg: #1c1c21; /* primary text            */
+    --fg-soft: rgba(28, 28, 33, 0.6); /* secondary               */
+    --fg-faint: rgba(28, 28, 33, 0.38); /* tertiary / placeholder  */
 
-    /* Brand */
-    --navy: #0b1628;
-    --navy-deep: #06101e;
+    /* Brand — nomi storici, ora "ink" */
+    --navy: #1c1c21;
+    --navy-deep: #121215;
 
     /* Accents */
-    --accent: #1e90ff; /* azzurro — primary       */
-    --accent-deep: #0e6fd8;
-    --accent-soft: rgba(30, 144, 255, 0.08); /* tinted bg / hover       */
-    --accent-ring: rgba(30, 144, 255, 0.18); /* focus ring inset        */
-    /* CTA button — accent-deep clears WCAG AA with white text */
-    --btn-primary-bg: var(--accent-deep);
+    --accent: #4e7ce8; /* blu periwinkle — primary */
+    --accent-deep: #3560c4;
+    --accent-soft: rgba(78, 124, 232, 0.08); /* tinted bg / hover       */
+    --accent-ring: rgba(78, 124, 232, 0.22); /* focus ring inset        */
+    /* CTA button — "ink": quasi-nero con testo bianco */
+    --btn-primary-bg: #1c1c21;
     --btn-primary-fg: #ffffff;
 
-    --success: #0a8a5e; /* verde — denaro positivo */
-    --success-deep: #076b48;
-    --success-soft: rgba(10, 138, 94, 0.1);
+    --success: #2e9e6b; /* verde — denaro positivo */
+    --success-deep: #22815a;
+    --success-soft: rgba(46, 158, 107, 0.1);
 
-    --danger: #c73e3a;
-    --danger-soft: rgba(199, 62, 58, 0.1);
-    --danger-ring: rgba(199, 62, 58, 0.26);
-    --warning: #b87000;
-    --warning-soft: rgba(184, 112, 0, 0.12);
-    --warning-ring: rgba(184, 112, 0, 0.26);
+    --danger: #c8534c;
+    --danger-soft: rgba(200, 83, 76, 0.1);
+    --danger-ring: rgba(200, 83, 76, 0.26);
+    --warning: #a9761c;
+    --warning-soft: rgba(169, 118, 28, 0.12);
+    --warning-ring: rgba(169, 118, 28, 0.26);
 
     /* Hairlines */
-    --rule: rgba(11, 22, 40, 0.06);
-    --rule-soft: rgba(11, 22, 40, 0.04);
+    --rule: rgba(28, 28, 33, 0.08);
+    --rule-soft: rgba(28, 28, 33, 0.05);
 
-    /* Shadows — la firma del tema: ombre azzurre soft (Fineco-style) */
+    /* Shadows — neutre e quasi invisibili; il bordo hairline definisce
+       la card, l'ombra dà solo un accenno di profondità */
     --shadow:
-        0 10px 30px -8px rgba(30, 144, 255, 0.25),
-        0 4px 12px -2px rgba(11, 22, 40, 0.06);
+        0 1px 2px rgba(20, 20, 25, 0.04),
+        0 8px 24px -12px rgba(20, 20, 25, 0.08);
     --shadow-soft:
-        0 6px 20px -6px rgba(30, 144, 255, 0.18),
-        0 2px 8px -1px rgba(11, 22, 40, 0.05);
+        0 1px 2px rgba(20, 20, 25, 0.03), 0 4px 12px -8px rgba(20, 20, 25, 0.06);
     --shadow-deep:
-        0 16px 48px -12px rgba(30, 144, 255, 0.3),
-        0 6px 18px -4px rgba(11, 22, 40, 0.1);
+        0 2px 6px rgba(20, 20, 25, 0.06),
+        0 20px 48px -16px rgba(20, 20, 25, 0.16);
 
-    /* Modal / overlay backdrops — navy-based to stay on-palette */
-    --backdrop: rgba(6, 16, 30, 0.34);
-    --backdrop-strong: rgba(6, 16, 30, 0.5);
-    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18), inset 0 1px 0 var(--rule);
+    /* Modal / overlay backdrops */
+    --backdrop: rgba(18, 18, 21, 0.32);
+    --backdrop-strong: rgba(18, 18, 21, 0.48);
+    --shadow-modal:
+        0 24px 64px rgba(20, 20, 25, 0.16), inset 0 1px 0 var(--rule);
 
-    /* Chart palette — used by Charts.jsx + per-metric pills.
-     Resolved via getComputedStyle in JS for SVG attr usage. */
-    --chart-1: #1e90ff; /* azzurro — accent */
-    --chart-2: #0a8a5e; /* verde   — success */
-    --chart-3: #b87000; /* arancio — warning */
-    --chart-4: #6e5bc9; /* viola   — alt series */
-    --chart-5: #0e6fd8; /* blu deep */
-    --chart-6: rgba(11, 22, 40, 0.38); /* neutro — fg-faint light */
+    /* Chart palette — referenziata come var(--chart-N) nei componenti SVG.
+     I NOMI sono load-bearing (template string in ~15 file TSX): mai
+     rinominare, solo rivalorizzare. */
+    --chart-1: #4e7ce8; /* blu   — accent */
+    --chart-2: #3aa981; /* verde */
+    --chart-3: #d29a4b; /* ambra */
+    --chart-4: #9a7bd0; /* viola */
+    --chart-5: #5e97a8; /* petrolio */
+    --chart-6: rgba(28, 28, 33, 0.35); /* neutro */
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   DARK THEME · E3 · "Navy scuro + verde/azzurro"
-   - Pagina navy profondo, cards in blu più ricco e saturo
-   - Stessi accenti gerarchici, calibrati per il fondo scuro
-   - Ombre con glow azzurro
+   DARK THEME · "Graphite"
+   - Grafite neutra (niente più navy/blu saturo), card appena rialzate
+   - Accenti pastello calibrati per il fondo scuro
+   - Ombre nere morbide, bordo hairline chiaro
    ══════════════════════════════════════════════════════════════════ */
 
 [data-theme="dark"] {
     /* Surfaces */
-    --bg: #06101e; /* page navy deep          */
-    --bg-2: #0b1628; /* canvas alt              */
-    --card: #1a3565; /* card — blu ricco        */
-    --card-inset: #22417a; /* card lift / inset       */
+    --bg: #111114; /* page graphite           */
+    --bg-2: #17171b; /* canvas alt              */
+    --card: #1d1d22; /* card                    */
+    --card-inset: #27272e; /* card lift / inset       */
 
     /* Text */
-    --fg: rgba(255, 255, 255, 0.94);
-    --fg-soft: rgba(255, 255, 255, 0.62);
-    --fg-faint: rgba(255, 255, 255, 0.36);
+    --fg: rgba(245, 245, 247, 0.95);
+    --fg-soft: rgba(245, 245, 247, 0.62);
+    --fg-faint: rgba(245, 245, 247, 0.36);
 
-    /* Brand */
-    --navy: #0b1628;
-    --navy-deep: #06101e;
+    /* Brand — invertito: "ink" chiaro su fondo scuro */
+    --navy: #f5f5f7;
+    --navy-deep: #111114;
 
-    /* Accents (più luminosi per leggibilità su scuro) */
-    --accent: #5cc8ff;
-    --accent-deep: #3aa8e0;
-    --accent-soft: rgba(92, 200, 255, 0.1);
-    --accent-ring: rgba(92, 200, 255, 0.3);
-    /* CTA su scuro: azzurro luminoso con testo navy (contrasto AA) */
-    --btn-primary-bg: var(--accent);
-    --btn-primary-fg: #06101e;
+    /* Accents (pastello per leggibilità su scuro) */
+    --accent: #8aabf7;
+    --accent-deep: #6e93ee;
+    --accent-soft: rgba(138, 171, 247, 0.1);
+    --accent-ring: rgba(138, 171, 247, 0.3);
+    /* CTA su scuro: ink invertita — quasi-bianco con testo scuro */
+    --btn-primary-bg: #f5f5f7;
+    --btn-primary-fg: #111114;
 
-    --success: #3fd698;
-    --success-deep: #2bc085;
-    --success-soft: rgba(63, 214, 152, 0.12);
+    --success: #4cc38a;
+    --success-deep: #3aae78;
+    --success-soft: rgba(76, 195, 138, 0.12);
 
-    --danger: #ff7a7a;
-    --danger-soft: rgba(255, 122, 122, 0.16);
-    --danger-ring: rgba(255, 122, 122, 0.34);
-    --warning: #ffc55a;
-    --warning-soft: rgba(255, 197, 90, 0.16);
-    --warning-ring: rgba(255, 197, 90, 0.34);
+    --danger: #ef8078;
+    --danger-soft: rgba(239, 128, 120, 0.14);
+    --danger-ring: rgba(239, 128, 120, 0.32);
+    --warning: #dfa85e;
+    --warning-soft: rgba(223, 168, 94, 0.14);
+    --warning-ring: rgba(223, 168, 94, 0.32);
 
     /* Hairlines */
-    --rule: rgba(255, 255, 255, 0.1);
+    --rule: rgba(255, 255, 255, 0.09);
     --rule-soft: rgba(255, 255, 255, 0.05);
 
-    /* Shadows — glow azzurro */
+    /* Shadows — nere morbide */
     --shadow:
-        0 12px 36px -10px rgba(92, 200, 255, 0.3),
-        0 4px 14px -2px rgba(0, 0, 0, 0.45);
-    --shadow-soft:
-        0 6px 22px -6px rgba(92, 200, 255, 0.22),
-        0 2px 8px -1px rgba(0, 0, 0, 0.4);
+        0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.35);
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.25);
     --shadow-deep:
-        0 18px 56px -14px rgba(92, 200, 255, 0.36),
-        0 6px 18px -4px rgba(0, 0, 0, 0.55);
+        0 2px 6px rgba(0, 0, 0, 0.35), 0 24px 56px -16px rgba(0, 0, 0, 0.55);
 
     /* Modal / overlay backdrops */
     --backdrop: rgba(0, 0, 0, 0.55);
-    --backdrop-strong: rgba(0, 0, 0, 0.72);
+    --backdrop-strong: rgba(0, 0, 0, 0.7);
     --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.55), inset 0 1px 0 var(--rule);
 
-    /* Chart palette — più saturi/luminosi per fondo scuro */
-    --chart-1: #5cc8ff; /* azzurro — accent */
-    --chart-2: #3fd698; /* verde            */
-    --chart-3: #ffc55a; /* warning          */
-    --chart-4: #a78bfa; /* viola            */
-    --chart-5: #3aa8e0; /* blu deep         */
-    --chart-6: rgba(255, 255, 255, 0.36); /* neutro */
+    /* Chart palette — pastello per fondo scuro */
+    --chart-1: #8aabf7; /* blu   — accent */
+    --chart-2: #57c797; /* verde */
+    --chart-3: #e3b36a; /* ambra */
+    --chart-4: #b79ce8; /* viola */
+    --chart-5: #7fb8c9; /* petrolio */
+    --chart-6: rgba(245, 245, 247, 0.35); /* neutro */
 }
 
 /* ── Optional: respect OS preference automatically ─────────────── */
@@ -228,9 +232,10 @@ body {
     color: var(--fg);
 }
 
-/* ── Cards (la firma visiva: blu shadow / glow azzurro) ────────── */
+/* ── Cards — bordo hairline + ombra neutra appena percepibile ───── */
 .card {
     background: var(--card);
+    border: 1px solid var(--rule);
     border-radius: var(--r-card);
     box-shadow: var(--shadow);
     padding: var(--sp-5);
@@ -249,7 +254,7 @@ body {
 .inset {
     background: var(--card-inset);
     border-radius: var(--r-input);
-    box-shadow: inset 0 0 0 1px var(--accent-ring);
+    box-shadow: inset 0 0 0 1px var(--rule);
     padding: 14px 16px;
 }
 
@@ -258,8 +263,8 @@ body {
 .hero-number {
     font-family: var(--font-sans);
     font-weight: var(--w-display);
-    font-size: clamp(40px, 12vw, 76px);
-    line-height: 0.92;
+    font-size: clamp(34px, 8vw, 56px);
+    line-height: 1.02;
     letter-spacing: var(--ls-tight);
     color: var(--fg);
     max-width: 100%;
@@ -269,8 +274,8 @@ body {
 .page-title {
     font-family: var(--font-sans);
     font-weight: var(--w-heading);
-    font-size: clamp(28px, 6vw, 42px);
-    line-height: 1;
+    font-size: clamp(26px, 5vw, 34px);
+    line-height: 1.05;
     letter-spacing: var(--ls-h);
     color: var(--fg);
     max-width: 100%;
@@ -280,17 +285,17 @@ body {
 .section-title {
     font-family: var(--font-sans);
     font-weight: var(--w-heading);
-    font-size: clamp(17px, 3vw, 20px);
-    line-height: 1;
+    font-size: clamp(17px, 3vw, 18px);
+    line-height: 1.1;
     letter-spacing: var(--ls-h-small);
     color: var(--fg);
 }
 .kpi-value {
     font-family: var(--font-sans);
     font-weight: var(--w-display);
-    font-size: clamp(26px, 8vw, 42px);
+    font-size: clamp(22px, 6vw, 32px);
     line-height: 1;
-    letter-spacing: -1.5px;
+    letter-spacing: -0.5px;
     /* hard guarantee: never overflow card width */
     overflow-wrap: normal;
     word-break: keep-all;
@@ -313,22 +318,22 @@ body {
     color: var(--warning);
 }
 .kpi-value--compact {
-    font-size: clamp(16px, 4.8vw, 22px);
-    letter-spacing: -0.4px;
+    font-size: clamp(16px, 4.5vw, 20px);
+    letter-spacing: -0.2px;
 }
 
 .label {
-    font: var(--w-body) var(--t-label) / 1 var(--font-sans);
+    font: var(--w-strong) var(--t-label) / 1.2 var(--font-sans);
     letter-spacing: var(--ls-label);
-    text-transform: uppercase;
+    text-transform: none;
     color: var(--fg-soft);
 }
 .label--bold {
-    font-weight: var(--w-strong);
+    font-weight: var(--w-heading);
 }
 .label--accent {
-    /* accent-deep clears WCAG AA at 10px uppercase weight 700 */
-    color: var(--accent-deep);
+    /* Eyebrow quieto: stessa voce del label base */
+    color: var(--fg-soft);
     letter-spacing: var(--ls-label-em);
     font-weight: var(--w-strong);
 }
@@ -349,24 +354,24 @@ body {
 }
 
 @media (max-width: 760px) {
-    /* tracking E2 scalato in proporzione ai clamp mobile */
+    /* tracking scalato in proporzione ai clamp mobile */
     .hero-number {
-        font-size: clamp(30px, 12vw, 48px);
-        letter-spacing: -2px;
-        line-height: 0.98;
+        font-size: clamp(30px, 10vw, 40px);
+        letter-spacing: -0.8px;
+        line-height: 1.05;
     }
     .page-title {
-        font-size: clamp(26px, 9vw, 38px);
-        letter-spacing: -0.8px;
-        line-height: 1.02;
+        font-size: clamp(24px, 8vw, 30px);
+        letter-spacing: -0.4px;
+        line-height: 1.08;
     }
     .kpi-value {
-        font-size: clamp(24px, 9vw, 34px);
-        letter-spacing: -1px;
+        font-size: clamp(21px, 7.5vw, 28px);
+        letter-spacing: -0.4px;
     }
     .kpi-value--compact {
-        font-size: clamp(15px, 5vw, 20px);
-        letter-spacing: -0.3px;
+        font-size: clamp(15px, 5vw, 19px);
+        letter-spacing: -0.2px;
     }
 }
 
@@ -416,7 +421,7 @@ body {
     color: var(--fg);
 }
 
-/* ── Segmented control (range chart switcher) ──────────────────── */
+/* ── Segmented control (range chart switcher) — stile iOS ──────── */
 .segmented {
     display: flex;
     gap: 4px;
@@ -435,10 +440,16 @@ body {
     border-radius: var(--r-pill);
     cursor: pointer;
 }
-.segmented button[aria-pressed="true"] {
-    background: var(--accent);
-    color: #fff;
-    font-weight: var(--w-strong);
+.segmented button[aria-pressed="true"],
+.segmented button[aria-selected="true"] {
+    background: var(--card);
+    color: var(--fg);
+    font-weight: var(--w-heading);
+    /* Chip iOS: ombra marcata perché card e track distano pochi punti di luce */
+    box-shadow:
+        0 3px 8px rgba(20, 20, 25, 0.12),
+        0 1px 1px rgba(20, 20, 25, 0.06),
+        inset 0 0 0 1px var(--rule);
 }
 
 /* ── Sidebar nav item ──────────────────────────────────────────── */
@@ -455,7 +466,7 @@ body {
 }
 .nav-item[aria-current="page"] {
     background: var(--accent-soft);
-    color: var(--fg);
+    color: var(--accent-deep);
     font-weight: var(--w-strong);
 }
 
@@ -477,13 +488,15 @@ body {
     filter: brightness(1.05);
 }
 .btn-dark {
+    /* "ink" pieno: --navy si inverte nel tema scuro, il testo segue --bg */
     background: var(--navy);
-    color: #fff;
+    color: var(--bg);
 }
 .btn-ghost {
     background: var(--card);
     color: var(--fg);
-    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--rule);
+    box-shadow: none;
 }
 
 /* ── Progress bar ──────────────────────────────────────────────── */
@@ -525,7 +538,7 @@ body {
 /* ── Focus visible (a11y) ──────────────────────────────────────── */
 .app-root
     :where(button, a, [role="button"], input, select, textarea):focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--accent-deep);
     outline-offset: 2px;
 }
 

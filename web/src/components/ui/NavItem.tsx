@@ -23,14 +23,11 @@ export default function NavItem({
     const style = {
         background: active ? "var(--accent-soft)" : "transparent",
         border: 0,
-        borderLeft: active
-            ? "3px solid var(--accent)"
-            : "3px solid transparent",
-        borderRadius: active ? "0 10px 10px 0" : 10,
+        borderRadius: 10,
         width: "100%",
         textAlign: "left" as const,
         marginBottom: 4,
-        transition: "background 0.15s, border-color 0.15s",
+        transition: "background 0.15s",
     };
     const titleAttr = title || (typeof label === "string" ? label : undefined);
     const content = (
@@ -56,7 +53,7 @@ export default function NavItem({
             <span
                 style={{
                     color: active ? "var(--accent-deep)" : "var(--fg-soft)",
-                    fontWeight: active ? 700 : 500,
+                    fontWeight: active ? 600 : 400,
                 }}
             >
                 {label}

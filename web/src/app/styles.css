@@ -53,7 +53,7 @@ select.inp {
     -moz-appearance: none;
     appearance: none;
     padding-right: 36px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%231c160c' stroke-opacity='0.62' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%231c1c21' stroke-opacity='0.62' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 12px 8px;
@@ -89,11 +89,13 @@ textarea.inp {
 .btn-r:hover {
     filter: brightness(0.95);
 }
+/* Allineato a .btn-ghost (tokens.css): hairline al posto dell'ombra */
 .btn-g {
     background: var(--card);
     color: var(--fg);
     padding: 10px 16px;
-    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--rule);
+    box-shadow: none;
 }
 .btn-g:hover {
     color: var(--accent);
@@ -101,7 +103,7 @@ textarea.inp {
 .btn-sm {
     padding: 5px 10px;
     font-size: 12px;
-    border-radius: 7px;
+    border-radius: 8px;
 }
 
 /* Legacy .card kept lean — tokens.css .card defines the visual surface.
@@ -153,8 +155,8 @@ textarea.inp {
 }
 .tab-a {
     background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 700;
+    color: var(--accent-deep);
+    font-weight: 600;
 }
 .tab-i {
     background: transparent;
@@ -531,9 +533,8 @@ textarea.inp {
     background: var(--card-inset);
 }
 .grouped-list__title {
-    font: var(--w-body) var(--t-label) / 1 var(--font-sans);
+    font: var(--w-strong) var(--t-label) / 1.2 var(--font-sans);
     letter-spacing: var(--ls-label);
-    text-transform: uppercase;
     color: var(--fg-soft);
     padding: 0 4px 8px;
 }

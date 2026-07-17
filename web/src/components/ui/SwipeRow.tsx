@@ -18,7 +18,7 @@ const actionStyle = (bg: string): CSSProperties => ({
     background: bg,
     color: "#fff",
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 600,
     cursor: "pointer",
     display: "flex",
     flexDirection: "column",

@@ -83,10 +83,10 @@ export default function AssetTransactionsSection({
         <div style={{ marginTop: 28 }}>
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
+                    fontWeight: 500,
                     letterSpacing: 0,
                     color: "var(--fg-soft)",
-                    textTransform: "uppercase",
                     marginBottom: 10,
                 }}
             >
@@ -159,7 +159,7 @@ export default function AssetTransactionsSection({
                                     style={{
                                         padding: "10px 14px 6px",
                                         fontSize: 12,
-                                        fontWeight: 700,
+                                        fontWeight: 600,
                                         letterSpacing: 0,
                                         textTransform: "uppercase",
                                         color: "var(--fg)",

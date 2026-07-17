@@ -6,7 +6,7 @@ import { Label } from "../../../components/ui";
 type ChildrenProps = { children: ReactNode };
 
 export function SectionLabel({ children }: ChildrenProps) {
-    return <Label style={{ marginBottom: 10 }}>{children}</Label>;
+    return <Label style={{ marginBottom: 12 }}>{children}</Label>;
 }
 
 export function EmptyCardText({ children }: ChildrenProps) {

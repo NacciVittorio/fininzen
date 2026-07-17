@@ -82,7 +82,7 @@ function LegendButton({
                         background: dotColor,
                         color: "#fff",
                         fontSize: 11,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         lineHeight: 1,
                         flexShrink: 0,
                     }}
@@ -95,7 +95,7 @@ function LegendButton({
                 style={{
                     display: "block",
                     fontSize: 17,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: "var(--fg)",
                     marginTop: 2,
                     fontVariantNumeric: "tabular-nums",
@@ -156,7 +156,7 @@ export default function CfSummaryCard({
                 <span
                     style={{
                         fontSize: 34,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         letterSpacing: "-0.01em",
                         color: "var(--fg)",
                         fontVariantNumeric: "tabular-nums",
