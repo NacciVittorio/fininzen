@@ -27,6 +27,15 @@ import {
 } from "./dashboard/DashboardCards";
 import { Pill, PullToRefresh, LargeTitleHeader } from "../components/ui";
 
+// Sections spanning both columns of the ≥1200px dashboard grid. The others sit
+// half-width; grid-auto-flow:dense may pull a half card up to fill the hole
+// before a full-span one, so visual order can deviate from the Settings list.
+const DASH_FULL_SPAN = new Set([
+    "wealth_trend",
+    "kpi_cards",
+    "monthly_overview",
+]);
+
 export default function DashboardView() {
     const { formatEur } = useFormatters();
     const {
@@ -241,29 +250,23 @@ export default function DashboardView() {
     return (
         <>
             <PullToRefresh onRefresh={handlePullRefresh}>
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 14,
-                    }}
-                >
-                    <LargeTitleHeader
-                        eyebrow={T("net_worth")}
-                        title={
-                            <span className="app-net-worth hero-number">
-                                {heroValue}
-                            </span>
-                        }
-                        compactTitle={T("net_worth")}
-                        compactValue={
-                            <PrivacyValue scope="dashboard" field="net_worth">
-                                {formatEur(s?.total_current)}
-                            </PrivacyValue>
-                        }
-                        actions={heroPill}
-                    />
+                <LargeTitleHeader
+                    eyebrow={T("net_worth")}
+                    title={
+                        <span className="app-net-worth hero-number">
+                            {heroValue}
+                        </span>
+                    }
+                    compactTitle={T("net_worth")}
+                    compactValue={
+                        <PrivacyValue scope="dashboard" field="net_worth">
+                            {formatEur(s?.total_current)}
+                        </PrivacyValue>
+                    }
+                    actions={heroPill}
+                />
 
+                <div className="dash-grid">
                     {dashConfig
                         .filter(
                             (c) => c.visible && isDashboardSectionEnabled(c.id),
@@ -271,7 +274,18 @@ export default function DashboardView() {
                         .map((c) => {
                             const section = dashSections[c.id];
                             if (!section) return null;
-                            return <div key={c.id}>{section}</div>;
+                            return (
+                                <div
+                                    key={c.id}
+                                    className={`dash-cell${
+                                        DASH_FULL_SPAN.has(c.id)
+                                            ? " dash-cell--full"
+                                            : ""
+                                    }`}
+                                >
+                                    {section}
+                                </div>
+                            );
                         })}
                 </div>
             </PullToRefresh>

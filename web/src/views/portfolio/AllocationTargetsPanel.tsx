@@ -43,6 +43,7 @@ export default function AllocationTargetsPanel({
     return (
         <>
             <div
+                className="wide-hidden"
                 style={{
                     height: 1,
                     background: "var(--card-inset)",

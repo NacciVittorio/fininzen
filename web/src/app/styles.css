@@ -678,3 +678,139 @@ textarea.inp {
         transform: translateY(0) scale(1);
     }
 }
+
+/* ════════════════════════════════════════════════════════════════
+ DESKTOP STRUCTURE
+ - Centered page containers + wide-desktop (≥1200px) multi-column
+   layouts. Every rule here is inert at ≤760px so mobile stays
+   pixel-identical.
+ ════════════════════════════════════════════════════════════════ */
+
+.page-container {
+    width: 100%;
+    max-width: var(--page-max);
+    margin-inline: auto;
+}
+.page-narrow {
+    width: 100%;
+    max-width: var(--page-max-narrow);
+    margin-inline: auto;
+}
+.page-medium {
+    width: 100%;
+    max-width: var(--page-max-medium);
+    margin-inline: auto;
+}
+
+/* Viewport visibility — matches the 760/761 sidebar↔bottom-nav split */
+@media (min-width: 761px) {
+    .mobile-only {
+        display: none !important;
+    }
+}
+@media (max-width: 760px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+/* Hidden only on wide desktop (where stacked sections become columns) */
+@media (min-width: 1200px) {
+    .wide-hidden {
+        display: none !important;
+    }
+}
+
+/* ── Dashboard grid ── */
+.dash-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+@media (min-width: 1200px) {
+    .dash-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        /* half cards backfill holes left by full-span cards */
+        grid-auto-flow: row dense;
+    }
+    .dash-cell {
+        min-width: 0;
+    }
+    .dash-cell--full {
+        grid-column: 1 / -1;
+    }
+    /* equal-height halves when the section renders a single card */
+    .dash-cell > .card:only-child {
+        height: 100%;
+    }
+}
+
+/* ── Cashflow: centered column, two-pane on wide desktop ── */
+.cf-layout {
+    max-width: var(--page-max-narrow);
+    margin-inline: auto;
+}
+@media (min-width: 1200px) {
+    .cf-layout {
+        max-width: none;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--rail-w);
+        column-gap: 24px;
+        grid-auto-flow: row dense;
+        align-items: start;
+    }
+    .cf-layout__header {
+        grid-column: 1 / -1;
+    }
+    .cf-layout__main {
+        grid-column: 1;
+        min-width: 0;
+    }
+    .cf-layout__rail {
+        grid-column: 2;
+        position: sticky;
+        top: 12px;
+    }
+}
+
+/* ── Portfolio grid (dense backfill preserves the mobile DOM order) ── */
+@media (min-width: 1200px) {
+    .pf-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 20px;
+        grid-auto-flow: row dense;
+        align-items: start;
+    }
+    .pf-grid > .pf-cell--a {
+        grid-column: 1;
+        min-width: 0;
+    }
+    .pf-grid > .pf-cell--b {
+        grid-column: 2;
+        min-width: 0;
+    }
+    .pf-grid > .pf-cell--full {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+}
+
+/* ── Cashflow KPI cards flatten into one 3-up row on desktop ── */
+.cash-kpis {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+@media (min-width: 1200px) {
+    .cash-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+    /* the inner KpiStrip dissolves; the parent grid places its cards */
+    .cash-kpis > .kpi-strip {
+        display: contents;
+    }
+}

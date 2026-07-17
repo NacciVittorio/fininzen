@@ -60,6 +60,13 @@ export default function PortfolioContent(props: PortfolioContentProps) {
         handlePullRefresh,
     } = props;
 
+    // Mirrors AllocationTargetsPanel's own render guard: when the panel is
+    // null, the summary card takes the full grid row instead of leaving an
+    // empty half beside it on desktop.
+    const hasAllocationTargets = props.allocationData.some(
+        (row) => row.target_pct !== null,
+    );
+
     return (
         <PullToRefresh onRefresh={handlePullRefresh}>
             <div>
@@ -122,18 +129,39 @@ export default function PortfolioContent(props: PortfolioContentProps) {
                         ✓ {refreshMsg}
                     </div>
                 )}
-                <InvSummaryCard
-                    stats={monthlyInvestmentStats}
-                    month={invStatsMonth}
-                    year={invStatsYear}
-                    onChangeMonth={({ month, year }) => {
-                        setInvStatsMonth(month);
-                        setInvStatsYear(year);
-                    }}
-                />
-                <InvestmentAssetGroups {...props} />
-                <AllocationTargetsPanel {...props} />
-                <AssetTransactionsSection {...props} />
+                {/* On the ≥1200px grid, dense flow pulls the allocation panel
+                    (cell b) up beside the summary; DOM order stays the mobile
+                    stacking order. */}
+                <div className="pf-grid">
+                    <div
+                        className={
+                            hasAllocationTargets
+                                ? "pf-cell--a"
+                                : "pf-cell--full"
+                        }
+                    >
+                        <InvSummaryCard
+                            stats={monthlyInvestmentStats}
+                            month={invStatsMonth}
+                            year={invStatsYear}
+                            onChangeMonth={({ month, year }) => {
+                                setInvStatsMonth(month);
+                                setInvStatsYear(year);
+                            }}
+                        />
+                    </div>
+                    <div className="pf-cell--full">
+                        <InvestmentAssetGroups {...props} />
+                    </div>
+                    {hasAllocationTargets && (
+                        <div className="pf-cell--b">
+                            <AllocationTargetsPanel {...props} />
+                        </div>
+                    )}
+                    <div className="pf-cell--full">
+                        <AssetTransactionsSection {...props} />
+                    </div>
+                </div>
             </div>
         </PullToRefresh>
     );

@@ -28,7 +28,7 @@ export default function ChangelogView() {
     };
 
     return (
-        <div>
+        <div className="page-narrow">
             <PageHeader
                 title={T("changelog_title")}
                 subtitle={T("changelog_subtitle")}

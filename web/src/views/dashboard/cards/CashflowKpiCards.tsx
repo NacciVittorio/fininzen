@@ -25,7 +25,7 @@ export function CashflowKpiCards({
     const balance = inc - exp;
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="cash-kpis">
             <KpiCard
                 label={T("kpi_spent_this_month")}
                 tone="danger"
