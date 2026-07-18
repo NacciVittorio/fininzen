@@ -17,6 +17,8 @@ export function EmptyCardText({ children }: ChildrenProps) {
                 color: "var(--fg-faint)",
                 fontSize: 13,
                 padding: "20px 0",
+                // centers empty states in row-height-stretched desktop cards
+                marginBlock: "auto",
             }}
         >
             {children}

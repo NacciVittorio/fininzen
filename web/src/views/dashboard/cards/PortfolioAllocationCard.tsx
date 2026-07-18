@@ -145,29 +145,35 @@ export function PortfolioAllocationCard({
                     T={T}
                 />
             ) : (
-                grouped.map(({ row: t, value: cur, pct: allocPct }, i) => {
-                    const inv = Number(t.total_invested || 0);
-                    const gainPct = inv ? ((cur - inv) / inv) * 100 : null;
-                    return (
-                        <div
-                            key={i}
-                            onClick={() => setDeepDiveType(t.type_id ?? "none")}
-                            style={{ cursor: "pointer" }}
-                        >
-                            <BarRow
-                                label={t.type_name || "Unknown"}
-                                value={cur}
-                                total={groupTotal}
-                                color={t.type_color || "var(--accent)"}
-                                extra={
-                                    gainPct !== null
-                                        ? `${gainPct >= 0 ? "+" : ""}${gainPct.toFixed(1)}%  ${allocPct.toFixed(1)}%`
-                                        : `${allocPct.toFixed(1)}%`
+                // marginBlock auto centers the bar rows as a group when the
+                // desktop grid stretches the card to row height
+                <div style={{ marginBlock: "auto" }}>
+                    {grouped.map(({ row: t, value: cur, pct: allocPct }, i) => {
+                        const inv = Number(t.total_invested || 0);
+                        const gainPct = inv ? ((cur - inv) / inv) * 100 : null;
+                        return (
+                            <div
+                                key={i}
+                                onClick={() =>
+                                    setDeepDiveType(t.type_id ?? "none")
                                 }
-                            />
-                        </div>
-                    );
-                })
+                                style={{ cursor: "pointer" }}
+                            >
+                                <BarRow
+                                    label={t.type_name || "Unknown"}
+                                    value={cur}
+                                    total={groupTotal}
+                                    color={t.type_color || "var(--accent)"}
+                                    extra={
+                                        gainPct !== null
+                                            ? `${gainPct >= 0 ? "+" : ""}${gainPct.toFixed(1)}%  ${allocPct.toFixed(1)}%`
+                                            : `${allocPct.toFixed(1)}%`
+                                    }
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
             )}
         </Card>
     );
@@ -189,6 +195,8 @@ function AllocationPie({ grouped, setDeepDiveType, T }: AllocationPieProps) {
                 alignItems: "flex-start",
                 flexWrap: "wrap",
                 justifyContent: "center",
+                // centers within the stretched desktop card; 0 in block flow
+                marginBlock: "auto",
             }}
         >
             <PieChart

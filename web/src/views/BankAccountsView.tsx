@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useApp } from "../context/useApp";
 import { useFormatters } from "../utils/useFormatters";
+import { useMediaQuery } from "../utils/useMediaQuery";
 import AnimatedCurrency from "../components/AnimatedCurrency";
 import PrivacyValue from "../components/PrivacyValue";
 import {
@@ -167,6 +168,9 @@ export default function BankAccountsView() {
         0,
     );
     const bankAccountTypes = investmentTypes.filter((t) => t.is_bank_account);
+    // JS-gated (not CSS-hidden): a truthy `actions` would drop the sticky
+    // bar's --bare modifier on mobile and push the content down 48px.
+    const isDesktop = useMediaQuery("(min-width: 761px)");
     const accountInvestmentsById = useMemo(() => {
         const totals: Record<number, number> = {};
         for (const inv of investments) {
@@ -251,7 +255,7 @@ export default function BankAccountsView() {
     return (
         <>
             <PullToRefresh onRefresh={handlePullRefresh}>
-                <div>
+                <div className="page-medium">
                     <LargeTitleHeader
                         eyebrow={T("total_balance")}
                         title={
@@ -270,6 +274,19 @@ export default function BankAccountsView() {
                             <PrivacyValue scope="accounts" field="balance">
                                 {formatEur(totalBalance)}
                             </PrivacyValue>
+                        }
+                        actions={
+                            isDesktop ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() =>
+                                        openAssetAdd(bankAccountTypes[0])
+                                    }
+                                >
+                                    {T("btn_add_account")}
+                                </button>
+                            ) : undefined
                         }
                     />
 
@@ -442,6 +459,7 @@ export default function BankAccountsView() {
             />
 
             <Fab
+                className="mobile-only"
                 label={T("btn_add_account")}
                 onClick={() => openAssetAdd(bankAccountTypes[0])}
                 hidden={hasActiveOverlay}

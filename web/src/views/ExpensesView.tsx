@@ -427,6 +427,7 @@ export default function ExpensesView() {
                     cfHasMore={cfHasMore}
                     loadMoreCf={loadMoreCf}
                     loadAllCf={loadAllCf}
+                    onAdd={() => openExpenseModal()}
                 />
             </PullToRefresh>
 

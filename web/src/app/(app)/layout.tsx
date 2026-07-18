@@ -35,9 +35,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         }}
                     >
                         <main className="app-content">
-                            <OfflineBanner />
-                            <AppHeader />
-                            {children}
+                            <div className="page-container">
+                                <OfflineBanner />
+                                <AppHeader />
+                                {children}
+                            </div>
                         </main>
                     </div>
                     <MobileBottomNav />

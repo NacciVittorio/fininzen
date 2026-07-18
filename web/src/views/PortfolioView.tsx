@@ -442,6 +442,7 @@ export default function PortfolioView() {
                 activeActionRow={activeActionRow}
                 setActiveActionRow={setActiveActionRow}
                 openEditTransaction={openEditTransaction}
+                openAddTxModal={openAddTxModal}
             />
             <PortfolioOverlays
                 {...(app as unknown as ComponentProps<
