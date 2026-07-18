@@ -774,7 +774,7 @@ textarea.inp {
     }
 }
 
-/* ── Portfolio grid (dense backfill preserves the mobile DOM order) ── */
+/* ── Portfolio/FIRE grid (dense backfill preserves the mobile DOM order) ── */
 @media (min-width: 1200px) {
     .pf-grid {
         display: grid;
@@ -794,6 +794,15 @@ textarea.inp {
     .pf-grid > .pf-cell--full {
         grid-column: 1 / -1;
         min-width: 0;
+    }
+}
+
+/* Fixed bulk toolbars: center on the content area, not the viewport
+   (the sidebar shifts the content center right by half its width).
+   !important beats the components' inline left: 50%. */
+@media (min-width: 761px) {
+    .bulk-toolbar-fixed {
+        left: calc(50% + var(--sidebar-w) / 2) !important;
     }
 }
 

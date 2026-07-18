@@ -250,43 +250,55 @@ export default function DashboardView() {
     return (
         <>
             <PullToRefresh onRefresh={handlePullRefresh}>
-                <LargeTitleHeader
-                    eyebrow={T("net_worth")}
-                    title={
-                        <span className="app-net-worth hero-number">
-                            {heroValue}
-                        </span>
-                    }
-                    compactTitle={T("net_worth")}
-                    compactValue={
-                        <PrivacyValue scope="dashboard" field="net_worth">
-                            {formatEur(s?.total_current)}
-                        </PrivacyValue>
-                    }
-                    actions={heroPill}
-                />
+                {/* The gap-14 column also spaces the header fragment's nodes
+                    (bar, hero, sentinel) — part of the mobile layout, keep. */}
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 14,
+                    }}
+                >
+                    <LargeTitleHeader
+                        eyebrow={T("net_worth")}
+                        title={
+                            <span className="app-net-worth hero-number">
+                                {heroValue}
+                            </span>
+                        }
+                        compactTitle={T("net_worth")}
+                        compactValue={
+                            <PrivacyValue scope="dashboard" field="net_worth">
+                                {formatEur(s?.total_current)}
+                            </PrivacyValue>
+                        }
+                        actions={heroPill}
+                    />
 
-                <div className="dash-grid">
-                    {dashConfig
-                        .filter(
-                            (c) => c.visible && isDashboardSectionEnabled(c.id),
-                        )
-                        .map((c) => {
-                            const section = dashSections[c.id];
-                            if (!section) return null;
-                            return (
-                                <div
-                                    key={c.id}
-                                    className={`dash-cell${
-                                        DASH_FULL_SPAN.has(c.id)
-                                            ? " dash-cell--full"
-                                            : ""
-                                    }`}
-                                >
-                                    {section}
-                                </div>
-                            );
-                        })}
+                    <div className="dash-grid">
+                        {dashConfig
+                            .filter(
+                                (c) =>
+                                    c.visible &&
+                                    isDashboardSectionEnabled(c.id),
+                            )
+                            .map((c) => {
+                                const section = dashSections[c.id];
+                                if (!section) return null;
+                                return (
+                                    <div
+                                        key={c.id}
+                                        className={`dash-cell${
+                                            DASH_FULL_SPAN.has(c.id)
+                                                ? " dash-cell--full"
+                                                : ""
+                                        }`}
+                                    >
+                                        {section}
+                                    </div>
+                                );
+                            })}
+                    </div>
                 </div>
             </PullToRefresh>
             <InvestmentDeepDiveSheet

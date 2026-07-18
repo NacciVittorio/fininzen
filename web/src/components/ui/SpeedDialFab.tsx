@@ -19,6 +19,7 @@ type SpeedDialFabProps = {
     icon?: ReactNode;
     mainLabel?: string;
     hidden?: boolean;
+    className?: string;
 };
 
 /**
@@ -30,6 +31,7 @@ export default function SpeedDialFab({
     icon = <Icon name="plus" size={26} strokeWidth={2.4} />,
     mainLabel,
     hidden = false,
+    className,
 }: SpeedDialFabProps) {
     const { T } = useApp();
     const online = useOnlineStatus();
@@ -54,7 +56,7 @@ export default function SpeedDialFab({
     return (
         <div
             ref={ref}
-            className="speed-dial-fab"
+            className={`speed-dial-fab${className ? ` ${className}` : ""}`}
             style={{
                 display: hidden ? "none" : "flex",
                 position: "fixed",

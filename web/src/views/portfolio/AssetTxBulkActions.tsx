@@ -120,6 +120,7 @@ export default function AssetTxBulkActions({
             {assetTxSelectionMode && assetTxSelectedCount > 0 && (
                 <div
                     data-testid="asset-tx-bulk-toolbar"
+                    className="bulk-toolbar-fixed"
                     role="toolbar"
                     aria-label={T("cf_bulk_edit_title")}
                     style={{

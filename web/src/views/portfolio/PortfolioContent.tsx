@@ -39,6 +39,7 @@ type PortfolioContentProps = ComponentProps<typeof InvestmentAssetGroups> &
         setInvStatsMonth: (month: number) => void;
         setInvStatsYear: (year: number) => void;
         handlePullRefresh: ComponentProps<typeof PullToRefresh>["onRefresh"];
+        openAddTxModal: () => void;
     };
 
 export default function PortfolioContent(props: PortfolioContentProps) {
@@ -58,6 +59,8 @@ export default function PortfolioContent(props: PortfolioContentProps) {
         setInvStatsMonth,
         setInvStatsYear,
         handlePullRefresh,
+        openAssetAdd,
+        openAddTxModal,
     } = props;
 
     // Mirrors AllocationTargetsPanel's own render guard: when the panel is
@@ -110,6 +113,22 @@ export default function PortfolioContent(props: PortfolioContentProps) {
                                 {refreshing
                                     ? T("refreshing")
                                     : T("refresh_prices")}
+                            </button>
+                            {/* CSS-gated (the actions fragment is always
+                                truthy, so the bar never turns --bare) */}
+                            <button
+                                type="button"
+                                className="btn btn-g btn-sm desktop-only"
+                                onClick={() => openAssetAdd()}
+                            >
+                                {T("add_modal_mode_asset")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-primary btn-sm desktop-only"
+                                onClick={() => openAddTxModal()}
+                            >
+                                {T("add_modal_mode_transaction")}
                             </button>
                         </>
                     }

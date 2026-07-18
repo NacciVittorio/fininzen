@@ -34,6 +34,7 @@ export default function CashflowBulkToolbar({
     return (
         <div
             data-testid="cf-bulk-toolbar"
+            className="bulk-toolbar-fixed"
             role="toolbar"
             aria-label={T("cf_bulk_edit_title")}
             style={{
