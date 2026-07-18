@@ -13,12 +13,10 @@ export default function KpiStrip({ children, columns, style }: KpiStripProps) {
     return (
         <div
             className="kpi-strip"
-            style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
-                gap: "var(--sp-4)",
-                ...style,
-            }}
+            // Layout lives in CSS (.kpi-strip) so contexts like .cash-kpis can
+            // dissolve the strip with display:contents; only the column count
+            // is passed through.
+            style={{ "--kpi-strip-cols": count, ...style } as CSSProperties}
         >
             {children}
         </div>

@@ -13,8 +13,10 @@ type CashflowKpiCardsProps = {
 };
 
 // The dashboard hero is net worth, so spending needs its own prominent number
-// here: a full-width "spent this month" card leads, with income and the month
-// balance as a supporting two-up strip beneath it.
+// here: on mobile a full-width "spent this month" card leads, with income,
+// month balance and savings rate as a supporting compact strip beneath it.
+// On wide desktop (≥1200) the strip dissolves and all four render as one
+// uniform 4-up row (see .cash-kpis in styles.css).
 export function CashflowKpiCards({
     kpiData,
     T,
@@ -23,6 +25,7 @@ export function CashflowKpiCards({
     const inc = Number(kpiData.monthlyInc || 0);
     const exp = Number(kpiData.monthlyExp || 0);
     const balance = inc - exp;
+    const savingsRate = inc > 0 ? (balance / inc) * 100 : null;
 
     return (
         <div className="cash-kpis">
@@ -31,7 +34,7 @@ export function CashflowKpiCards({
                 tone="danger"
                 value={<span className="num">{formatEur(exp)}</span>}
             />
-            <KpiStrip columns={2}>
+            <KpiStrip columns={3}>
                 <KpiCard
                     compact
                     label={T("kpi_monthly_income")}
@@ -46,6 +49,24 @@ export function CashflowKpiCards({
                         <span className="num">
                             {balance >= 0 ? "+" : ""}
                             {formatEur(balance)}
+                        </span>
+                    }
+                />
+                <KpiCard
+                    compact
+                    label={T("kpi_savings_rate")}
+                    tone={
+                        savingsRate == null
+                            ? "neutral"
+                            : savingsRate >= 0
+                              ? "positive"
+                              : "danger"
+                    }
+                    value={
+                        <span className="num">
+                            {savingsRate == null
+                                ? "—"
+                                : `${savingsRate.toFixed(1)}%`}
                         </span>
                     }
                 />

@@ -46,7 +46,16 @@ export function BudgetProgressCard({
     return (
         <Card>
             <SectionLabel>{T("dash_budget_progress")}</SectionLabel>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {/* marginBlock auto centers the list when the desktop grid
+                stretches the card to row height; resolves to 0 in block flow */}
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    marginBlock: "auto",
+                }}
+            >
                 {activeBudgets.map((b) => {
                     const cat = catMap[b.category];
                     const spent = spentMap[b.category] || 0;

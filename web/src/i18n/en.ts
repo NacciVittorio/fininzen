@@ -722,6 +722,7 @@ const en: Record<string, string> = {
     monthly_expenses: "Monthly Expenses",
     kpi_spent_this_month: "Monthly spending",
     kpi_month_balance: "Month Balance",
+    kpi_savings_rate: "Savings Rate",
     investment_kpi_label: "Investments",
     kpi_invested: "Invested",
     kpi_realized_return: "Realized Return",

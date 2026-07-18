@@ -54,6 +54,7 @@ export function ExpensesTrendCard({
                 <BarTrendChart
                     data={data}
                     height={140}
+                    fill
                     color={isIncome ? "var(--chart-2)" : "var(--chart-1)"}
                 />
             ) : (

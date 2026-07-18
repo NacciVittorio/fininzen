@@ -141,6 +141,8 @@ export function CashflowCategoryCard({
                         alignItems: "center",
                         flexWrap: "wrap",
                         justifyContent: "center",
+                        // centers within the stretched desktop card; 0 in block flow
+                        marginBlock: "auto",
                     }}
                 >
                     <PieChart
