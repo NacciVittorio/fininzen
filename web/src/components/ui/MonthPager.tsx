@@ -16,6 +16,10 @@ type MonthPagerProps = {
     align?: "center" | "between" | "start";
     onLabelClick?: () => void;
     labelRef?: Ref<HTMLElement>;
+    // "accounting" renders the label as the calendar month the accounting period
+    // predominantly falls in (honoring the user's start day) instead of the raw
+    // start month. Use only for pagers whose month/year are accounting months.
+    labelMode?: "calendar" | "accounting";
 };
 
 const MonthPager = forwardRef<HTMLDivElement, MonthPagerProps>(
@@ -30,10 +34,11 @@ const MonthPager = forwardRef<HTMLDivElement, MonthPagerProps>(
             align = "center",
             onLabelClick,
             labelRef,
+            labelMode = "calendar",
         },
         ref,
     ) {
-        const { MONTHS } = useApp();
+        const { MONTHS, accountingMonthDisplay } = useApp();
         const goPrev = () => {
             if (month === 1) onChange({ month: 12, year: year - 1 });
             else onChange({ month: month - 1, year });
@@ -86,7 +91,11 @@ const MonthPager = forwardRef<HTMLDivElement, MonthPagerProps>(
                 : align === "start"
                   ? "flex-start"
                   : "center";
-        const labelText = `${MONTHS?.[month - 1] || ""} ${year}`;
+        const disp =
+            labelMode === "accounting"
+                ? accountingMonthDisplay(year, month)
+                : { year, month };
+        const labelText = `${MONTHS?.[disp.month - 1] || ""} ${disp.year}`;
         const labelContent = onLabelClick ? (
             <button
                 type="button"

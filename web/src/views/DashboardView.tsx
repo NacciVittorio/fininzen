@@ -59,7 +59,7 @@ export default function DashboardView() {
         setFilterMonth,
         filterYear,
         setFilterYear,
-        setFilterCat,
+        setCfFilters,
         pieHover,
         setPieHover,
         allocChartType,
@@ -170,7 +170,7 @@ export default function DashboardView() {
                 accountingMonthStartDay={accountingMonthStartDay}
                 setFilterMonth={setFilterMonth}
                 setFilterYear={setFilterYear}
-                setFilterCat={setFilterCat}
+                setCfFilters={setCfFilters}
                 setTab={setTab}
                 pieHover={pieHover}
                 setPieHover={setPieHover}

@@ -124,6 +124,7 @@ export default function CashflowFeed({
                 disableForward={disableForward}
                 size="hero"
                 align="between"
+                labelMode="accounting"
             />
         ) : (
             <button

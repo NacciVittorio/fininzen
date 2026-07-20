@@ -1,5 +1,8 @@
 import type { NumericValue } from "../types";
-import { accountingMonthLabelForDate } from "./appContextHelpers";
+import {
+    accountingMonthDisplay,
+    accountingMonthLabelForDate,
+} from "./appContextHelpers";
 
 type CategoryRecord = {
     id: number;
@@ -197,8 +200,9 @@ export function buildMonthlyTrend(
 ): Array<{ month: string; value: number }> {
     // Bucket by accounting month (honoring the custom start day) rather than the
     // calendar month, so the 12-month trend aligns with the summary/cashflow
-    // windows. Accounting months are labeled by a calendar month number, so the
-    // monthLabels[month - 1] display mapping is unchanged.
+    // windows. Each bar is then labeled by the calendar month the period
+    // predominantly falls in (see accountingMonthDisplay below), matching the
+    // pager / summary display.
     const totalsByPeriod = new Map<string, number>();
     for (const item of items) {
         const local = localDateFromIso(item.date);
@@ -223,7 +227,19 @@ export function buildMonthlyTrend(
             year -= 1;
         }
         const value = totalsByPeriod.get(`${year}-${month}`) ?? 0;
-        trend.push({ month: monthLabels[month - 1] ?? String(month), value });
+        // Bucket by the canonical accounting month, but label each bar with the
+        // calendar month the period predominantly falls in (matches the pager /
+        // summary display). For a late start day this shifts every label by one
+        // month consistently, so the 12 bars stay distinct.
+        const displayMonth = accountingMonthDisplay(
+            year,
+            month,
+            startDay,
+        ).month;
+        trend.push({
+            month: monthLabels[displayMonth - 1] ?? String(displayMonth),
+            value,
+        });
     }
     return trend;
 }

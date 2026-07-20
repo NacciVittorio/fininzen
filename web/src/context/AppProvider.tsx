@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { API } from "../utils/api";
 import {
     accountingMonthDateRange,
+    accountingMonthDisplay,
     currentAccountingMonth,
 } from "./appContextHelpers";
 import { useAppActionControllers } from "./useAppActionControllers";
@@ -43,6 +44,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         API,
         accountingMonthDateRange: (year: number, month: number) =>
             accountingMonthDateRange(year, month, accountingMonthStartDay),
+        accountingMonthDisplay: (year: number, month: number) =>
+            accountingMonthDisplay(year, month, accountingMonthStartDay),
         currentAccountingMonth: () =>
             currentAccountingMonth(accountingMonthStartDay),
         apiFetch,

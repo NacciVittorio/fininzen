@@ -12,7 +12,11 @@ import {
     MonthPager,
     SegmentedControl,
 } from "../../../components/ui";
-import { currentAccountingMonth } from "../../../context/appContextHelpers";
+import {
+    accountingMonthDateRange,
+    currentAccountingMonth,
+} from "../../../context/appContextHelpers";
+import type { CashflowItemType } from "../../../context/feedTypes";
 import { EmptyCardText, SectionLabel } from "./DashboardCardPrimitives";
 
 type CashflowDirection = "expense" | "income";
@@ -26,7 +30,7 @@ type CashflowCategoryCardProps = {
     accountingMonthStartDay: number;
     setFilterMonth: AppContextValue["setFilterMonth"];
     setFilterYear: AppContextValue["setFilterYear"];
-    setFilterCat: AppContextValue["setFilterCat"];
+    setCfFilters: AppContextValue["setCfFilters"];
     setTab: AppContextValue["setTab"];
     pieHover: number | null;
     setPieHover: AppContextValue["setPieHover"];
@@ -44,7 +48,7 @@ export function CashflowCategoryCard({
     accountingMonthStartDay,
     setFilterMonth,
     setFilterYear,
-    setFilterCat,
+    setCfFilters,
     setTab,
     pieHover,
     setPieHover,
@@ -72,9 +76,11 @@ export function CashflowCategoryCard({
             total: Number(c.total || 0),
             color: c.category__color || `var(--chart-${i + 1})`,
             catId:
+                c.category__id ??
                 categories.find(
                     (cat) => cat.id && cat.name === c.category__name,
-                )?.id ?? null,
+                )?.id ??
+                null,
             isOther: false,
         }));
         const rest = sorted.slice(5);
@@ -97,6 +103,27 @@ export function CashflowCategoryCard({
     // accounting month (not the calendar month) so it matches the summary window.
     const currentAccounting = currentAccountingMonth(accountingMonthStartDay);
 
+    // Drill down: open the Cash Flow feed pre-filtered to this category for the
+    // month the card is currently showing. The feed is driven by cfFilters
+    // (date range + category), so set that — filterCat is not wired to the list.
+    const openCategoryInCashflow = (catId: number | string | null) => {
+        const { from, to } = accountingMonthDateRange(
+            filterYear,
+            filterMonth,
+            accountingMonthStartDay,
+        );
+        const types: CashflowItemType[] =
+            cardCashflowDir === "income" ? ["income"] : ["outcome"];
+        setCfFilters((prev) => ({
+            ...prev,
+            category_ids: catId ? [catId] : [],
+            date_from: from,
+            date_to: to,
+            types,
+        }));
+        setTab("expenses");
+    };
+
     return (
         <Card>
             <div
@@ -116,6 +143,7 @@ export function CashflowCategoryCard({
                         filterMonth >= currentAccounting.month
                     }
                     minWidth={110}
+                    labelMode="accounting"
                 />
             </div>
             <div style={{ marginBottom: 14, display: "flex" }}>
@@ -168,8 +196,7 @@ export function CashflowCategoryCard({
                                 (r) => r.name === slice.category__name,
                             );
                             if (!row || row.isOther) return;
-                            if (row.catId) setFilterCat([String(row.catId)]);
-                            setTab("expenses");
+                            openCategoryInCashflow(row.catId);
                         }}
                     />
                     <div
@@ -195,13 +222,10 @@ export function CashflowCategoryCard({
                                     onMouseLeave={() => setPieHover(null)}
                                     onClick={
                                         clickable
-                                            ? () => {
-                                                  if (r.catId)
-                                                      setFilterCat([
-                                                          String(r.catId),
-                                                      ]);
-                                                  setTab("expenses");
-                                              }
+                                            ? () =>
+                                                  openCategoryInCashflow(
+                                                      r.catId,
+                                                  )
                                             : undefined
                                     }
                                     style={{
