@@ -40,7 +40,7 @@ jobs:
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -87,7 +87,7 @@ jobs:
       DATABASE_URL: postgres://fininzen:fininzen@127.0.0.1:5432/fininzen
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -132,7 +132,7 @@ jobs:
       DJANGO_DEBUG: "1"
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
