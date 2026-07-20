@@ -25,8 +25,8 @@ export function CashflowFeedControls({
         <div
             style={{
                 display: "flex",
-                gap: 8,
-                marginBottom: 10,
+                gap: 10,
+                marginBottom: 14,
             }}
         >
             <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
@@ -34,7 +34,7 @@ export function CashflowFeedControls({
                     aria-hidden
                     style={{
                         position: "absolute",
-                        left: 12,
+                        left: 14,
                         top: "50%",
                         transform: "translateY(-50%)",
                         color: "var(--fg-soft)",
@@ -58,10 +58,10 @@ export function CashflowFeedControls({
                         width: "100%",
                         background: "var(--card-inset)",
                         border: "1px solid var(--rule)",
-                        borderRadius: 10,
+                        borderRadius: 12,
                         color: "var(--fg)",
-                        padding: "9px 44px 9px 36px",
-                        fontSize: 14,
+                        padding: "12px 44px 12px 40px",
+                        fontSize: 15,
                         fontFamily: "inherit",
                         outline: "none",
                         boxSizing: "border-box",
@@ -116,8 +116,8 @@ export function CashflowFeedControls({
                     color: activeFilterCount
                         ? "var(--btn-primary-fg)"
                         : "var(--fg)",
-                    borderRadius: 10,
-                    padding: "0 14px",
+                    borderRadius: 12,
+                    padding: "0 18px",
                     fontSize: 14,
                     fontWeight: 600,
                     fontFamily: "inherit",
@@ -156,8 +156,8 @@ export function CashflowFeedControls({
                     cursor: "pointer",
                     background: "var(--card-inset)",
                     color: "var(--fg)",
-                    borderRadius: 10,
-                    padding: "0 14px",
+                    borderRadius: 12,
+                    padding: "0 18px",
                     fontSize: 14,
                     fontWeight: 600,
                     fontFamily: "inherit",

@@ -313,8 +313,16 @@ export default function ExpensesView() {
                 ? T("modal_new_income")
                 : T("modal_new_expense");
 
+    // Day dividers carry the day's signed net. Transfers and adjustments move
+    // money between accounts rather than in or out, so they count as zero.
     const cfDecoratedItems = useMemo(
-        () => decorateDatedItems(cfItems, MONTHS, T),
+        () =>
+            decorateDatedItems(cfItems, MONTHS, T, undefined, (row) => {
+                const amount = Number.parseFloat(String(row.amount ?? 0)) || 0;
+                if (row.type === "income") return amount;
+                if (row.type === "outcome") return -amount;
+                return 0;
+            }),
         [cfItems, MONTHS, T],
     );
 

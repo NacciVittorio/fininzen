@@ -94,10 +94,10 @@ function LegendButton({
             <span
                 style={{
                     display: "block",
-                    fontSize: 17,
+                    fontSize: 18,
                     fontWeight: 600,
                     color: "var(--fg)",
-                    marginTop: 2,
+                    marginTop: 3,
                     fontVariantNumeric: "tabular-nums",
                 }}
             >
@@ -114,6 +114,10 @@ type CfSummaryCardProps = {
     outcome: number;
     activeType?: string | null;
     onToggleType: (type: string) => void;
+    // Full-width period control pinned above the numbers it governs. A slot
+    // rather than month/year props: the caller already owns the month-vs-year
+    // branch, and this card stays presentational.
+    pager?: ReactNode;
 };
 
 export default function CfSummaryCard({
@@ -123,6 +127,7 @@ export default function CfSummaryCard({
     outcome,
     activeType,
     onToggleType,
+    pager,
 }: CfSummaryCardProps) {
     const { T } = useApp();
     const { formatEur } = useFormatters();
@@ -138,10 +143,22 @@ export default function CfSummaryCard({
                 border: "1px solid var(--rule)",
                 borderRadius: "var(--r-card)",
                 boxShadow: "var(--shadow-soft)",
-                padding: "16px 18px 15px",
+                padding: "14px 20px 16px",
                 marginBottom: 14,
             }}
         >
+            {pager && (
+                <div
+                    style={{
+                        paddingBottom: 14,
+                        marginBottom: 14,
+                        borderBottom: "1px solid var(--rule-soft)",
+                    }}
+                >
+                    {pager}
+                </div>
+            )}
+
             {/* headline: how much was spent this month */}
             <div
                 style={{
@@ -155,9 +172,9 @@ export default function CfSummaryCard({
             <div style={{ marginTop: 2 }}>
                 <span
                     style={{
-                        fontSize: 34,
+                        fontSize: 38,
                         fontWeight: 600,
-                        letterSpacing: "-0.01em",
+                        letterSpacing: "-0.5px",
                         color: "var(--fg)",
                         fontVariantNumeric: "tabular-nums",
                     }}
@@ -175,7 +192,7 @@ export default function CfSummaryCard({
             {/* secondary: month balance (signed, coloured by sign) */}
             <div
                 style={{
-                    marginTop: 4,
+                    marginTop: 5,
                     fontSize: 13,
                     fontWeight: 600,
                     color: "var(--fg-soft)",

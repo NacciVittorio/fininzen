@@ -5,6 +5,7 @@ import CfSummaryCard from "../../components/cashflow/CfSummaryCard";
 import CfTransactionRow from "../../components/cashflow/CfTransactionRow";
 import type { CfItem } from "../../components/cashflow/CfTransactionRow";
 import { Icon, MonthPager, PageHeader } from "../../components/ui";
+import { useFormatters } from "../../utils/useFormatters";
 import type { Translator } from "../../types";
 import type { CashflowFilters } from "../../context/feedDefaults";
 import type {
@@ -108,50 +109,43 @@ export default function CashflowFeed({
     loadAllCf: () => void;
     onAdd: () => void;
 }) {
+    const { formatEur } = useFormatters();
+
+    // The period control now sits at the top of the summary card, above the
+    // numbers it governs. The month-vs-year branch stays here so the card can
+    // remain presentational.
+    const pager =
+        period.kind === "month" ? (
+            <MonthPager
+                month={periodMonth}
+                year={periodYear}
+                onChange={setAccountingMonth}
+                onLabelClick={() => setPeriodSheetOpen(true)}
+                disableForward={disableForward}
+                size="hero"
+                align="between"
+            />
+        ) : (
+            <button
+                type="button"
+                data-testid="cf-period-button"
+                onClick={() => setPeriodSheetOpen(true)}
+                className="btn btn-g btn-sm"
+            >
+                {period.kind === "all" ? T("time_all") : String(periodYear)}
+                <Icon name="chevronDown" size={12} />
+            </button>
+        );
+
     return (
         <div className="cf-layout">
             <div className="cf-layout__header">
-                <PageHeader
-                    title={T("tab_cashflow")}
-                    actions={
-                        <>
-                            {period.kind === "month" ? (
-                                <MonthPager
-                                    month={periodMonth}
-                                    year={periodYear}
-                                    onChange={setAccountingMonth}
-                                    onLabelClick={() =>
-                                        setPeriodSheetOpen(true)
-                                    }
-                                    disableForward={disableForward}
-                                />
-                            ) : (
-                                <button
-                                    type="button"
-                                    data-testid="cf-period-button"
-                                    onClick={() => setPeriodSheetOpen(true)}
-                                    className="btn btn-g btn-sm"
-                                >
-                                    {period.kind === "all"
-                                        ? T("time_all")
-                                        : String(periodYear)}
-                                    <Icon name="chevronDown" size={12} />
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                className="btn btn-primary btn-sm desktop-only"
-                                onClick={onAdd}
-                            >
-                                {T("fab_add_transaction")}
-                            </button>
-                        </>
-                    }
-                />
+                <PageHeader title={T("tab_cashflow")} />
             </div>
 
             <aside className="cf-layout__rail">
                 <CfSummaryCard
+                    pager={pager}
                     monthLabel={periodLabel}
                     net={totals.net}
                     income={totals.income}
@@ -171,16 +165,33 @@ export default function CashflowFeed({
                     }
                 />
 
-                {!cfSelectionMode && (
-                    <CashflowFeedControls
-                        T={T}
-                        cfFilters={cfFilters}
-                        setCfFilters={setCfFilters}
-                        activeFilterCount={activeFilterCount}
-                        setFiltersSheetOpen={setFiltersSheetOpen}
-                        enterCfSelectionMode={enterCfSelectionMode}
-                    />
-                )}
+                <button
+                    type="button"
+                    className="desktop-only"
+                    onClick={onAdd}
+                    style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        background: "var(--btn-primary-bg)",
+                        color: "var(--btn-primary-fg)",
+                        border: 0,
+                        borderRadius: 12,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        minHeight: 46,
+                        padding: "12px 20px",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        marginBottom: 14,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                    }}
+                >
+                    + {T("fab_add_transaction")}
+                </button>
+
                 {!cfSelectionMode &&
                     unverifiedCount > 0 &&
                     cfFilters.verified !== false && (
@@ -207,6 +218,16 @@ export default function CashflowFeed({
             </aside>
 
             <div className="cf-layout__main">
+                {!cfSelectionMode && (
+                    <CashflowFeedControls
+                        T={T}
+                        cfFilters={cfFilters}
+                        setCfFilters={setCfFilters}
+                        activeFilterCount={activeFilterCount}
+                        setFiltersSheetOpen={setFiltersSheetOpen}
+                        enterCfSelectionMode={enterCfSelectionMode}
+                    />
+                )}
                 <div
                     className="card"
                     style={{ padding: 0, overflow: "hidden" }}
@@ -221,14 +242,43 @@ export default function CashflowFeed({
                         const { item } = entry;
                         return (
                             <div key={item.id}>
+                                {/* Dividers are indented to the row gutter,
+                                    which the taller rows widened to 18px. The
+                                    shared class keeps the Portfolio feed's own
+                                    spacing. */}
                                 {entry.showMonthDivider && (
-                                    <div className="tx-month-divider">
+                                    <div
+                                        className="tx-month-divider"
+                                        style={{ padding: "18px 18px 0" }}
+                                    >
                                         {entry.monthLabel}
                                     </div>
                                 )}
                                 {entry.showDayDivider && (
-                                    <div className="tx-day-divider">
-                                        {entry.dayLabel}
+                                    <div
+                                        className="tx-day-divider"
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "baseline",
+                                            justifyContent: "space-between",
+                                            gap: 8,
+                                            padding: "16px 18px 6px",
+                                        }}
+                                    >
+                                        <span>{entry.dayLabel}</span>
+                                        {entry.dayNet !== undefined && (
+                                            <span
+                                                style={{
+                                                    fontVariantNumeric:
+                                                        "tabular-nums",
+                                                }}
+                                            >
+                                                {entry.dayNet >= 0 ? "+" : "-"}
+                                                {formatEur(
+                                                    Math.abs(entry.dayNet),
+                                                )}
+                                            </span>
+                                        )}
                                     </div>
                                 )}
                                 <CfTransactionRow
