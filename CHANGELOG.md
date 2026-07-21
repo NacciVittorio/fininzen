@@ -6,6 +6,23 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.7.0 (2026-07-21)
+
+### Feat
+
+- **web**: searchable category picker in add-transaction & filters
+- **web**: cash flow category card — parents by default + child deep-dive
+- **web**: cashflow feed restyle — taller rows, daily net, pager in summary
+- **web**: desktop structural redesign — centered container, multi-column layouts
+- **web**: Quiet Ledger restyle — neutral palette, Inter, quiet type
+
+### Fix
+
+- **web**: align cash flow category rows without a drill-down chevron
+- **web**: label accounting months by their dominant calendar month
+- **web**: dashboard desktop — 4-up KPI row, adaptive half-card interiors
+- **web**: close desktop-redesign coverage gaps from the full-app audit
+
 ## v0.6.3 (2026-07-16)
 
 ### Fix
