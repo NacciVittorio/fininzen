@@ -23,6 +23,30 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                'Nuovo look "Quiet Ledger": palette neutra carta/grafite, font Inter e tipografia più sobria, con bordi e ombre più leggeri al posto dei bagliori azzurri.',
+                "Su desktop l'app usa finalmente layout a più colonne invece della versione mobile allargata: dashboard, movimenti, portafoglio e FIRE sfruttano lo spazio; su telefono nulla cambia.",
+                'Nuovo indicatore "Tasso di risparmio" nella dashboard desktop.',
+                "Feed dei movimenti più arioso: righe più alte, selettore del periodo in cima al riepilogo e netto del giorno su ogni separatore giornaliero.",
+                'La card "Categorie" in dashboard raggruppa ora le spese per categoria principale: tocca una voce per vedere il dettaglio delle sottocategorie o aprire il feed già filtrato.',
+                "Nel menu di scelta della categoria ora puoi cercare digitando, comodo quando hai molte categorie e sottocategorie.",
+                "Corretto il nome del mese contabile: con un giorno d'inizio mese avanzato (es. 26) i periodi mostravano un mese indietro; ora riportano il mese corretto (i totali erano già giusti).",
+            ],
+            en: [
+                'A new "Quiet Ledger" look: a neutral paper/graphite palette, the Inter typeface and quieter typography, with lighter borders and shadows in place of the azure glows.',
+                "On desktop the app finally uses real multi-column layouts instead of the stretched phone view: dashboard, transactions, portfolio and FIRE make use of the space; nothing changes on phones.",
+                'A new "Savings Rate" indicator on the desktop dashboard.',
+                "A calmer transactions feed: taller rows, the period selector at the top of the summary, and the day's net on each daily divider.",
+                'The dashboard "Categories" card now groups spending by top-level category: tap a row to see its subcategory breakdown, or to open the feed already filtered.',
+                "The category picker now has type-to-search, handy when you have many categories and subcategories.",
+                "Fixed the accounting-month label: with a late month-start day (e.g. 26) periods showed a month behind; they now show the correct month (totals were always right).",
+            ],
+        },
+    },
+    {
         version: "0.6.3",
         date: "2026-07-16",
         highlights: {
