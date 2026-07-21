@@ -4,6 +4,12 @@ import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { Category } from "../api/types";
+import { useApp } from "../context/useApp";
+import { Icon } from "./ui";
+
+// Below this many selectable entries (roots + subcategories for the current
+// categoryType) the search box is hidden — it would just be noise.
+const SEARCH_THRESHOLD = 6;
 
 const DOT: CSSProperties = {
     display: "inline-block",
@@ -61,12 +67,19 @@ export default function CategorySelect({
     disabled?: boolean;
     id?: string;
 }) {
+    const { T } = useApp();
     const [open, setOpen] = useState(disabled ? false : initialOpen);
     const [expandedParent, setExpandedParent] = useState<number | null>(null);
+    const [query, setQuery] = useState("");
     const ref = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [portalStyle, setPortalStyle] = useState<CSSProperties | null>(null);
+
+    // Reset the type-to-filter query whenever the dropdown closes so it reopens clean.
+    useEffect(() => {
+        if (!open) setQuery("");
+    }, [open]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -153,6 +166,28 @@ export default function CategorySelect({
 
     const childrenOf = (parentId: number) =>
         catList.filter((c) => c.parent === parentId);
+
+    // Type-to-filter: when a query is present, keep roots that match by name or
+    // that have a matching subcategory, and narrow the subs shown under each.
+    const q = query.trim().toLowerCase();
+    const searching = q.length > 0;
+    const matches = (name?: string) => (name ?? "").toLowerCase().includes(q);
+    const visibleSubs = (cat: Category) => {
+        const subs = childrenOf(cat.id);
+        if (!searching || matches(cat.name)) return subs;
+        return subs.filter((s) => matches(s.name));
+    };
+    const visibleRoots = searching
+        ? roots.filter(
+              (c) =>
+                  matches(c.name) ||
+                  childrenOf(c.id).some((s) => matches(s.name)),
+          )
+        : roots;
+    const totalSelectable =
+        roots.length +
+        roots.reduce((n, c) => n + childrenOf(c.id).length, 0);
+    const showSearch = totalSelectable > SEARCH_THRESHOLD;
 
     const selected = catList.find((c) => String(c.id) === String(value));
     const selectedValues = values.map(String);
@@ -272,6 +307,85 @@ export default function CategorySelect({
                             data-testid="category-select-dropdown"
                             style={dropdownStyle}
                         >
+                            {showSearch && (
+                                <div
+                                    style={{
+                                        position: "sticky",
+                                        top: 0,
+                                        zIndex: 1,
+                                        background: "var(--card)",
+                                        padding: 8,
+                                        borderBottom: "1px solid var(--rule)",
+                                    }}
+                                >
+                                    <div style={{ position: "relative" }}>
+                                        <span
+                                            aria-hidden
+                                            style={{
+                                                position: "absolute",
+                                                left: 12,
+                                                top: "50%",
+                                                transform: "translateY(-50%)",
+                                                color: "var(--fg-soft)",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                pointerEvents: "none",
+                                            }}
+                                        >
+                                            <Icon name="search" size={15} />
+                                        </span>
+                                        <input
+                                            data-testid="category-select-search"
+                                            type="search"
+                                            value={query}
+                                            onChange={(e) =>
+                                                setQuery(e.target.value)
+                                            }
+                                            placeholder={T(
+                                                "category_search_placeholder",
+                                            )}
+                                            aria-label={T(
+                                                "category_search_placeholder",
+                                            )}
+                                            style={{
+                                                width: "100%",
+                                                background: "var(--card-inset)",
+                                                border: "1px solid var(--rule)",
+                                                borderRadius: 10,
+                                                color: "var(--fg)",
+                                                padding: "9px 34px",
+                                                fontSize: 14,
+                                                fontFamily: "inherit",
+                                                outline: "none",
+                                                boxSizing: "border-box",
+                                            }}
+                                        />
+                                        {query && (
+                                            <button
+                                                type="button"
+                                                aria-label={T("cf_search_clear")}
+                                                onClick={() => setQuery("")}
+                                                style={{
+                                                    position: "absolute",
+                                                    right: 6,
+                                                    top: "50%",
+                                                    transform:
+                                                        "translateY(-50%)",
+                                                    background: "transparent",
+                                                    border: "none",
+                                                    color: "var(--fg-soft)",
+                                                    cursor: "pointer",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    padding: 4,
+                                                }}
+                                            >
+                                                <Icon name="x" size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             <button
                                 type="button"
                                 onClick={clear}
@@ -284,9 +398,12 @@ export default function CategorySelect({
                                 <span>{placeholder}</span>
                             </button>
 
-                            {roots.map((cat) => {
+                            {visibleRoots.map((cat) => {
                                 const subs = childrenOf(cat.id);
-                                const isExpanded = expandedParent === cat.id;
+                                const shownSubs = visibleSubs(cat);
+                                const isExpanded = searching
+                                    ? shownSubs.length > 0
+                                    : expandedParent === cat.id;
                                 const isActive = multiple
                                     ? selectedValues.includes(String(cat.id)) ||
                                       subs.some((s) =>
@@ -367,7 +484,7 @@ export default function CategorySelect({
                                                         {cat.icon} {cat.name}
                                                     </span>
                                                 </button>
-                                                {subs.map((sub) => (
+                                                {shownSubs.map((sub) => (
                                                     <button
                                                         key={sub.id}
                                                         type="button"
@@ -416,6 +533,19 @@ export default function CategorySelect({
                                     </div>
                                 );
                             })}
+
+                            {searching && visibleRoots.length === 0 && (
+                                <div
+                                    style={{
+                                        padding: "12px 14px",
+                                        fontSize: 14,
+                                        color: "var(--fg-soft)",
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {T("category_search_empty")}
+                                </div>
+                            )}
                         </div>
                     );
                     return usePortal && typeof document !== "undefined"

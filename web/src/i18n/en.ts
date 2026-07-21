@@ -155,6 +155,8 @@ const en: Record<string, string> = {
     fab_add_transaction: "Add transaction",
     cf_search_placeholder: "Search transactions…",
     cf_search_clear: "Clear search",
+    category_search_placeholder: "Search category…",
+    category_search_empty: "No results",
     sort_label: "Sort",
     sort_date_desc: "Date Desc",
     sort_date_asc: "Date Asc",
