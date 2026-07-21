@@ -185,8 +185,7 @@ export default function CategorySelect({
           )
         : roots;
     const totalSelectable =
-        roots.length +
-        roots.reduce((n, c) => n + childrenOf(c.id).length, 0);
+        roots.length + roots.reduce((n, c) => n + childrenOf(c.id).length, 0);
     const showSearch = totalSelectable > SEARCH_THRESHOLD;
 
     const selected = catList.find((c) => String(c.id) === String(value));
@@ -363,7 +362,9 @@ export default function CategorySelect({
                                         {query && (
                                             <button
                                                 type="button"
-                                                aria-label={T("cf_search_clear")}
+                                                aria-label={T(
+                                                    "cf_search_clear",
+                                                )}
                                                 onClick={() => setQuery("")}
                                                 style={{
                                                     position: "absolute",
