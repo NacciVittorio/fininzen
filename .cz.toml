@@ -10,10 +10,11 @@ update_changelog_on_bump = true
 # Create annotated tags so `git push --follow-tags` actually pushes them
 # (it ignores lightweight tags). Without this the CI `release` job never fires.
 annotated_tag = true
-# Beta: stay in 0.x. While the major is 0, breaking changes bump the minor
-# (0.x.0) instead of going to 1.0.0. Flip this to false for the first stable
-# 1.0.0 release. See wiki/VERSIONING.md.
-major_version_zero = true
+# Stable line: out of the 0.x beta as of v1.0.0. While this was true and the
+# major was 0, breaking changes bumped the minor (0.x.0) instead of going to
+# 1.0.0. Flipped to false to cut the first stable 1.0.0 release — from here a
+# breaking change bumps the major normally. See wiki/VERSIONING.md.
+major_version_zero = false
 # Single source of truth (VERSION) plus the web package manifest. The backend
 # reads VERSION at runtime and Next.js inlines it at build time, so these two
 # files are all that need rewriting on a bump.

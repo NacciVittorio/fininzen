@@ -1,10 +1,16 @@
 import type { NumericValue } from "../types";
-import { accountingMonthLabelForDate } from "./appContextHelpers";
+import type { ExpenseCategorySummary } from "../api/expenses";
+import {
+    accountingMonthDisplay,
+    accountingMonthLabelForDate,
+} from "./appContextHelpers";
 
 type CategoryRecord = {
     id: number;
     parent?: number | null;
     category_type?: string | null;
+    name?: string | null;
+    color?: string | null;
 };
 
 type CategorizedRecord = {
@@ -66,6 +72,129 @@ export function getRootCategories<Row extends CategoryRecord>(
             !category.parent &&
             (!categoryType || category.category_type === categoryType),
     );
+}
+
+export type CategoryRollupChild = {
+    catId: number | string | null;
+    name: string;
+    color: string;
+    total: number;
+    isGeneral: boolean;
+};
+
+export type CategoryRollupParent = {
+    catId: number | string | null;
+    name: string;
+    color: string;
+    total: number;
+    hasChildren: boolean;
+    children: CategoryRollupChild[];
+};
+
+// Roll the flat `by_category` summary (grouped by the *exact* category each
+// expense was filed under — a leaf or a top-level category) up to its top-level
+// parents, keeping each parent's per-child breakdown for the deep-dive sheet.
+// The category tree is two levels deep (top-level `parent == null` + children),
+// mirroring the roll-up idiom in BudgetProgressCard. `generalLabel` names the
+// synthetic bucket for spend filed directly on a parent (so totals reconcile);
+// kept as a param so this helper stays pure / i18n-free.
+export function buildCategoryRollup(
+    byCategory: readonly ExpenseCategorySummary[],
+    categories: readonly CategoryRecord[],
+    dir: "expense" | "income",
+    generalLabel: string,
+): CategoryRollupParent[] {
+    const catMap = new Map<number, CategoryRecord>();
+    for (const category of categories) catMap.set(category.id, category);
+
+    const isIncome = dir === "income";
+    const rows = byCategory.filter((row) =>
+        isIncome
+            ? row.category__category_type === "income"
+            : !row.category__category_type ||
+              row.category__category_type === "expense",
+    );
+
+    type ParentAcc = {
+        catId: number | string | null;
+        name: string;
+        color: string;
+        total: number;
+        hasChildren: boolean;
+        children: Map<string, CategoryRollupChild>;
+    };
+    const parents = new Map<number | string, ParentAcc>();
+
+    for (const row of rows) {
+        const amount = Number(row.total || 0);
+        const rowCatId = row.category__id ?? null;
+        const rowCat = rowCatId != null ? catMap.get(rowCatId) : undefined;
+        const isDirectOnParent = rowCat?.parent == null;
+
+        // Top-level ancestor: the row's parent, or the row itself when it has no
+        // parent (or is unknown to the category list).
+        const parentId: number | string =
+            rowCat?.parent != null ? rowCat.parent : (rowCatId ?? "__uncat__");
+        const parentCat =
+            typeof parentId === "number" ? catMap.get(parentId) : undefined;
+
+        let acc = parents.get(parentId);
+        if (!acc) {
+            acc = {
+                catId: typeof parentId === "number" ? parentId : null,
+                name:
+                    parentCat?.name ??
+                    (isDirectOnParent ? (row.category__name ?? "—") : "—"),
+                color:
+                    parentCat?.color ??
+                    (isDirectOnParent
+                        ? (row.category__color ?? "var(--fg-faint)")
+                        : "var(--fg-faint)"),
+                total: 0,
+                hasChildren: false,
+                children: new Map(),
+            };
+            parents.set(parentId, acc);
+        }
+        acc.total += amount;
+
+        const childKey = isDirectOnParent ? "__general__" : String(rowCatId);
+        const existing = acc.children.get(childKey);
+        if (existing) {
+            existing.total += amount;
+        } else if (isDirectOnParent) {
+            acc.children.set(childKey, {
+                catId: acc.catId,
+                name: generalLabel,
+                color: acc.color,
+                total: amount,
+                isGeneral: true,
+            });
+        } else {
+            acc.hasChildren = true;
+            acc.children.set(childKey, {
+                catId: rowCatId,
+                name: row.category__name ?? rowCat?.name ?? "—",
+                color:
+                    row.category__color ?? rowCat?.color ?? "var(--fg-faint)",
+                total: amount,
+                isGeneral: false,
+            });
+        }
+    }
+
+    return Array.from(parents.values())
+        .map((acc) => ({
+            catId: acc.catId,
+            name: acc.name,
+            color: acc.color,
+            total: acc.total,
+            hasChildren: acc.hasChildren,
+            children: Array.from(acc.children.values()).sort(
+                (a, b) => b.total - a.total,
+            ),
+        }))
+        .sort((a, b) => b.total - a.total);
 }
 
 export function getAvailableYears(
@@ -197,8 +326,9 @@ export function buildMonthlyTrend(
 ): Array<{ month: string; value: number }> {
     // Bucket by accounting month (honoring the custom start day) rather than the
     // calendar month, so the 12-month trend aligns with the summary/cashflow
-    // windows. Accounting months are labeled by a calendar month number, so the
-    // monthLabels[month - 1] display mapping is unchanged.
+    // windows. Each bar is then labeled by the calendar month the period
+    // predominantly falls in (see accountingMonthDisplay below), matching the
+    // pager / summary display.
     const totalsByPeriod = new Map<string, number>();
     for (const item of items) {
         const local = localDateFromIso(item.date);
@@ -223,7 +353,19 @@ export function buildMonthlyTrend(
             year -= 1;
         }
         const value = totalsByPeriod.get(`${year}-${month}`) ?? 0;
-        trend.push({ month: monthLabels[month - 1] ?? String(month), value });
+        // Bucket by the canonical accounting month, but label each bar with the
+        // calendar month the period predominantly falls in (matches the pager /
+        // summary display). For a late start day this shifts every label by one
+        // month consistently, so the 12 bars stay distinct.
+        const displayMonth = accountingMonthDisplay(
+            year,
+            month,
+            startDay,
+        ).month;
+        trend.push({
+            month: monthLabels[displayMonth - 1] ?? String(displayMonth),
+            value,
+        });
     }
     return trend;
 }

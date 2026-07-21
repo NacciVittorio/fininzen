@@ -33,7 +33,7 @@ export default function SelectedAssetChip({
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                     style={{
-                        fontWeight: 700,
+                        fontWeight: 600,
                         fontSize: 15,
                         lineHeight: 1.2,
                         color: "var(--fg)",

@@ -93,7 +93,7 @@ export function MnwToolbar({
                             minWidth: 44,
                             textAlign: "center",
                             fontSize: 13,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             letterSpacing: "var(--ls-label)",
                             fontFamily: "var(--font-sans)",
                         }}
@@ -123,7 +123,7 @@ export function MnwToolbar({
                         style={{
                             color: "var(--fg-soft)",
                             fontSize: 11,
-                            fontWeight: 700,
+                            fontWeight: 600,
                         }}
                     >
                         vs

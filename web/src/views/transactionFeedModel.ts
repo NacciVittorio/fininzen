@@ -16,6 +16,9 @@ export type DecoratedDatedItem<Row> = {
     monthLabel: string;
     showDayDivider: boolean;
     dayLabel: string;
+    // Signed total of the day group, set only on the group's first item (the
+    // one that renders the divider) and only when `netOf` is supplied.
+    dayNet?: number;
 };
 
 export function decorateDatedItems<Row extends { date: string }>(
@@ -23,6 +26,7 @@ export function decorateDatedItems<Row extends { date: string }>(
     months: readonly string[],
     translate: Translator,
     now = new Date(),
+    netOf?: (row: Row) => number,
 ): DecoratedDatedItem<Row>[] {
     let previousDate: string | null = null;
     let previousMonth: string | null = null;
@@ -31,7 +35,7 @@ export function decorateDatedItems<Row extends { date: string }>(
         .toISOString()
         .slice(0, 10);
 
-    return (items || []).map((item) => {
+    const decorated: DecoratedDatedItem<Row>[] = (items || []).map((item) => {
         const date = new Date(item.date);
         const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
         const showMonthDivider = monthKey !== previousMonth;
@@ -53,6 +57,24 @@ export function decorateDatedItems<Row extends { date: string }>(
                       : formatDate(item.date),
         };
     });
+
+    // Second pass: day groups are only known once the dividers are placed, so
+    // sum each group and hang the total on the row that renders its divider.
+    if (netOf) {
+        let groupStart: DecoratedDatedItem<Row> | null = null;
+        for (const entry of decorated) {
+            if (entry.showDayDivider) {
+                groupStart = entry;
+                groupStart.dayNet = 0;
+            }
+            if (groupStart) {
+                groupStart.dayNet =
+                    (groupStart.dayNet ?? 0) + netOf(entry.item);
+            }
+        }
+    }
+
+    return decorated;
 }
 
 export function getCashflowTotals(

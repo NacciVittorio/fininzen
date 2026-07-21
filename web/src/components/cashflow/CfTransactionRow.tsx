@@ -149,7 +149,8 @@ export default function CfTransactionRow({
             style={{ borderBottom: "1px solid var(--card-inset)" }}
             rowClassName={`tx-row${selected ? " is-selected" : ""}`}
             rowStyle={{
-                padding: "11px 14px",
+                padding: "13px 18px",
+                gap: 12,
                 background: selected ? "var(--accent-soft)" : "var(--card)",
             }}
             role={selectionMode ? "checkbox" : "button"}
@@ -165,7 +166,7 @@ export default function CfTransactionRow({
                         justifyContent: "center",
                         width: 44,
                         height: 44,
-                        margin: "-11px 0 -11px -4px",
+                        margin: "-13px 0 -13px -4px",
                         flexShrink: 0,
                     }}
                 >
@@ -185,7 +186,7 @@ export default function CfTransactionRow({
                             justifyContent: "center",
                             color: "var(--btn-primary-fg, #fff)",
                             fontSize: 14,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             transition: "background 0.12s, border-color 0.12s",
                         }}
                     >
@@ -196,14 +197,14 @@ export default function CfTransactionRow({
 
             <div
                 style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
                     background: catColor + "22",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 15,
+                    fontSize: 18,
                     flexShrink: 0,
                     color: catColor,
                 }}
@@ -212,10 +213,10 @@ export default function CfTransactionRow({
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span
                         style={{
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: 600,
                             color: "var(--fg)",
                             overflow: "hidden",
@@ -245,9 +246,9 @@ export default function CfTransactionRow({
                 </div>
                 <div
                     style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         color: "var(--fg-soft)",
-                        marginTop: 2,
+                        marginTop: 3,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -261,7 +262,7 @@ export default function CfTransactionRow({
 
             <span
                 style={{
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: 600,
                     fontFamily: "var(--font-mono)",
                     fontVariantNumeric: "tabular-nums",

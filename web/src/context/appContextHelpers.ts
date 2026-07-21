@@ -121,6 +121,32 @@ function getCurrentAccountingMonthDateRange(
     return { ...accountingMonthDateRange(year, month, startDay), year, month };
 }
 
+// Display label for an accounting month. Accounting periods are identified
+// internally by the calendar month they START in, but for a late start day
+// (e.g. 26) the period spills mostly into the next calendar month, so naming it
+// by its start month reads as "one month behind". Return the calendar month the
+// period predominantly falls in — the month of its midpoint day — so a period
+// like 26 Jun–25 Jul displays as "July". For startDay ≤ ~15 the midpoint stays
+// in the start month, leaving those labels unchanged. Display-only: the stored
+// (year, month) identifier and every query param are untouched.
+function accountingMonthDisplay(
+    year: number,
+    month: number,
+    startDay: unknown,
+): AccountingMonth {
+    const { from, to } = accountingMonthDateRange(year, month, startDay);
+    // Parse from parts (not `new Date("YYYY-MM-DD")`, which parses as UTC) to
+    // stay in local time, matching isoDateLocal.
+    const parseLocal = (iso: string): Date => {
+        const [y, m, d] = iso.split("-").map(Number);
+        return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+    };
+    const mid = new Date(
+        (parseLocal(from).getTime() + parseLocal(to).getTime()) / 2,
+    );
+    return { year: mid.getFullYear(), month: mid.getMonth() + 1 };
+}
+
 function normalizeBorsaFundInput(
     value: unknown,
 ): { symbol: string; url: string } | null {
@@ -387,6 +413,7 @@ export {
     accountingMonthLabelForDate,
     currentAccountingMonth,
     getCurrentAccountingMonthDateRange,
+    accountingMonthDisplay,
     normalizeBorsaFundInput,
     normalizePrivacyPreferences,
     normalizeEnabledFeatures,

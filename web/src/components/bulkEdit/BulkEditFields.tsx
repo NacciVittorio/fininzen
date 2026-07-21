@@ -29,12 +29,10 @@ export function Field({ label, error, children }: FieldProps) {
         <div>
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     color: error ? "var(--danger)" : "var(--fg-soft)",
                     marginBottom: 6,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.2,
+                    fontWeight: 500,
                 }}
             >
                 {label}

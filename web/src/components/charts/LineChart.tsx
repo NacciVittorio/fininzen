@@ -134,7 +134,7 @@ export const LineChart = memo(function LineChart({
                         <stop
                             offset="0%"
                             stopColor="var(--accent)"
-                            stopOpacity="0.18"
+                            stopOpacity="0.1"
                         />
                         <stop
                             offset="100%"
@@ -171,7 +171,7 @@ export const LineChart = memo(function LineChart({
                                 y1={y}
                                 x2={padding.left + chartWidth}
                                 y2={y}
-                                stroke="var(--rule)"
+                                stroke="var(--rule-soft)"
                                 strokeWidth={1}
                                 strokeDasharray="3,4"
                             />
@@ -248,7 +248,7 @@ export const LineChart = memo(function LineChart({
                             textAnchor="middle"
                             fontSize="9"
                             fill="var(--fg-soft)"
-                            fontFamily="Helvetica Neue, Helvetica, sans-serif"
+                            fontFamily="var(--font-sans)"
                         >
                             {hp.date}
                         </text>

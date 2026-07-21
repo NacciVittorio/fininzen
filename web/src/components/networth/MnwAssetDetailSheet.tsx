@@ -163,7 +163,7 @@ export default function MnwAssetDetailSheet({
                         <span
                             style={{
                                 fontSize: 13,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 color: "var(--fg)",
                                 minWidth: 44,
                                 textAlign: "center",

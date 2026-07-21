@@ -36,6 +36,9 @@ const it: Record<string, string> = {
     illiquid: "Illiquido",
     no_expenses_month: "Nessuna spesa questo mese",
     no_income_month: "Nessuna entrata questo mese",
+    cf_view_all_in_cashflow: "Vedi tutto in Cash Flow",
+    cf_category_breakdown: "Dettaglio sottocategorie",
+    cat_general: "Generale",
 
     // Expenses tab
     month: "Mese",
@@ -152,6 +155,8 @@ const it: Record<string, string> = {
     fab_add_transaction: "Aggiungi movimento",
     cf_search_placeholder: "Cerca movimenti…",
     cf_search_clear: "Pulisci ricerca",
+    category_search_placeholder: "Cerca categoria…",
+    category_search_empty: "Nessun risultato",
     sort_label: "Ordina",
     sort_date_desc: "Data Decresc",
     sort_date_asc: "Data Cresc",
@@ -726,6 +731,7 @@ const it: Record<string, string> = {
     monthly_expenses: "Spese Mensili",
     kpi_spent_this_month: "Spese del mese",
     kpi_month_balance: "Saldo Mese",
+    kpi_savings_rate: "Tasso di Risparmio",
     investment_kpi_label: "Investimenti",
     kpi_invested: "Investito",
     kpi_realized_return: "Ritorno Realizzato",

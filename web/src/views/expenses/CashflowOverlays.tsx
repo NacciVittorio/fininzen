@@ -107,6 +107,7 @@ export default function CashflowOverlays(props: CashflowOverlaysProps) {
             />
             <Fab
                 testId="expenses-add-fab"
+                className="mobile-only"
                 label={T("fab_add_transaction")}
                 onClick={() => openExpenseModal()}
                 hidden={hasActiveOverlay}

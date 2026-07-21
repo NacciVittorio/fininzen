@@ -30,7 +30,9 @@ export function CurrencyExposureCard({
                         gap: 20,
                         alignItems: "center",
                         flexWrap: "wrap",
-                        marginTop: 12,
+                        // auto centers within the stretched desktop card; the
+                        // mobile top gap survives via SectionLabel's margin
+                        marginBlock: "auto",
                     }}
                 >
                     <PieChart

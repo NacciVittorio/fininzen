@@ -151,7 +151,7 @@ export default function ChartModal({
                         <div
                             style={{
                                 fontSize: 15,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 color: "var(--fg)",
                             }}
                         >
@@ -180,7 +180,7 @@ export default function ChartModal({
                                 style={{
                                     fontSize: 20,
                                     fontFamily: "var(--font-mono)",
-                                    fontWeight: 700,
+                                    fontWeight: 600,
                                     color: "var(--fg)",
                                 }}
                             >

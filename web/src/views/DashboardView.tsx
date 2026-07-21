@@ -27,6 +27,15 @@ import {
 } from "./dashboard/DashboardCards";
 import { Pill, PullToRefresh, LargeTitleHeader } from "../components/ui";
 
+// Sections spanning both columns of the ≥1200px dashboard grid. The others sit
+// half-width; grid-auto-flow:dense may pull a half card up to fill the hole
+// before a full-span one, so visual order can deviate from the Settings list.
+const DASH_FULL_SPAN = new Set([
+    "wealth_trend",
+    "kpi_cards",
+    "monthly_overview",
+]);
+
 export default function DashboardView() {
     const { formatEur } = useFormatters();
     const {
@@ -50,7 +59,7 @@ export default function DashboardView() {
         setFilterMonth,
         filterYear,
         setFilterYear,
-        setFilterCat,
+        setCfFilters,
         pieHover,
         setPieHover,
         allocChartType,
@@ -161,7 +170,7 @@ export default function DashboardView() {
                 accountingMonthStartDay={accountingMonthStartDay}
                 setFilterMonth={setFilterMonth}
                 setFilterYear={setFilterYear}
-                setFilterCat={setFilterCat}
+                setCfFilters={setCfFilters}
                 setTab={setTab}
                 pieHover={pieHover}
                 setPieHover={setPieHover}
@@ -241,11 +250,13 @@ export default function DashboardView() {
     return (
         <>
             <PullToRefresh onRefresh={handlePullRefresh}>
+                {/* The gap-14 column also spaces the header fragment's nodes
+                    (bar, hero, sentinel) — part of the mobile layout, keep. */}
                 <div
                     style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: 12,
+                        gap: 14,
                     }}
                 >
                     <LargeTitleHeader
@@ -264,15 +275,30 @@ export default function DashboardView() {
                         actions={heroPill}
                     />
 
-                    {dashConfig
-                        .filter(
-                            (c) => c.visible && isDashboardSectionEnabled(c.id),
-                        )
-                        .map((c) => {
-                            const section = dashSections[c.id];
-                            if (!section) return null;
-                            return <div key={c.id}>{section}</div>;
-                        })}
+                    <div className="dash-grid">
+                        {dashConfig
+                            .filter(
+                                (c) =>
+                                    c.visible &&
+                                    isDashboardSectionEnabled(c.id),
+                            )
+                            .map((c) => {
+                                const section = dashSections[c.id];
+                                if (!section) return null;
+                                return (
+                                    <div
+                                        key={c.id}
+                                        className={`dash-cell${
+                                            DASH_FULL_SPAN.has(c.id)
+                                                ? " dash-cell--full"
+                                                : ""
+                                        }`}
+                                    >
+                                        {section}
+                                    </div>
+                                );
+                            })}
+                    </div>
                 </div>
             </PullToRefresh>
             <InvestmentDeepDiveSheet

@@ -53,7 +53,7 @@ export default function TransactionTypeToggle({
                             cursor: "pointer",
                             fontFamily: "inherit",
                             fontSize: 13,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             background:
                                 addTxForm.transaction_type === type.key
                                     ? type.color + "22"

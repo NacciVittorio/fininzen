@@ -73,7 +73,7 @@ export default function ToastHost() {
                         justifyContent: "space-between",
                         gap: 12,
                         background: "var(--navy)",
-                        color: "#fff",
+                        color: "var(--bg)",
                         borderRadius: 12,
                         boxShadow: "var(--shadow-deep)",
                         padding: "12px 14px",
@@ -112,10 +112,11 @@ export default function ToastHost() {
                                 borderRadius: 999,
                                 border: 0,
                                 cursor: "pointer",
-                                background: "rgba(255,255,255,0.16)",
-                                color: "#fff",
+                                background:
+                                    "color-mix(in srgb, currentColor 14%, transparent)",
+                                color: "inherit",
                                 fontSize: 13,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 fontFamily: "inherit",
                             }}
                         >

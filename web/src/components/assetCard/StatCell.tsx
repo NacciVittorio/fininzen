@@ -21,9 +21,9 @@ export default function StatCell({ label, value, color, sub }: StatCellProps) {
         >
             <div
                 style={{
-                    fontSize: 9,
+                    fontSize: 10,
                     color: "var(--fg-soft)",
-                    textTransform: "uppercase",
+                    fontWeight: 500,
                     letterSpacing: 0,
                     marginBottom: 3,
                 }}

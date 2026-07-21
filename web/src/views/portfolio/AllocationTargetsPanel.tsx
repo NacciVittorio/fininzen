@@ -43,6 +43,7 @@ export default function AllocationTargetsPanel({
     return (
         <>
             <div
+                className="wide-hidden"
                 style={{
                     height: 1,
                     background: "var(--card-inset)",
@@ -51,10 +52,10 @@ export default function AllocationTargetsPanel({
             />
             <div
                 style={{
-                    fontSize: 11,
+                    fontSize: 13,
+                    fontWeight: 500,
                     letterSpacing: 0,
                     color: "var(--fg-soft)",
-                    textTransform: "uppercase",
                     marginBottom: 10,
                 }}
             >

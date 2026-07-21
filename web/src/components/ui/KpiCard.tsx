@@ -81,15 +81,20 @@ export default function KpiCard({
           }
         : {};
 
-    const compactStyle = compact ? { padding: "10px 12px" } : null;
+    const cardClassName = [
+        "kpi-card",
+        compact ? "kpi-card--compact" : "",
+        className,
+    ]
+        .filter(Boolean)
+        .join(" ");
 
     return (
         <Card
-            className={className}
+            className={cardClassName}
             style={{
                 ...interactiveStyle,
                 ...selectedStyle,
-                ...compactStyle,
                 ...style,
             }}
             onClick={onClick}
@@ -100,7 +105,7 @@ export default function KpiCard({
             {value != null && (
                 <div
                     className={`kpi-value kpi-value--${tone}${compact ? " kpi-value--compact" : ""}`}
-                    style={{ marginTop: compact ? 4 : 12, ...valueStyle }}
+                    style={valueStyle}
                 >
                     {value}
                 </div>

@@ -24,9 +24,9 @@ export default function MovementTypeTabs({
             <div
                 style={{
                     display: "flex",
-                    background: "rgba(0,0,0,0.22)",
+                    background: "var(--card-inset)",
                     border: "1px solid var(--rule)",
-                    borderRadius: 8,
+                    borderRadius: 999,
                     padding: 3,
                 }}
             >
@@ -79,7 +79,7 @@ export default function MovementTypeTabs({
                             justifyContent: "center",
                             gap: 6,
                             padding: "6px 10px",
-                            borderRadius: 6,
+                            borderRadius: 999,
                             border: "none",
                             cursor: "pointer",
                             fontFamily: "inherit",
@@ -87,7 +87,7 @@ export default function MovementTypeTabs({
                             fontWeight: 600,
                             background:
                                 modalDir === type.key
-                                    ? type.color + "22"
+                                    ? `color-mix(in srgb, ${type.color} 13%, transparent)`
                                     : "transparent",
                             color:
                                 modalDir === type.key
@@ -96,7 +96,7 @@ export default function MovementTypeTabs({
                             transition: "all 0.15s",
                         }}
                     >
-                        <span aria-hidden="true" style={{ fontWeight: 800 }}>
+                        <span aria-hidden="true" style={{ fontWeight: 600 }}>
                             {type.glyph}
                         </span>
                         {type.label}

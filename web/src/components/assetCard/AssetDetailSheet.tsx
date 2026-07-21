@@ -108,7 +108,7 @@ export default function AssetDetailSheet({
                         <span
                             style={{
                                 fontSize: 17,
-                                fontWeight: 800,
+                                fontWeight: 600,
                                 color: "var(--fg)",
                                 letterSpacing: "var(--ls-h-small)",
                                 overflow: "hidden",

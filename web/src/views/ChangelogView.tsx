@@ -28,7 +28,7 @@ export default function ChangelogView() {
     };
 
     return (
-        <div>
+        <div className="page-narrow">
             <PageHeader
                 title={T("changelog_title")}
                 subtitle={T("changelog_subtitle")}
@@ -90,7 +90,7 @@ export default function ChangelogView() {
                                     className="mono"
                                     style={{
                                         fontSize: 16,
-                                        fontWeight: 700,
+                                        fontWeight: 600,
                                         margin: 0,
                                     }}
                                 >

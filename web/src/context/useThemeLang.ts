@@ -85,8 +85,8 @@ export function useThemeLang() {
     useEffect(() => {
         document.documentElement.dataset.theme = theme;
         localStorage.setItem("theme_preference", themePreference);
-        // Keep the status bar on the active canvas color (E2 light / E3 dark).
-        const canvas = theme === "dark" ? "#06101e" : "#f4f8ff";
+        // Keep the status bar on the active canvas color (paper / graphite).
+        const canvas = theme === "dark" ? "#111114" : "#f7f7f5";
         document
             .querySelectorAll('meta[name="theme-color"]')
             .forEach((meta) => meta.setAttribute("content", canvas));

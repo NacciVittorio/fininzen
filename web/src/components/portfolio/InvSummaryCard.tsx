@@ -59,7 +59,7 @@ function Tile({
                 style={{
                     display: "block",
                     fontSize: 17,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: "var(--fg)",
                     marginTop: 2,
                     fontVariantNumeric: "tabular-nums",
@@ -147,7 +147,7 @@ export default function InvSummaryCard({
                 <span
                     style={{
                         fontSize: 32,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         letterSpacing: "-0.01em",
                         color: "var(--fg)",
                         fontVariantNumeric: "tabular-nums",

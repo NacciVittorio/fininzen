@@ -214,7 +214,7 @@ export default function AssetCard({
                         title={eurIncomplete ? T("eur_incomplete") : undefined}
                         style={{
                             fontSize: 14,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             // HIGH-05: when the backend couldn't fully convert to EUR (missing
                             // FX history) current_value_eur is null and we fall back to the
                             // native amount — mark it as approximate so it doesn't read as an

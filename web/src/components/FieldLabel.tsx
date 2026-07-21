@@ -12,12 +12,11 @@ export default function FieldLabel({
     htmlFor?: string;
 }) {
     const style = {
-        fontSize: 11,
+        fontSize: 13,
         color: "var(--fg-soft)",
-        marginBottom: 5,
-        textTransform: "uppercase" as const,
-        letterSpacing: 0,
-        fontWeight: 600,
+        marginBottom: 6,
+        lineHeight: 1.2,
+        fontWeight: 500,
         display: "block",
     };
     if (htmlFor) {

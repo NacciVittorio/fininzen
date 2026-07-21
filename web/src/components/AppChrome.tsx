@@ -86,18 +86,17 @@ export function Sidebar() {
             >
                 <div
                     style={{
-                        width: 12,
-                        height: 12,
+                        width: 8,
+                        height: 8,
                         borderRadius: 999,
                         background: "var(--accent)",
-                        boxShadow: "var(--shadow-soft)",
                     }}
                 />
                 <div
                     style={{
-                        fontWeight: 800,
-                        fontSize: 18,
-                        letterSpacing: 0,
+                        fontWeight: 600,
+                        fontSize: 17,
+                        letterSpacing: "-0.2px",
                         color: "var(--fg)",
                     }}
                 >
@@ -111,9 +110,9 @@ export function Sidebar() {
                         padding: "4px 10px",
                         background: "var(--accent-soft)",
                         borderRadius: "var(--r-pill)",
-                        color: "var(--accent)",
+                        color: "var(--accent-deep)",
                         fontSize: 11,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         textAlign: "center",
                         letterSpacing: "0.05em",
                     }}
@@ -183,7 +182,6 @@ export function MobileBottomNav() {
                 display: "none",
                 justifyContent: "space-around",
                 zIndex: 10,
-                boxShadow: "var(--shadow-soft)",
             }}
         >
             {items.map((item) => {
@@ -215,7 +213,7 @@ export function MobileBottomNav() {
                             color: active
                                 ? "var(--accent-deep)"
                                 : "var(--fg-soft)",
-                            fontWeight: active ? 700 : 500,
+                            fontWeight: active ? 600 : 400,
                             fontSize: 11,
                             transition: "background 0.15s, color 0.15s",
                         }}
@@ -271,18 +269,17 @@ export function AppHeader() {
             >
                 <div
                     style={{
-                        width: 12,
-                        height: 12,
+                        width: 8,
+                        height: 8,
                         borderRadius: 999,
                         background: "var(--accent)",
-                        boxShadow: "var(--shadow-soft)",
                     }}
                 />
                 <div
                     style={{
-                        fontWeight: 800,
-                        fontSize: 18,
-                        letterSpacing: 0,
+                        fontWeight: 600,
+                        fontSize: 17,
+                        letterSpacing: "-0.2px",
                         color: "var(--fg)",
                     }}
                 >
@@ -315,8 +312,7 @@ export function AppHeader() {
                         }}
                         style={{
                             background: "var(--card)",
-                            boxShadow: "var(--shadow-soft)",
-                            border: 0,
+                            border: "1px solid var(--rule)",
                             borderRadius: 999,
                             color: "var(--fg)",
                             cursor: "pointer",

@@ -96,7 +96,7 @@ export default function AccountRow({
                 className="num"
                 style={{
                     fontSize: 14,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: "var(--fg)",
                     flexShrink: 0,
                 }}

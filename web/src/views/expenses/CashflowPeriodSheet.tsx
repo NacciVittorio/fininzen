@@ -41,7 +41,7 @@ export default function CashflowPeriodSheet({
                 <div
                     style={{
                         fontSize: 18,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         color: "var(--fg)",
                         padding: "2px 2px 12px",
                     }}

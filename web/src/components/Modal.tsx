@@ -105,7 +105,7 @@ export default function Modal({
                     background: "var(--card)",
                     color: "var(--fg)",
                     border: "1px solid var(--rule)",
-                    borderRadius: 20,
+                    borderRadius: "var(--r-card)",
                     boxShadow: "var(--shadow-modal)",
                     padding: 28,
                     width: "100%",

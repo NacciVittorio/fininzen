@@ -161,7 +161,7 @@ export default function LoginForm() {
                     <div
                         style={{
                             fontSize: 22,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             color: "var(--fg)",
                             letterSpacing: 0,
                         }}
@@ -274,7 +274,7 @@ export default function LoginForm() {
                             width: "100%",
                             padding: "12px 0",
                             fontSize: 14,
-                            fontWeight: 700,
+                            fontWeight: 600,
                         }}
                     >
                         {loading
@@ -355,7 +355,7 @@ export default function LoginForm() {
                                     color: "var(--accent)",
                                     fontSize: 13,
                                     cursor: loading ? "not-allowed" : "pointer",
-                                    fontWeight: 700,
+                                    fontWeight: 600,
                                     opacity: loading ? 0.6 : 1,
                                 }}
                             >
@@ -377,7 +377,7 @@ export default function LoginForm() {
                                 color: "var(--accent)",
                                 fontSize: 13,
                                 cursor: loading ? "not-allowed" : "pointer",
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 opacity: loading ? 0.6 : 1,
                             }}
                         >

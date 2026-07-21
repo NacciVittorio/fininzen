@@ -53,7 +53,9 @@ export function RecurringOverviewCard({
                 <EmptyCardText>{T("no_recurring")}</EmptyCardText>
             ) : (
                 <>
-                    <div style={{ marginBottom: 12 }}>
+                    {/* flex-grow absorbs the desktop row-height stretch so
+                        the CTA stays pinned to the card bottom */}
+                    <div style={{ marginBottom: 12, flex: "1 1 auto" }}>
                         {items.map((it, idx) => {
                             const isGenerated = it.status === "generated";
                             return (

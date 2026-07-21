@@ -6,7 +6,7 @@ import { Label } from "../../../components/ui";
 type ChildrenProps = { children: ReactNode };
 
 export function SectionLabel({ children }: ChildrenProps) {
-    return <Label style={{ marginBottom: 10 }}>{children}</Label>;
+    return <Label style={{ marginBottom: 12 }}>{children}</Label>;
 }
 
 export function EmptyCardText({ children }: ChildrenProps) {
@@ -17,6 +17,8 @@ export function EmptyCardText({ children }: ChildrenProps) {
                 color: "var(--fg-faint)",
                 fontSize: 13,
                 padding: "20px 0",
+                // centers empty states in row-height-stretched desktop cards
+                marginBlock: "auto",
             }}
         >
             {children}

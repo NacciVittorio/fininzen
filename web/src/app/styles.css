@@ -53,7 +53,7 @@ select.inp {
     -moz-appearance: none;
     appearance: none;
     padding-right: 36px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%231c160c' stroke-opacity='0.62' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%231c1c21' stroke-opacity='0.62' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 12px 8px;
@@ -89,11 +89,13 @@ textarea.inp {
 .btn-r:hover {
     filter: brightness(0.95);
 }
+/* Allineato a .btn-ghost (tokens.css): hairline al posto dell'ombra */
 .btn-g {
     background: var(--card);
     color: var(--fg);
     padding: 10px 16px;
-    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--rule);
+    box-shadow: none;
 }
 .btn-g:hover {
     color: var(--accent);
@@ -101,7 +103,7 @@ textarea.inp {
 .btn-sm {
     padding: 5px 10px;
     font-size: 12px;
-    border-radius: 7px;
+    border-radius: 8px;
 }
 
 /* Legacy .card kept lean — tokens.css .card defines the visual surface.
@@ -153,8 +155,8 @@ textarea.inp {
 }
 .tab-a {
     background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 700;
+    color: var(--accent-deep);
+    font-weight: 600;
 }
 .tab-i {
     background: transparent;
@@ -416,16 +418,36 @@ textarea.inp {
     }
 }
 
-/* ── KpiStrip responsive: desktop = N columns, tablet 2, mobile stack ───── */
+/* ── KpiStrip responsive: desktop = N columns, tablet 2, mobile stack ─────
+   Base rule must precede the media rules: they win by source order at equal
+   specificity. Column count arrives via --kpi-strip-cols from the component. */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(var(--kpi-strip-cols, 3), minmax(0, 1fr));
+    gap: var(--sp-4);
+}
 @media (max-width: 1024px) {
     .kpi-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 @media (max-width: 560px) {
     .kpi-strip {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr;
     }
+}
+
+/* KpiCard structural styles (moved out of inline so scoped overrides work).
+   .card.kpi-card--compact doubles up so the ≤760 `.card { padding: 14px }`
+   rule can't win on compact cards. */
+.card.kpi-card--compact {
+    padding: 10px 12px;
+}
+.kpi-card .kpi-value {
+    margin-top: 12px;
+}
+.kpi-card--compact .kpi-value {
+    margin-top: 4px;
 }
 
 /* ── Drawer + GroupedList primitives ────────────────────────────────────── */
@@ -531,9 +553,8 @@ textarea.inp {
     background: var(--card-inset);
 }
 .grouped-list__title {
-    font: var(--w-body) var(--t-label) / 1 var(--font-sans);
+    font: var(--w-strong) var(--t-label) / 1.2 var(--font-sans);
     letter-spacing: var(--ls-label);
-    text-transform: uppercase;
     color: var(--fg-soft);
     padding: 0 4px 8px;
 }
@@ -675,5 +696,179 @@ textarea.inp {
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════
+ DESKTOP STRUCTURE
+ - Centered page containers + wide-desktop (≥1200px) multi-column
+   layouts. Every rule here is inert at ≤760px so mobile stays
+   pixel-identical.
+ ════════════════════════════════════════════════════════════════ */
+
+.page-container {
+    width: 100%;
+    max-width: var(--page-max);
+    margin-inline: auto;
+}
+.page-narrow {
+    width: 100%;
+    max-width: var(--page-max-narrow);
+    margin-inline: auto;
+}
+.page-medium {
+    width: 100%;
+    max-width: var(--page-max-medium);
+    margin-inline: auto;
+}
+
+/* Viewport visibility — matches the 760/761 sidebar↔bottom-nav split */
+@media (min-width: 761px) {
+    .mobile-only {
+        display: none !important;
+    }
+}
+@media (max-width: 760px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+/* Hidden only on wide desktop (where stacked sections become columns) */
+@media (min-width: 1200px) {
+    .wide-hidden {
+        display: none !important;
+    }
+}
+
+/* ── Dashboard grid ── */
+.dash-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+/* Sections that render null leave an empty wrapper: hide it so it neither
+   punches a hole in the desktop grid nor doubles the mobile column gap. */
+.dash-cell:empty {
+    display: none;
+}
+@media (min-width: 1200px) {
+    .dash-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        /* half cards backfill holes left by full-span cards */
+        grid-auto-flow: row dense;
+    }
+    .dash-cell {
+        min-width: 0;
+    }
+    .dash-cell--full {
+        grid-column: 1 / -1;
+    }
+    /* equal-height halves when the section renders a single card */
+    .dash-cell > .card:only-child {
+        height: 100%;
+    }
+    /* half cards: flex column so inner content can grow/center instead of
+       leaving a dead zone under the row-height stretch */
+    .dash-cell:not(.dash-cell--full) > .card:only-child {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+/* ── Cashflow: centered column, two-pane on wide desktop ── */
+.cf-layout {
+    max-width: var(--page-max-narrow);
+    margin-inline: auto;
+}
+@media (min-width: 1200px) {
+    .cf-layout {
+        max-width: none;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--rail-w);
+        column-gap: 24px;
+        grid-auto-flow: row dense;
+        align-items: start;
+    }
+    .cf-layout__header {
+        grid-column: 1 / -1;
+    }
+    .cf-layout__main {
+        grid-column: 1;
+        min-width: 0;
+    }
+    .cf-layout__rail {
+        grid-column: 2;
+        position: sticky;
+        top: 12px;
+    }
+}
+
+/* ── Portfolio/FIRE grid (dense backfill preserves the mobile DOM order) ── */
+@media (min-width: 1200px) {
+    .pf-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 20px;
+        grid-auto-flow: row dense;
+        align-items: start;
+    }
+    .pf-grid > .pf-cell--a {
+        grid-column: 1;
+        min-width: 0;
+    }
+    .pf-grid > .pf-cell--b {
+        grid-column: 2;
+        min-width: 0;
+    }
+    .pf-grid > .pf-cell--full {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+}
+
+/* Fixed bulk toolbars: center on the content area, not the viewport
+   (the sidebar shifts the content center right by half its width).
+   !important beats the components' inline left: 50%. */
+@media (min-width: 761px) {
+    .bulk-toolbar-fixed {
+        left: calc(50% + var(--sidebar-w) / 2) !important;
+    }
+}
+
+/* ── Cashflow KPI cards flatten into one 4-up row on desktop ── */
+.cash-kpis {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+/* Tablet + small desktop: the three compact cards stay on one row
+   (beats the generic ≤1024 2-col strip rule by specificity) */
+@media (min-width: 561px) and (max-width: 1199px) {
+    .cash-kpis .kpi-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+@media (min-width: 1200px) {
+    .cash-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+    /* the inner KpiStrip dissolves; the parent grid places its cards */
+    .cash-kpis > .kpi-strip {
+        display: contents;
+    }
+    /* uniform 4-up look: same padding and value size on all four cards */
+    .cash-kpis .card.kpi-card--compact {
+        padding: var(--sp-5);
+    }
+    .cash-kpis .kpi-card--compact .kpi-value {
+        margin-top: 12px;
+    }
+    .cash-kpis .kpi-value {
+        font-size: clamp(20px, 1.8vw, 26px);
+        letter-spacing: -0.4px;
     }
 }

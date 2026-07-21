@@ -47,7 +47,7 @@ function StatTile({
                 className="num"
                 style={{
                     fontSize: 14,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: color || "var(--fg)",
                 }}
             >
@@ -129,7 +129,7 @@ export default function AccountDetailSheet({
                     <div
                         style={{
                             fontSize: 17,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             color: "var(--fg)",
                             letterSpacing: "var(--ls-h-small)",
                         }}

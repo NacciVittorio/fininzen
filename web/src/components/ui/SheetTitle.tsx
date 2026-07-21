@@ -14,7 +14,7 @@ export default function SheetTitle({ children, style }: SheetTitleProps) {
             style={{
                 margin: "0 0 14px",
                 fontSize: 17,
-                fontWeight: 800,
+                fontWeight: 600,
                 color: "var(--fg)",
                 letterSpacing: "var(--ls-h-small)",
                 ...style,

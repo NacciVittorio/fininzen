@@ -93,7 +93,7 @@ const FilterPill = forwardRef<HTMLButtonElement, FilterPillProps>(
                         {isActive && value ? (
                             <>
                                 <span style={{ opacity: 0.6 }}>: </span>
-                                <span style={{ fontWeight: 700 }}>{value}</span>
+                                <span style={{ fontWeight: 600 }}>{value}</span>
                             </>
                         ) : null}
                     </span>

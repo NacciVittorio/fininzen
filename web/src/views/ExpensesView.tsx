@@ -91,6 +91,8 @@ export default function ExpensesView() {
         filterMonth,
         filterYear,
         accountingMonthDateRange,
+        accountingMonthDisplay,
+        currentAccountingMonth,
         refreshAfter,
         transactionPrefs,
     } = useApp();
@@ -276,7 +278,9 @@ export default function ExpensesView() {
             ? T("time_all")
             : period.kind === "year"
               ? String(periodYear)
-              : (MONTHS[periodMonth - 1] ?? "");
+              : (MONTHS[
+                    accountingMonthDisplay(periodYear, periodMonth).month - 1
+                ] ?? "");
     const setAccountingMonth = useCallback(
         ({ month, year }: { month: number; year: number }) => {
             const { from, to } = accountingMonthDateRange(year, month);
@@ -284,11 +288,14 @@ export default function ExpensesView() {
         },
         [accountingMonthDateRange, setCfFilters],
     );
-    const nowForPager = new Date();
+    // Boundary follows the accounting month (matching CashflowCategoryCard), not
+    // the calendar month — otherwise on the current accounting period the arrow
+    // would let the user page into a future period.
+    const curAccounting = currentAccountingMonth();
     const disableForward =
-        periodYear > nowForPager.getFullYear() ||
-        (periodYear === nowForPager.getFullYear() &&
-            periodMonth >= nowForPager.getMonth() + 1);
+        periodYear > curAccounting.year ||
+        (periodYear === curAccounting.year &&
+            periodMonth >= curAccounting.month);
 
     // Active-filter badge on the "Filtri" button. Period lives in the header and
     // is intentionally excluded (matches the prototype).
@@ -313,8 +320,16 @@ export default function ExpensesView() {
                 ? T("modal_new_income")
                 : T("modal_new_expense");
 
+    // Day dividers carry the day's signed net. Transfers and adjustments move
+    // money between accounts rather than in or out, so they count as zero.
     const cfDecoratedItems = useMemo(
-        () => decorateDatedItems(cfItems, MONTHS, T),
+        () =>
+            decorateDatedItems(cfItems, MONTHS, T, undefined, (row) => {
+                const amount = Number.parseFloat(String(row.amount ?? 0)) || 0;
+                if (row.type === "income") return amount;
+                if (row.type === "outcome") return -amount;
+                return 0;
+            }),
         [cfItems, MONTHS, T],
     );
 
@@ -427,6 +442,7 @@ export default function ExpensesView() {
                     cfHasMore={cfHasMore}
                     loadMoreCf={loadMoreCf}
                     loadAllCf={loadAllCf}
+                    onAdd={() => openExpenseModal()}
                 />
             </PullToRefresh>
 

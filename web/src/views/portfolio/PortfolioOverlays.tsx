@@ -74,6 +74,7 @@ export default function PortfolioOverlays(props: PortfolioOverlaysProps) {
             />
             <ArchiveBlockedSheet {...props} />
             <SpeedDialFab
+                className="mobile-only"
                 mainLabel={T("btn_add_investment")}
                 hidden={hasActiveOverlay}
                 actions={[

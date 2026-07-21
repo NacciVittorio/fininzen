@@ -40,7 +40,7 @@ export default function AssetTransactionsSelectionBanner({
             <span
                 style={{
                     color: "var(--accent-deep)",
-                    fontWeight: 700,
+                    fontWeight: 600,
                     whiteSpace: "nowrap",
                 }}
                 aria-live="polite"

@@ -66,11 +66,10 @@ function Section({
         <div style={{ padding: "14px 2px 0" }}>
             <div
                 style={{
-                    fontSize: 12,
-                    fontWeight: 700,
+                    fontSize: 13,
+                    fontWeight: 500,
                     letterSpacing: "var(--ls-label)",
                     color: "var(--fg-soft)",
-                    textTransform: "uppercase",
                     marginBottom: 9,
                 }}
             >
@@ -153,7 +152,7 @@ export default function CfFiltersSheet({
                     <span
                         style={{
                             fontSize: 18,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             color: "var(--fg)",
                         }}
                     >
@@ -297,7 +296,7 @@ export default function CfFiltersSheet({
                             background: "var(--btn-primary-bg)",
                             color: "var(--btn-primary-fg)",
                             fontSize: 16,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             cursor: "pointer",
                             fontFamily: "inherit",
                         }}

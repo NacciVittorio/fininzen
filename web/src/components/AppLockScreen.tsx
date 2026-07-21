@@ -83,7 +83,7 @@ export default function AppLockScreen() {
                     </svg>
                 </div>
 
-                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>
+                <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 6 }}>
                     {T("applock_title")}
                 </div>
                 <div
@@ -117,7 +117,7 @@ export default function AppLockScreen() {
                         width: "100%",
                         padding: "12px 0",
                         fontSize: 14,
-                        fontWeight: 700,
+                        fontWeight: 600,
                     }}
                 >
                     {loading

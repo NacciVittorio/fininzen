@@ -203,7 +203,10 @@ export default function SettingsView() {
 
     return (
         <>
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+                className="page-narrow"
+                style={{ display: "flex", flexDirection: "column" }}
+            >
                 {settingsMenu == null ? (
                     <>
                         <PageHeader title={T("tab_settings")} />

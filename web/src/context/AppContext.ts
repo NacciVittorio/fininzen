@@ -17,6 +17,10 @@ export type AppContextValue = Omit<AppProviderState, "setWealthTimeRange"> &
     ActionContextValue & {
         API: string;
         accountingMonthDateRange: (year: number, month: number) => DateRange;
+        accountingMonthDisplay: (
+            year: number,
+            month: number,
+        ) => AccountingMonth;
         currentAccountingMonth: () => AccountingMonth;
         setWealthTimeRange: DataContextValue["changeWealthTimeRange"];
     };
