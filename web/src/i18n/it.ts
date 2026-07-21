@@ -36,6 +36,9 @@ const it: Record<string, string> = {
     illiquid: "Illiquido",
     no_expenses_month: "Nessuna spesa questo mese",
     no_income_month: "Nessuna entrata questo mese",
+    cf_view_all_in_cashflow: "Vedi tutto in Cash Flow",
+    cf_category_breakdown: "Dettaglio sottocategorie",
+    cat_general: "Generale",
 
     // Expenses tab
     month: "Mese",
