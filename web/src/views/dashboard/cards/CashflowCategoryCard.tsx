@@ -328,49 +328,63 @@ export function CashflowCategoryCard({
                                                 {isIncome ? "+" : "-"}
                                                 {formatEur(r.total)}
                                             </span>
-                                            {r.hasChildren && (
-                                                <button
-                                                    type="button"
-                                                    aria-label={T(
-                                                        "cf_category_breakdown",
-                                                    )}
-                                                    onClick={(e) => {
-                                                        // Don't also trigger the row's
-                                                        // navigate-to-cashflow handler.
-                                                        e.stopPropagation();
-                                                        setDeepDiveParent(
-                                                            r.parent,
-                                                        );
-                                                    }}
-                                                    style={{
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        justifyContent:
-                                                            "center",
-                                                        padding: 2,
-                                                        border: "none",
-                                                        background:
-                                                            "transparent",
-                                                        color: "var(--fg-soft)",
-                                                        cursor: "pointer",
-                                                        lineHeight: 0,
-                                                    }}
-                                                >
-                                                    <span
+                                            {/* Fixed-width slot so amounts stay
+                                                column-aligned whether or not a
+                                                row has a drill-down chevron. */}
+                                            <span
+                                                style={{
+                                                    width: 16,
+                                                    display: "inline-flex",
+                                                    justifyContent: "flex-end",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                {r.hasChildren && (
+                                                    <button
+                                                        type="button"
+                                                        aria-label={T(
+                                                            "cf_category_breakdown",
+                                                        )}
+                                                        onClick={(e) => {
+                                                            // Don't also trigger the row's
+                                                            // navigate-to-cashflow handler.
+                                                            e.stopPropagation();
+                                                            setDeepDiveParent(
+                                                                r.parent,
+                                                            );
+                                                        }}
                                                         style={{
                                                             display:
                                                                 "inline-flex",
-                                                            transform:
-                                                                "rotate(-90deg)",
+                                                            alignItems:
+                                                                "center",
+                                                            justifyContent:
+                                                                "center",
+                                                            padding: 2,
+                                                            border: "none",
+                                                            background:
+                                                                "transparent",
+                                                            color: "var(--fg-soft)",
+                                                            cursor: "pointer",
+                                                            lineHeight: 0,
                                                         }}
                                                     >
-                                                        <Icon
-                                                            name="chevronDown"
-                                                            size={14}
-                                                        />
-                                                    </span>
-                                                </button>
-                                            )}
+                                                        <span
+                                                            style={{
+                                                                display:
+                                                                    "inline-flex",
+                                                                transform:
+                                                                    "rotate(-90deg)",
+                                                            }}
+                                                        >
+                                                            <Icon
+                                                                name="chevronDown"
+                                                                size={14}
+                                                            />
+                                                        </span>
+                                                    </button>
+                                                )}
+                                            </span>
                                         </div>
                                     </div>
                                 );
