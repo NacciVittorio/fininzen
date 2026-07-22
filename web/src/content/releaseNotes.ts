@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.7.1",
+        date: "2026-07-22",
         highlights: {
             it: [
                 "Su iPhone il campo di ricerca delle categorie non ingrandisce più la pagina quando lo tocchi.",

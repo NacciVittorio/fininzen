@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.7.1 (2026-07-22)
+
+### Fix
+
+- **web**: stop iOS zoom on category search and un-clip filter category list
+
 ## v0.7.0 (2026-07-21)
 
 ### Feat
