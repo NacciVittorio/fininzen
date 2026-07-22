@@ -61,7 +61,7 @@ export default function AssetTransactionsControls({
                         borderRadius: 10,
                         color: "var(--fg)",
                         padding: "9px 36px 9px 36px",
-                        fontSize: 14,
+                        fontSize: 16,
                         fontFamily: "inherit",
                         outline: "none",
                         boxSizing: "border-box",

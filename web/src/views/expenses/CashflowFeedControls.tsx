@@ -61,7 +61,7 @@ export function CashflowFeedControls({
                         borderRadius: 12,
                         color: "var(--fg)",
                         padding: "12px 44px 12px 40px",
-                        fontSize: 15,
+                        fontSize: 16,
                         fontFamily: "inherit",
                         outline: "none",
                         boxSizing: "border-box",
