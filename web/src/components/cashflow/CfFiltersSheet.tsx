@@ -253,6 +253,7 @@ export default function CfFiltersSheet({
                     <div style={{ width: "100%" }}>
                         <CategorySelect
                             multiple
+                            usePortal
                             values={cfFilters.category_ids || []}
                             onMultiChange={(ids) =>
                                 setCfFilters((p) => ({

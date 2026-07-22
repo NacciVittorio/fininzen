@@ -353,7 +353,7 @@ export default function CategorySelect({
                                                 borderRadius: 10,
                                                 color: "var(--fg)",
                                                 padding: "9px 34px",
-                                                fontSize: 14,
+                                                fontSize: 16,
                                                 fontFamily: "inherit",
                                                 outline: "none",
                                                 boxSizing: "border-box",
