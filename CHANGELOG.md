@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.8.0 (2026-07-23)
+
+### Feat
+
+- **web**: align Investments page to Cash Flow redesign
+
 ## v0.7.2 (2026-07-22)
 
 ### Fix

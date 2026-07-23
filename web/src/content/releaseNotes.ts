@@ -23,6 +23,20 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: "0.8.0",
+        date: "2026-07-23",
+        highlights: {
+            it: [
+                "La pagina Investimenti ha ora lo stesso stile della pagina Movimenti: cifre e titoli più leggibili, selettore del mese in evidenza in alto e icone colorate per tipo di attività.",
+                'Nuova icona dell\'app: il monogramma "F" sostituisce la vecchia icona su schermata Home, PWA e Safari.',
+            ],
+            en: [
+                "The Investments page now matches the look of the Cash Flow page: larger, easier-to-read figures and titles, the month selector highlighted at the top, and colour-coded icons by asset type.",
+                'New app icon: the "F" monogram replaces the old icon on the Home Screen, in the PWA and in Safari.',
+            ],
+        },
+    },
+    {
         version: "0.7.2",
         date: "2026-07-22",
         highlights: {
