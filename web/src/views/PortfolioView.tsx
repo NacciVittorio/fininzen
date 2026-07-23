@@ -230,6 +230,8 @@ export default function PortfolioView() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, invStatsMonth, invStatsYear, assetTxRefreshKey]);
 
+    // Day dividers carry the day's signed net: buys and cash-outs leave the
+    // portfolio (−), sells and cash-ins add to it (+); adjustments are neutral.
     const assetTxDecorated = useMemo(
         () =>
             decorateDatedItems(
@@ -238,6 +240,17 @@ export default function PortfolioView() {
                 })[],
                 MONTHS,
                 T,
+                undefined,
+                (row) => {
+                    const value =
+                        Number.parseFloat(
+                            String(row.cash_flow_value ?? row.total_value ?? 0),
+                        ) || 0;
+                    const type = row.transaction_type;
+                    if (type === "buy" || type === "cash_out") return -value;
+                    if (type === "sell" || type === "cash_in") return value;
+                    return 0;
+                },
             ),
         [assetTxItems, MONTHS, T],
     );

@@ -151,22 +151,14 @@ export default function AssetTransactionsSection({
                         monthLabel,
                         showDayDivider,
                         dayLabel,
+                        dayNet,
                     }) => (
                         <div key={item.id}>
                             {showMonthDivider && (
                                 <div
                                     key={`m-${monthKey}-${item.id}`}
-                                    style={{
-                                        padding: "10px 14px 6px",
-                                        fontSize: 12,
-                                        fontWeight: 600,
-                                        letterSpacing: 0,
-                                        textTransform: "uppercase",
-                                        color: "var(--fg)",
-                                        background: "var(--card-inset)",
-                                        borderTop: "1px solid var(--rule)",
-                                        borderBottom: "1px solid var(--rule)",
-                                    }}
+                                    className="tx-month-divider"
+                                    style={{ padding: "18px 18px 0" }}
                                 >
                                     {monthLabel}
                                 </div>
@@ -175,9 +167,26 @@ export default function AssetTransactionsSection({
                                 <div
                                     key={`d-${item.date}-${item.id}`}
                                     className="tx-day-divider"
-                                    style={{ padding: "6px 14px 2px" }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "baseline",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                        padding: "16px 18px 6px",
+                                    }}
                                 >
-                                    {dayLabel}
+                                    <span>{dayLabel}</span>
+                                    {dayNet !== undefined && (
+                                        <span
+                                            style={{
+                                                fontVariantNumeric:
+                                                    "tabular-nums",
+                                            }}
+                                        >
+                                            {dayNet >= 0 ? "+" : "-"}
+                                            {formatEur(Math.abs(dayNet))}
+                                        </span>
+                                    )}
                                 </div>
                             )}
                             <AssetTransactionRow

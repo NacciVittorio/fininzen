@@ -38,7 +38,7 @@ function Tile({
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    fontSize: 12.5,
+                    fontSize: 13,
                     color: "var(--fg-soft)",
                     fontWeight: 600,
                 }}
@@ -58,10 +58,10 @@ function Tile({
             <span
                 style={{
                     display: "block",
-                    fontSize: 17,
+                    fontSize: 18,
                     fontWeight: 600,
                     color: "var(--fg)",
-                    marginTop: 2,
+                    marginTop: 3,
                     fontVariantNumeric: "tabular-nums",
                 }}
             >
@@ -115,40 +115,44 @@ export default function InvSummaryCard({
                 border: "1px solid var(--rule)",
                 borderRadius: "var(--r-card)",
                 boxShadow: "var(--shadow-soft)",
-                padding: "16px 18px 15px",
+                padding: "14px 20px 16px",
                 marginBottom: 14,
             }}
         >
+            {/* Full-width period control pinned above the numbers it governs,
+                mirroring CfSummaryCard's hero pager. */}
             <div
                 style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
+                    paddingBottom: 14,
+                    marginBottom: 14,
+                    borderBottom: "1px solid var(--rule-soft)",
                 }}
             >
-                <div
-                    style={{
-                        fontSize: 13,
-                        color: "var(--fg-soft)",
-                        fontWeight: 600,
-                    }}
-                >
-                    {T("investment_kpi_label")}
-                </div>
                 <MonthPager
                     month={month}
                     year={year}
                     onChange={onChangeMonth}
+                    size="hero"
+                    align="between"
                 />
+            </div>
+
+            <div
+                style={{
+                    fontSize: 13,
+                    color: "var(--fg-soft)",
+                    fontWeight: 600,
+                }}
+            >
+                {T("investment_kpi_label")}
             </div>
 
             <div style={{ marginTop: 2 }}>
                 <span
                     style={{
-                        fontSize: 32,
+                        fontSize: 38,
                         fontWeight: 600,
-                        letterSpacing: "-0.01em",
+                        letterSpacing: "-0.5px",
                         color: "var(--fg)",
                         fontVariantNumeric: "tabular-nums",
                     }}
@@ -178,7 +182,7 @@ export default function InvSummaryCard({
                     gap: 6,
                     marginTop: 12,
                     borderTop: "1px solid var(--rule)",
-                    paddingTop: 6,
+                    paddingTop: 10,
                 }}
             >
                 <Tile
