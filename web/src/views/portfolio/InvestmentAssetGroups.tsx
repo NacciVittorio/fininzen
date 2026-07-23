@@ -134,20 +134,23 @@ export default function InvestmentAssetGroups({
                                     style={{
                                         display: "flex",
                                         alignItems: "center",
-                                        gap: 7,
+                                        gap: 8,
                                         justifyContent: "space-between",
+                                        fontSize: 13,
+                                        fontWeight: 600,
+                                        color: "var(--fg)",
                                     }}
                                 >
                                     <span
                                         style={{
                                             display: "inline-flex",
                                             alignItems: "center",
-                                            gap: 7,
+                                            gap: 8,
                                         }}
                                     >
                                         <CategoryDot
                                             color={t.color || "var(--accent)"}
-                                            size={7}
+                                            size={8}
                                         />
                                         {t.name}
                                     </span>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useFormatters } from "../utils/useFormatters";
 import PrivacyValue from "./PrivacyValue";
-import { SwipeRow, CategoryDot } from "./ui";
+import { SwipeRow, CategoryDot, Icon } from "./ui";
 import AssetDetailSheet from "./assetCard/AssetDetailSheet";
 import ChartModal from "./assetCard/ChartModal";
 import { buildAssetSwipeActions } from "./assetCard/assetCardActions";
@@ -79,6 +79,12 @@ export default function AssetCard({
     const typeDetail = a.investment_type_detail;
     const typeColor = typeDetail?.color || "var(--accent)";
     const typeName = typeDetail?.name || "Unknown";
+    // Soft tint for the leading icon tile. Investment-type colours are hex, so
+    // the "+22" alpha works; the var() fallback (untyped assets) can't take an
+    // alpha suffix, so it degrades to the neutral inset.
+    const typeTileBg = typeColor.startsWith("#")
+        ? `${typeColor}22`
+        : "var(--card-inset)";
     const isManual = a.tracking_type === "MANUAL";
     const hasTicker = Boolean(a.has_ticker && (a.source_symbol || a.ticker));
     // eur_complete is a boolean at runtime; the OpenAPI schema mistypes the
@@ -156,9 +162,26 @@ export default function AssetCard({
                 style={{
                     borderBottom: isLast ? "none" : "1px solid var(--rule)",
                 }}
-                rowStyle={{ padding: "13px 16px" }}
+                rowStyle={{ padding: "13px 18px", gap: 12 }}
                 ariaLabel={a.name}
             >
+                <div
+                    style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: typeTileBg,
+                        color: typeColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        flexShrink: 0,
+                    }}
+                >
+                    {typeDetail?.icon || <Icon name="investments" size={18} />}
+                </div>
+
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                         style={{
@@ -170,7 +193,7 @@ export default function AssetCard({
                     >
                         <span
                             style={{
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: 600,
                                 color: "var(--fg)",
                                 overflow: "hidden",
@@ -186,6 +209,7 @@ export default function AssetCard({
                                 style={{
                                     background: "var(--card-inset)",
                                     color: "var(--fg-soft)",
+                                    fontSize: 12,
                                     flexShrink: 0,
                                 }}
                             >
@@ -199,7 +223,7 @@ export default function AssetCard({
                             alignItems: "center",
                             gap: 6,
                             marginTop: 3,
-                            fontSize: 11,
+                            fontSize: 13,
                             color: "var(--fg-soft)",
                         }}
                     >
@@ -213,7 +237,7 @@ export default function AssetCard({
                         className="num"
                         title={eurIncomplete ? T("eur_incomplete") : undefined}
                         style={{
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: 600,
                             // HIGH-05: when the backend couldn't fully convert to EUR (missing
                             // FX history) current_value_eur is null and we fall back to the
@@ -234,7 +258,7 @@ export default function AssetCard({
                     <div
                         className="num"
                         style={{
-                            fontSize: 11,
+                            fontSize: 13,
                             color:
                                 gainPct >= 0
                                     ? "var(--success)"

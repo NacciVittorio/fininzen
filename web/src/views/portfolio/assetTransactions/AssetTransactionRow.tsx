@@ -35,39 +35,49 @@ export default function AssetTransactionRow({
     const rowSelected =
         assetTxSelectionMode && !isArchivedTx && isAssetTxItemSelected(item.id);
 
+    // Icon tile tints by the transaction's semantic type (buy/cash_out → danger,
+    // sell/cash_in → success, adjustment → neutral) — the CfTransactionRow analog.
+    // `bg` is the soft token: typeMeta.color is a var(), so the row's `color+"22"`
+    // alpha trick can't apply to it.
     const typeMetaByType: Record<
         string,
-        { sign: string; color: string; icon: ReactNode }
+        { sign: string; color: string; bg: string; icon: ReactNode }
     > = {
         buy: {
             sign: "-",
             color: "var(--danger)",
+            bg: "var(--danger-soft)",
             icon: <Icon name="investments" size={16} />,
         },
         sell: {
             sign: "+",
             color: "var(--success)",
+            bg: "var(--success-soft)",
             icon: <Icon name="investments" size={16} />,
         },
         cash_in: {
             sign: "+",
             color: "var(--success)",
+            bg: "var(--success-soft)",
             icon: <Icon name="cashflow" size={16} />,
         },
         cash_out: {
             sign: "-",
             color: "var(--danger)",
+            bg: "var(--danger-soft)",
             icon: <Icon name="cashflow" size={16} />,
         },
         adjustment: {
             sign: "±",
             color: "var(--fg-soft)",
+            bg: "var(--card-inset)",
             icon: <Icon name="status" size={16} />,
         },
     };
     const typeMeta = typeMetaByType[item.transaction_type ?? ""] || {
         sign: "",
         color: "var(--fg-soft)",
+        bg: "var(--card-inset)",
         icon: "•",
     };
 
@@ -90,8 +100,8 @@ export default function AssetTransactionRow({
             style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
-                padding: "10px 14px",
+                gap: 12,
+                padding: "13px 18px",
                 borderBottom: "1px solid var(--card-inset)",
                 cursor: isArchivedTx ? "default" : "pointer",
                 background: rowSelected ? "var(--accent-soft)" : undefined,
@@ -110,14 +120,15 @@ export default function AssetTransactionRow({
             )}
             <div
                 style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: "var(--card-inset)",
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: typeMeta.bg,
+                    color: typeMeta.color,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 15,
+                    fontSize: 18,
                     flexShrink: 0,
                 }}
             >
@@ -126,8 +137,8 @@ export default function AssetTransactionRow({
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                     style={{
-                        fontSize: 13,
-                        fontWeight: 500,
+                        fontSize: 16,
+                        fontWeight: 600,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -137,9 +148,9 @@ export default function AssetTransactionRow({
                 </div>
                 <div
                     style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         color: "var(--fg-soft)",
-                        marginTop: 2,
+                        marginTop: 3,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -196,7 +207,7 @@ export default function AssetTransactionRow({
             )}
             <span
                 style={{
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: 600,
                     fontFamily: "var(--font-mono)",
                     color: typeMeta.color,

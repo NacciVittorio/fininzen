@@ -31,7 +31,7 @@ export default function AssetTransactionsControls({
                     aria-hidden
                     style={{
                         position: "absolute",
-                        left: 12,
+                        left: 14,
                         top: "50%",
                         transform: "translateY(-50%)",
                         color: "var(--fg-soft)",
@@ -58,9 +58,12 @@ export default function AssetTransactionsControls({
                         width: "100%",
                         background: "var(--card-inset)",
                         border: "1px solid var(--rule)",
-                        borderRadius: 10,
+                        borderRadius: 12,
                         color: "var(--fg)",
-                        padding: "9px 36px 9px 36px",
+                        // fontSize stays 16 to prevent iOS input zoom (see the
+                        // earlier cashflow/investments search-input fix); the
+                        // design's 15px would regress it.
+                        padding: "12px 44px 12px 40px",
                         fontSize: 16,
                         fontFamily: "inherit",
                         outline: "none",
@@ -80,16 +83,20 @@ export default function AssetTransactionsControls({
                         aria-label={T("cf_search_clear")}
                         style={{
                             position: "absolute",
-                            right: 8,
+                            right: 2,
                             top: "50%",
                             transform: "translateY(-50%)",
                             background: "transparent",
                             border: 0,
                             color: "var(--fg-soft)",
                             cursor: "pointer",
-                            padding: 4,
+                            width: 40,
+                            height: "100%",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                             lineHeight: 1,
-                            fontSize: 16,
+                            fontSize: 18,
                             fontFamily: "inherit",
                         }}
                     >
@@ -101,7 +108,7 @@ export default function AssetTransactionsControls({
             <div
                 style={{
                     display: "flex",
-                    gap: 8,
+                    gap: 10,
                     flexWrap: "wrap",
                     marginBottom: 14,
                     alignItems: "center",
@@ -125,9 +132,9 @@ export default function AssetTransactionsControls({
                         color: activeFilterCount
                             ? "var(--btn-primary-fg)"
                             : "var(--fg)",
-                        borderRadius: 10,
+                        borderRadius: 12,
                         minHeight: 38,
-                        padding: "0 14px",
+                        padding: "0 18px",
                         fontSize: 14,
                         fontWeight: 600,
                         fontFamily: "inherit",
@@ -166,19 +173,23 @@ export default function AssetTransactionsControls({
                     className="pressable"
                     style={{
                         marginLeft: "auto",
+                        display: "inline-flex",
+                        alignItems: "center",
                         background: assetTxSelectionMode
                             ? "var(--accent-soft)"
-                            : "transparent",
+                            : "var(--card-inset)",
                         color: assetTxSelectionMode
                             ? "var(--accent-deep)"
-                            : "var(--fg-soft)",
+                            : "var(--fg)",
                         border: "1px solid var(--rule)",
-                        borderRadius: 999,
-                        padding: "6px 12px",
-                        fontSize: 12,
+                        borderRadius: 12,
+                        minHeight: 38,
+                        padding: "0 18px",
+                        fontSize: 14,
                         fontWeight: 600,
                         cursor: "pointer",
                         fontFamily: "inherit",
+                        flexShrink: 0,
                     }}
                     aria-pressed={assetTxSelectionMode}
                 >
