@@ -20,10 +20,7 @@ export const metadata: Metadata = {
     description: "Personal wealth management",
     icons: {
         icon: "/favicon.png",
-        apple: [
-            { url: "/icon-192.png" },
-            { url: "/icon-512.png", sizes: "512x512" },
-        ],
+        apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
     },
     // `capable` emits `mobile-web-app-capable`, which is what Chrome/Android
     // read. iOS reads the `apple-` prefixed twin, which the Metadata API can no
