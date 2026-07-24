@@ -7,6 +7,12 @@
    ─────────────────────────────────────────────────────────────────── */
 
 :root {
+    /* Native UA controls (select popup, scrollbars, spinners, date/time
+       pickers) follow this. Pinned to the app theme so they never render
+       light-on-dark — the light default here matches the "Paper" tokens below
+       and covers the pre-hydration state before data-theme is set. */
+    color-scheme: light;
+
     /* ── Type families ─────────────────────────────────────────────── */
     --font-sans:
         var(--font-inter), -apple-system, "SF Pro Text", "Helvetica Neue",
@@ -150,6 +156,10 @@
    ══════════════════════════════════════════════════════════════════ */
 
 [data-theme="dark"] {
+    /* Match native UA controls to the dark theme so the browser paints the
+       select option popup (and scrollbars, pickers) dark instead of white. */
+    color-scheme: dark;
+
     /* Surfaces */
     --bg: #111114; /* page graphite           */
     --bg-2: #17171b; /* canvas alt              */
