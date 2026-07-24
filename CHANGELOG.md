@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.9.1 (2026-07-24)
+
+### Fix
+
+- **web**: custom dropdown for CashFlow account/asset selects
+
 ## v0.9.0 (2026-07-24)
 
 ### Feat
