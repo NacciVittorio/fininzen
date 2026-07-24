@@ -23,6 +23,18 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "I menu per scegliere il conto o l'attività collegata (quando aggiungi un movimento o un trasferimento) ora seguono sempre il tema scuro dell'app: niente più elenco con lo sfondo bianco, su qualsiasi browser — anche su Chrome/Windows con un tema scuro installato.",
+            ],
+            en: [
+                "The menus for choosing the account or linked asset (when adding a transaction or a transfer) now always follow the app's dark theme: no more white-background list, in any browser — including Chrome/Windows with a dark theme installed.",
+            ],
+        },
+    },
+    {
         version: "0.9.0",
         date: "2026-07-24",
         highlights: {

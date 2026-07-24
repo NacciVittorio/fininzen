@@ -194,13 +194,17 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
                 page.locator('[data-testid="transfer-from-account"]'),
             ).toBeVisible({ timeout: 5000 });
 
-            // Select from/to accounts
-            await page.selectOption('[data-testid="transfer-from-account"]', {
-                value: String(accAId),
-            });
-            await page.selectOption('[data-testid="transfer-to-account"]', {
-                value: String(accBId),
-            });
+            // Select from/to accounts. The account picker is now a custom
+            // dropdown (not a native <select>), so drive it by clicking the
+            // trigger open and then the option, instead of selectOption().
+            await page.click('[data-testid="transfer-from-account"]');
+            await page.click(
+                `[data-testid="transfer-from-account-option-${accAId}"]`,
+            );
+            await page.click('[data-testid="transfer-to-account"]');
+            await page.click(
+                `[data-testid="transfer-to-account-option-${accBId}"]`,
+            );
 
             // Enter amount
             await page.fill('[data-testid="transfer-amount"]', "42.50");
@@ -284,10 +288,10 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
             .locator(".bottom-sheet__panel")
             .getByRole("button", { name: /^(Transfer|Trasferimento)$/ })
             .click();
-        const fromVal = await page
-            .locator('[data-testid="transfer-from-account"]')
-            .inputValue();
-        expect(fromVal).toBe("");
+        // The custom dropdown trigger mirrors its current value onto data-value.
+        await expect(
+            page.locator('[data-testid="transfer-from-account"]'),
+        ).toHaveAttribute("data-value", "");
     });
 
     test("Accounts page no longer has transfer button", async ({ page }) => {

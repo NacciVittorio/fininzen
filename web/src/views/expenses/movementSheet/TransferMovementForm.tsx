@@ -2,17 +2,13 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import FieldLabel from "../../../components/FieldLabel";
+import Select from "../../../components/Select";
 import { VerifiedToggleButton } from "../../../components/ui";
 import { filterAmountInput } from "../../../utils/formatters";
 import type { DecimalSeparator } from "../../../utils/formatters";
 import type { Translator } from "../../../types";
 import type { TransferForm } from "../../../context/formBuilders";
 import type { AccountOption } from "../../portfolio/addTransaction/addTransactionTypes";
-import {
-    selectLikeCategoryChevronStyle,
-    selectLikeCategoryShellStyle,
-    selectLikeCategoryStyle,
-} from "./selectStyles";
 
 export default function TransferMovementForm({
     transferForm,
@@ -37,71 +33,47 @@ export default function TransferMovementForm({
         <>
             <div>
                 <FieldLabel text={T("transfer_from")} htmlFor="transfer-from" />
-                <div style={selectLikeCategoryShellStyle}>
-                    <select
-                        id="transfer-from"
-                        className="inp"
-                        data-testid="transfer-from-account"
-                        value={transferForm.from_account_id}
-                        onChange={(event) =>
-                            setTransferForm((previous) => ({
-                                ...previous,
-                                from_account_id: event.target.value,
-                            }))
-                        }
-                        style={selectLikeCategoryStyle}
-                    >
-                        <option value="">{T("no_linked_account")}</option>
-                        {bankAccounts.map((account) => (
-                            <option key={account.id} value={account.id}>
-                                {account.name}
-                            </option>
-                        ))}
-                    </select>
-                    <span
-                        aria-hidden="true"
-                        style={selectLikeCategoryChevronStyle}
-                    >
-                        ▼
-                    </span>
-                </div>
+                <Select
+                    id="transfer-from"
+                    data-testid="transfer-from-account"
+                    value={transferForm.from_account_id}
+                    onChange={(value) =>
+                        setTransferForm((previous) => ({
+                            ...previous,
+                            from_account_id: value,
+                        }))
+                    }
+                    placeholder={T("no_linked_account")}
+                    options={bankAccounts.map((account) => ({
+                        value: String(account.id),
+                        label: account.name,
+                    }))}
+                />
             </div>
             <div>
                 <FieldLabel text={T("transfer_to")} htmlFor="transfer-to" />
-                <div style={selectLikeCategoryShellStyle}>
-                    <select
-                        id="transfer-to"
-                        className="inp"
-                        data-testid="transfer-to-account"
-                        value={transferForm.to_account_id}
-                        onChange={(event) =>
-                            setTransferForm((previous) => ({
-                                ...previous,
-                                to_account_id: event.target.value,
-                            }))
-                        }
-                        style={selectLikeCategoryStyle}
-                    >
-                        <option value="">{T("no_linked_account")}</option>
-                        {bankAccounts
-                            .filter(
-                                (account) =>
-                                    String(account.id) !==
-                                    String(transferForm.from_account_id),
-                            )
-                            .map((account) => (
-                                <option key={account.id} value={account.id}>
-                                    {account.name}
-                                </option>
-                            ))}
-                    </select>
-                    <span
-                        aria-hidden="true"
-                        style={selectLikeCategoryChevronStyle}
-                    >
-                        ▼
-                    </span>
-                </div>
+                <Select
+                    id="transfer-to"
+                    data-testid="transfer-to-account"
+                    value={transferForm.to_account_id}
+                    onChange={(value) =>
+                        setTransferForm((previous) => ({
+                            ...previous,
+                            to_account_id: value,
+                        }))
+                    }
+                    placeholder={T("no_linked_account")}
+                    options={bankAccounts
+                        .filter(
+                            (account) =>
+                                String(account.id) !==
+                                String(transferForm.from_account_id),
+                        )
+                        .map((account) => ({
+                            value: String(account.id),
+                            label: account.name,
+                        }))}
+                />
             </div>
             <div>
                 <FieldLabel

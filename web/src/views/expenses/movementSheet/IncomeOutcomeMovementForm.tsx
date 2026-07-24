@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import CategorySelect from "../../../components/CategorySelect";
+import Select from "../../../components/Select";
 import FieldLabel from "../../../components/FieldLabel";
 import { VerifiedToggleButton } from "../../../components/ui";
 import { filterAmountInput } from "../../../utils/formatters";
@@ -9,11 +10,6 @@ import type { DecimalSeparator } from "../../../utils/formatters";
 import type { Asset, Category } from "../../../api/types";
 import type { Translator } from "../../../types";
 import type { ExpenseForm } from "../../../context/formBuilders";
-import {
-    selectLikeCategoryChevronStyle,
-    selectLikeCategoryShellStyle,
-    selectLikeCategoryStyle,
-} from "./selectStyles";
 
 export default function IncomeOutcomeMovementForm({
     expForm,
@@ -196,40 +192,27 @@ export default function IncomeOutcomeMovementForm({
                     text={T("label_linked_asset")}
                     htmlFor="exp-linked-asset"
                 />
-                <div style={selectLikeCategoryShellStyle}>
-                    <select
-                        id="exp-linked-asset"
-                        className="inp"
-                        value={expForm.linked_asset}
-                        onChange={(event) =>
-                            setExpForm((previous) => ({
-                                ...previous,
-                                linked_asset: event.target.value,
-                            }))
-                        }
-                        style={selectLikeCategoryStyle}
-                    >
-                        <option value="">{T("no_linked_asset")}</option>
-                        {assets
-                            .filter(
-                                (asset) =>
-                                    asset.tracking_type === "MANUAL" &&
-                                    !asset.is_archived,
-                            )
-                            .map((asset) => (
-                                <option key={asset.id} value={asset.id}>
-                                    {asset.investment_type_detail?.icon || ""}{" "}
-                                    {asset.name}
-                                </option>
-                            ))}
-                    </select>
-                    <span
-                        aria-hidden="true"
-                        style={selectLikeCategoryChevronStyle}
-                    >
-                        ▼
-                    </span>
-                </div>
+                <Select
+                    id="exp-linked-asset"
+                    value={expForm.linked_asset}
+                    onChange={(value) =>
+                        setExpForm((previous) => ({
+                            ...previous,
+                            linked_asset: value,
+                        }))
+                    }
+                    placeholder={T("no_linked_asset")}
+                    options={assets
+                        .filter(
+                            (asset) =>
+                                asset.tracking_type === "MANUAL" &&
+                                !asset.is_archived,
+                        )
+                        .map((asset) => ({
+                            value: String(asset.id),
+                            label: `${asset.investment_type_detail?.icon || ""} ${asset.name}`.trim(),
+                        }))}
+                />
             </div>
             <div>
                 <FieldLabel text={T("verified_filter_label")} />
