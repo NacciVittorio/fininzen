@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.8.1 (2026-07-24)
+
+### Fix
+
+- **web**: render native select popups in the app dark theme
+
 ## v0.8.0 (2026-07-23)
 
 ### Feat

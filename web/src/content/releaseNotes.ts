@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.8.1",
+        date: "2026-07-24",
         highlights: {
             it: [
                 "Nel tema scuro i menu a tendina per scegliere il conto o l'attività collegata (aggiunta di un movimento o di un trasferimento) non appaiono più con lo sfondo bianco: ora seguono il tema scuro dell'app, anche su Chrome/Windows con un tema scuro del browser installato.",
