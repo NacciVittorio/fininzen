@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.9.2 (2026-07-24)
+
+### Fix
+
+- **web**: show full, scrollable account/category lists in CashFlow forms
+
 ## v0.9.1 (2026-07-24)
 
 ### Fix
