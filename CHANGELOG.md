@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.9.0 (2026-07-24)
+
+### Feat
+
+- **web**: show all cashflow categories and lead summary with balance
+
 ## v0.8.1 (2026-07-24)
 
 ### Fix

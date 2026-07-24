@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.9.0",
+        date: "2026-07-24",
         highlights: {
             it: [
                 "Nella dashboard la scheda «Categoria Cash Flow» mostra ora tutte le categorie invece di fermarsi alle prime cinque e raggruppare il resto in «Altro»: l'elenco scorre dentro la scheda e ogni voce apre i Flussi già filtrati su quella categoria. Vale sia per le Uscite che per le Entrate.",
