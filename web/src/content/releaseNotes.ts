@@ -23,6 +23,20 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Nella dashboard la scheda «Categoria Cash Flow» mostra ora tutte le categorie invece di fermarsi alle prime cinque e raggruppare il resto in «Altro»: l'elenco scorre dentro la scheda e ogni voce apre i Flussi già filtrati su quella categoria. Vale sia per le Uscite che per le Entrate.",
+                "La scheda principale dei Flussi mette ora in primo piano il saldo del mese (prima ripeteva la spesa già indicata sotto), con una barra che spiega quanto hai speso rispetto alle entrate: quanto hai risparmiato o, se hai speso più di quanto è entrato, di quanto sei in deficit.",
+            ],
+            en: [
+                "On the dashboard, the “Cash Flow category” card now shows every category instead of stopping at the top five and lumping the rest into “Other”: the list scrolls inside the card and each row opens the Cash Flow already filtered to that category. This applies to both Expenses and Income.",
+                "The main Cash Flow card now leads with the month's balance (it used to repeat the spend already shown below), with a bar that explains how much you spent against your income — how much you saved, or by how much you're in deficit if you spent more than came in.",
+            ],
+        },
+    },
+    {
         version: "0.8.1",
         date: "2026-07-24",
         highlights: {

@@ -3,6 +3,7 @@
 import type { ComponentType, ReactNode } from "react";
 import { useApp } from "../../context/useApp";
 import { useFormatters } from "../../utils/useFormatters";
+import type { Translator } from "../../types";
 import PrivacyValueRaw from "../PrivacyValue";
 
 // PrivacyValue is still .jsx; consume it loosely until it migrates.
@@ -10,9 +11,9 @@ const PrivacyValue = PrivacyValueRaw as unknown as ComponentType<
     Record<string, unknown>
 >;
 
-// One summary card leading with the month's SPEND (the number the user most
-// wants to track), a small signed month balance beneath it, an income/expense
-// split bar, and two tappable totals that toggle the type filter. Income vs
+// One summary card leading with the month's BALANCE (income − outcome, signed
+// and coloured), a "spent as a share of income" gauge that explains that
+// balance, and two tappable totals that toggle the type filter. Income vs
 // expense is signalled by an arrow glyph (↑/↓) in addition to colour, so the
 // distinction survives without colour perception. Net / income / outcome are
 // computed by the caller from cfSummary (verified-only, backend formula) — this
@@ -107,6 +108,130 @@ function LegendButton({
     );
 }
 
+// "Spent as a share of income" gauge. The track represents the month's income
+// (100% = break-even); the red fill is what was spent against it, so the empty
+// tail reads as what was saved. When spending exceeds income the track instead
+// spans the spend, a break-even notch marks where income ran out, and the
+// overspill past it is drawn in a stronger red. The caption below carries the
+// meaning (the bar itself is aria-hidden).
+function SpendGauge({
+    income,
+    outcome,
+    T,
+}: {
+    income: number;
+    outcome: number;
+    T: Translator;
+}) {
+    const caption = (text: string) => (
+        <div
+            style={{
+                marginTop: 7,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--fg-soft)",
+            }}
+        >
+            {text}
+        </div>
+    );
+    const track = (children?: ReactNode, background = "var(--card-inset)") => (
+        <div
+            aria-hidden="true"
+            style={{
+                position: "relative",
+                display: "flex",
+                height: 9,
+                borderRadius: 99,
+                overflow: "hidden",
+                background,
+            }}
+        >
+            {children}
+        </div>
+    );
+
+    // No income to measure spend against.
+    if (income <= 0) {
+        if (outcome <= 0) return null;
+        return (
+            <div style={{ marginTop: 13 }}>
+                {track(
+                    <div style={{ width: "100%", background: "var(--danger)" }} />,
+                )}
+                {caption(T("no_income_period"))}
+            </div>
+        );
+    }
+
+    const spentPct = Math.round((outcome / income) * 100);
+
+    if (outcome > income) {
+        // Overspend: the bar spans the spend; break-even sits at income/outcome.
+        const breakEvenPct = (income / outcome) * 100;
+        const deficitPct = spentPct - 100;
+        return (
+            <div style={{ marginTop: 13 }}>
+                {track(
+                    <>
+                        <div
+                            style={{
+                                width: `${breakEvenPct}%`,
+                                background: "var(--danger)",
+                            }}
+                        />
+                        <div
+                            style={{
+                                flex: 1,
+                                background:
+                                    "color-mix(in oklab, var(--danger) 70%, var(--fg))",
+                            }}
+                        />
+                        {/* break-even notch */}
+                        <div
+                            style={{
+                                position: "absolute",
+                                top: -1,
+                                bottom: -1,
+                                left: `${breakEvenPct}%`,
+                                width: 2,
+                                marginLeft: -1,
+                                background: "var(--card)",
+                            }}
+                        />
+                    </>,
+                )}
+                {caption(
+                    `${T("cf_spent_of_income").replace("{pct}", String(spentPct))} · ${T(
+                        "cf_deficit_pct",
+                    ).replace("{pct}", String(deficitPct))}`,
+                )}
+            </div>
+        );
+    }
+
+    // Normal: red fill is the spend, empty tail is what was saved.
+    const savedPct = Math.max(0, 100 - spentPct);
+    return (
+        <div style={{ marginTop: 13 }}>
+            {track(
+                <div
+                    style={{
+                        width: `${spentPct}%`,
+                        background: "var(--danger)",
+                    }}
+                />,
+                "var(--success-soft)",
+            )}
+            {caption(
+                `${T("cf_spent_of_income").replace("{pct}", String(spentPct))} · ${T(
+                    "cf_saved_pct",
+                ).replace("{pct}", String(savedPct))}`,
+            )}
+        </div>
+    );
+}
+
 type CfSummaryCardProps = {
     monthLabel: string;
     net: number;
@@ -131,9 +256,6 @@ export default function CfSummaryCard({
 }: CfSummaryCardProps) {
     const { T } = useApp();
     const { formatEur } = useFormatters();
-    const total = income + outcome;
-    const expPct = total > 0 ? Math.round((outcome / total) * 100) : 50;
-    const incPct = 100 - expPct;
     const netNegative = net < 0;
 
     return (
@@ -159,7 +281,8 @@ export default function CfSummaryCard({
                 </div>
             )}
 
-            {/* headline: how much was spent this month */}
+            {/* headline: the month's balance (income − outcome), signed and
+                coloured by sign */}
             <div
                 style={{
                     fontSize: 13,
@@ -167,7 +290,7 @@ export default function CfSummaryCard({
                     fontWeight: 600,
                 }}
             >
-                {T("cf_spent_of").replace("{month}", monthLabel)}
+                {T("cf_balance_of").replace("{month}", monthLabel)}
             </div>
             <div style={{ marginTop: 2 }}>
                 <span
@@ -175,73 +298,18 @@ export default function CfSummaryCard({
                         fontSize: 38,
                         fontWeight: 600,
                         letterSpacing: "-0.5px",
-                        color: "var(--fg)",
-                        fontVariantNumeric: "tabular-nums",
-                    }}
-                >
-                    <PrivacyValue
-                        scope="cashflow"
-                        field="outcome"
-                        revealControl
-                    >
-                        {formatEur(outcome)}
-                    </PrivacyValue>
-                </span>
-            </div>
-
-            {/* secondary: month balance (signed, coloured by sign) */}
-            <div
-                style={{
-                    marginTop: 5,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--fg-soft)",
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 6,
-                }}
-            >
-                <span>{T("cf_month_balance_short")}</span>
-                <span
-                    style={{
                         color: netNegative ? "var(--danger)" : "var(--success)",
                         fontVariantNumeric: "tabular-nums",
                     }}
                 >
-                    <PrivacyValue scope="cashflow" field="deficit">
+                    <PrivacyValue scope="cashflow" field="deficit" revealControl>
                         {`${net >= 0 ? "+" : ""}${formatEur(net)}`}
                     </PrivacyValue>
                 </span>
             </div>
 
-            {/* income / expense split bar */}
-            <div
-                role="img"
-                aria-label={`${T("direction_income")} ${incPct}% · ${T("direction_expense")} ${expPct}%`}
-                style={{
-                    display: "flex",
-                    height: 9,
-                    borderRadius: 99,
-                    overflow: "hidden",
-                    marginTop: 13,
-                    background: "var(--card-inset)",
-                }}
-            >
-                <div
-                    style={{
-                        width: `${incPct}%`,
-                        background: "var(--success)",
-                    }}
-                />
-                <div style={{ width: 4 }} />
-                <div
-                    style={{
-                        width: `${expPct}%`,
-                        background: "var(--danger)",
-                        marginLeft: -4,
-                    }}
-                />
-            </div>
+            {/* spent-as-a-share-of-income gauge (explains the balance above) */}
+            <SpendGauge income={income} outcome={outcome} T={T} />
 
             {/* tappable totals — toggle the type filter */}
             <div style={{ display: "flex", gap: 10, marginTop: 11 }}>

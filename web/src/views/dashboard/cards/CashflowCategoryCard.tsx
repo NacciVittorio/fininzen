@@ -34,8 +34,27 @@ type DonutRow = {
     catId: number | string | null;
     hasChildren: boolean;
     parent: CategoryRollupParent | null;
-    isOther: boolean;
 };
+
+// The chart palette exposes only 5 hued tokens (--chart-6 is a neutral grey),
+// so with more categories than that we cycle the five and, from the second lap
+// on, desaturate each toward the card background so repeats stay distinguishable
+// instead of resolving to an undefined var() (black fill).
+const CHART_FALLBACKS = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+];
+function fallbackColor(i: number): string {
+    const base =
+        CHART_FALLBACKS[i % CHART_FALLBACKS.length] ?? "var(--chart-1)";
+    const lap = Math.floor(i / CHART_FALLBACKS.length);
+    return lap === 0
+        ? base
+        : `color-mix(in oklab, ${base} ${Math.max(35, 100 - lap * 25)}%, var(--card))`;
+}
 type CashflowCategoryCardProps = {
     expSummary: ExpenseSummaryResponse | null;
     categories: Category[];
@@ -85,36 +104,25 @@ export function CashflowCategoryCard({
         [expSummary, categories, cardCashflowDir, T],
     );
 
-    const donutRows = useMemo<DonutRow[]>(() => {
-        const top: DonutRow[] = parentRows.slice(0, 5).map((p, i) => ({
-            name: p.name,
-            total: p.total,
-            // Fall back to the chart palette when the category has no color.
-            color:
-                p.color && p.color !== "var(--fg-faint)"
-                    ? p.color
-                    : `var(--chart-${i + 1})`,
-            catId: p.catId,
-            hasChildren: p.hasChildren,
-            parent: p,
-            isOther: false,
-        }));
-        const rest = parentRows.slice(5);
-        if (rest.length > 0) {
-            top.push({
-                // Show the grouped count so this bucket is distinguishable from a
-                // real category the user may have literally named "Other"/"Altro".
-                name: `${T("dash_other")} (${rest.length})`,
-                total: rest.reduce((sum, p) => sum + p.total, 0),
-                color: "var(--chart-6)",
-                catId: null,
-                hasChildren: false,
-                parent: null,
-                isOther: true,
-            });
-        }
-        return top;
-    }, [parentRows, T]);
+    const donutRows = useMemo<DonutRow[]>(
+        () =>
+            // Every parent category gets its own slice/row (parentRows is already
+            // sorted desc by total) — no top-N cap, no aggregated "Other" bucket.
+            parentRows.map((p, i) => ({
+                name: p.name,
+                total: p.total,
+                // Fall back to the cycling chart palette when the category has no
+                // color of its own.
+                color:
+                    p.color && p.color !== "var(--fg-faint)"
+                        ? p.color
+                        : fallbackColor(i),
+                catId: p.catId,
+                hasChildren: p.hasChildren,
+                parent: p,
+            })),
+        [parentRows],
+    );
     const donutTotal = donutRows.reduce((sum, r) => sum + r.total, 0);
 
     // The pager's "can't go past the current month" boundary must follow the
@@ -207,13 +215,10 @@ export function CashflowCategoryCard({
                     >
                         <PieChart
                             data={donutRows.map((r, i) => ({
-                                // Unique key per slice: a real category can share the
-                                // aggregated bucket's translated name ("Other"/"Altro"),
-                                // which would collide in PieChart's name-based sliceKey
-                                // (React "duplicate key" + dropped/duplicated slices).
-                                category__id: r.isOther
-                                    ? "__other__"
-                                    : (r.catId ?? `cat-${i}`),
+                                // Stable, unique slice key (two categories can share a
+                                // name); also the handle onSliceClick resolves back to
+                                // its row below.
+                                category__id: r.catId ?? `cat-${i}`,
                                 total: r.total,
                                 category__color: r.color,
                                 category__name: r.name,
@@ -224,10 +229,14 @@ export function CashflowCategoryCard({
                             tLabel={T("total_label") || "total"}
                             tPctOfTotal={T("pct_of_total")}
                             onSliceClick={(slice) => {
+                                // Match on the id we set above — robust when two
+                                // categories share a display name.
                                 const row = donutRows.find(
-                                    (r) => r.name === slice.category__name,
+                                    (r, i) =>
+                                        (r.catId ?? `cat-${i}`) ===
+                                        slice.category__id,
                                 );
-                                if (!row || row.isOther) return;
+                                if (!row) return;
                                 openCategoryInCashflow(row.catId);
                             }}
                         />
@@ -236,6 +245,12 @@ export function CashflowCategoryCard({
                                 flex: "1 1 260px",
                                 minWidth: 0,
                                 width: "100%",
+                                // Cap the list height so a long category list scrolls
+                                // inside the card instead of stretching the dashboard
+                                // grid row; contain the scroll to this pane.
+                                maxHeight: 340,
+                                overflowY: "auto",
+                                overscrollBehavior: "contain",
                             }}
                         >
                             {donutRows.map((r, i) => {
@@ -245,20 +260,14 @@ export function CashflowCategoryCard({
                                     donutTotal > 0
                                         ? (r.total / donutTotal) * 100
                                         : 0;
-                                const clickable = !r.isOther;
                                 return (
                                     <div
-                                        key={i}
+                                        key={r.catId ?? `cat-${i}`}
                                         className="between"
                                         onMouseEnter={() => setPieHover(i)}
                                         onMouseLeave={() => setPieHover(null)}
-                                        onClick={
-                                            clickable
-                                                ? () =>
-                                                      openCategoryInCashflow(
-                                                          r.catId,
-                                                      )
-                                                : undefined
+                                        onClick={() =>
+                                            openCategoryInCashflow(r.catId)
                                         }
                                         style={{
                                             width: "100%",
@@ -267,9 +276,7 @@ export function CashflowCategoryCard({
                                                 i < donutRows.length - 1
                                                     ? "1px solid var(--rule)"
                                                     : "none",
-                                            cursor: clickable
-                                                ? "pointer"
-                                                : "default",
+                                            cursor: "pointer",
                                             opacity:
                                                 pieHover !== null && !isActive
                                                     ? 0.45
