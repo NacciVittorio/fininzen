@@ -107,7 +107,11 @@ export default function CategorySelect({
             const viewportHeight = vv?.height || window.innerHeight;
             const viewportTop = vv?.offsetTop || 0;
             const margin = 8;
-            const maxHeight = 260;
+            // Taller on mobile (narrow viewport) so long lists need less scrolling.
+            const maxHeight =
+                viewportWidth < 640
+                    ? Math.min(Math.round(viewportHeight * 0.55), 460)
+                    : 260;
             const bottomSpace =
                 viewportTop + viewportHeight - rect.bottom - margin;
             const topSpace = rect.top - viewportTop - margin;
@@ -120,16 +124,33 @@ export default function CategorySelect({
                 Math.max(rect.left, margin),
                 Math.max(margin, viewportWidth - rect.width - margin),
             );
-            const top = openAbove ? rect.top - height - 4 : rect.bottom + 4;
 
-            setPortalStyle({
+            const base: CSSProperties = {
                 position: "fixed",
-                top: Math.max(viewportTop + margin, Math.round(top)),
                 left: Math.round(left),
                 width: Math.round(rect.width),
                 maxHeight: height,
                 zIndex: 1300,
-            });
+            };
+            // Opening upward: anchor the bottom edge to the trigger so the menu
+            // hugs it whatever its content height (no floating gap). Opening
+            // downward: anchor the top just below the trigger, as before.
+            setPortalStyle(
+                openAbove
+                    ? {
+                          ...base,
+                          bottom: Math.round(
+                              window.innerHeight - (rect.top - 4),
+                          ),
+                      }
+                    : {
+                          ...base,
+                          top: Math.max(
+                              viewportTop + margin,
+                              Math.round(rect.bottom + 4),
+                          ),
+                      },
+            );
         };
 
         positionDropdown();
@@ -303,6 +324,7 @@ export default function CategorySelect({
                     const dropdown = (
                         <div
                             ref={dropdownRef}
+                            className="select-scroll"
                             data-testid="category-select-dropdown"
                             style={dropdownStyle}
                         >
@@ -387,18 +409,6 @@ export default function CategorySelect({
                                     </div>
                                 </div>
                             )}
-                            <button
-                                type="button"
-                                onClick={clear}
-                                style={itemStyle(
-                                    multiple
-                                        ? selectedValues.length === 0
-                                        : !value,
-                                )}
-                            >
-                                <span>{placeholder}</span>
-                            </button>
-
                             {visibleRoots.map((cat) => {
                                 const subs = childrenOf(cat.id);
                                 const shownSubs = visibleSubs(cat);
@@ -547,6 +557,18 @@ export default function CategorySelect({
                                     {T("category_search_empty")}
                                 </div>
                             )}
+
+                            <button
+                                type="button"
+                                onClick={clear}
+                                style={itemStyle(
+                                    multiple
+                                        ? selectedValues.length === 0
+                                        : !value,
+                                )}
+                            >
+                                <span>{placeholder}</span>
+                            </button>
                         </div>
                     );
                     return usePortal && typeof document !== "undefined"

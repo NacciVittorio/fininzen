@@ -53,6 +53,7 @@ export default function IncomeOutcomeMovementForm({
                     categoryType={modalDir}
                     placeholder={T("no_category")}
                     categories={categories}
+                    usePortal
                 />
             </div>
             <div style={{ position: "relative" }}>
@@ -194,6 +195,7 @@ export default function IncomeOutcomeMovementForm({
                 />
                 <Select
                     id="exp-linked-asset"
+                    usePortal
                     value={expForm.linked_asset}
                     onChange={(value) =>
                         setExpForm((previous) => ({

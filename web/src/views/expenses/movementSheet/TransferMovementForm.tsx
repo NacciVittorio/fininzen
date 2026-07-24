@@ -35,6 +35,7 @@ export default function TransferMovementForm({
                 <FieldLabel text={T("transfer_from")} htmlFor="transfer-from" />
                 <Select
                     id="transfer-from"
+                    usePortal
                     data-testid="transfer-from-account"
                     value={transferForm.from_account_id}
                     onChange={(value) =>
@@ -54,6 +55,7 @@ export default function TransferMovementForm({
                 <FieldLabel text={T("transfer_to")} htmlFor="transfer-to" />
                 <Select
                     id="transfer-to"
+                    usePortal
                     data-testid="transfer-to-account"
                     value={transferForm.to_account_id}
                     onChange={(value) =>

@@ -23,6 +23,20 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "I menu per scegliere categoria, conto o attività collegata (quando aggiungi una spesa, un'entrata o un trasferimento) ora mostrano l'elenco completo e scorrono in modo fluido: prima la lista veniva tagliata e lo scorrimento faceva i capricci, soprattutto su iPhone.",
+                "Su telefono lo stesso menu è più alto e resta agganciato al campo, e la voce di reset («Nessun collegamento» / «Nessuna categoria») è stata spostata in fondo alla lista.",
+            ],
+            en: [
+                "The menus for choosing a category, account or linked asset (when adding an expense, income or transfer) now show the full list and scroll smoothly: before, the list was cut off and scrolling was glitchy, especially on iPhone.",
+                "On phones the same menu is taller and stays anchored to the field, and the reset option (“No link” / “No category”) has been moved to the bottom of the list.",
+            ],
+        },
+    },
+    {
         version: "0.9.1",
         date: "2026-07-24",
         highlights: {
