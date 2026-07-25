@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.10.0",
+        date: "2026-07-25",
         highlights: {
             it: [
                 "Nei campi importo dei Flussi (nuova spesa, entrata, trasferimento e modifica di un trasferimento) puoi ora fare il conto sul posto: scrivi direttamente l'operazione — per esempio «12,50+8,30» — e premi «=» o Invio per sostituirla con il totale, senza più calcolarlo a parte.",
