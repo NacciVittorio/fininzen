@@ -6,8 +6,8 @@ approfondite.
 
 ## Deploy & operatività
 
-- [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) — runbook canonico: da VM vuota a stack online
-  (Caddy + Next.js + Django + Postgres + Redis), price cron, backup/restore, HTTPS.
+- [DEPLOY.md](DEPLOY.md) — runbook canonico: deploy bare-metal su VPS Ubuntu
+  (systemd, SQLite, senza Docker), da VM vuota a stack online.
 - [OPS_HARDENING.md](OPS_HARDENING.md) — checklist di hardening lato deploy (rate limit,
   backup, gunicorn, price refresh) + log dei finding accettati.
 
@@ -21,8 +21,8 @@ approfondite.
 - [VERSIONING.md](VERSIONING.md) — schema SemVer unico backend/frontend, fonte di verità
   (`VERSION`) e come si taglia una release con `just release`.
 - [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md) — la CI gira su GitHub Actions via push
-  mirror da GitLab (quota compute esaurita): come funziona, i due token da configurare
-  a mano e come tornare indietro.
+  mirror da GitLab (quota compute esaurita): come funziona il mirror e i token
+  necessari.
 - [ISSUES.md](ISSUES.md) — convenzioni per aprire le issue (titoli, template, label).
 
 ## Archivio
@@ -31,3 +31,5 @@ Documenti storici, conservati per riferimento ma non più parte del flusso opera
 
 - [archive/POSTGRES_MIGRATION.md](archive/POSTGRES_MIGRATION.md) — migrazione una-tantum
   SQLite → PostgreSQL (cutover completato).
+- [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) — guida Docker storica (Caddy + Next.js + Django
+  + Postgres + Redis in container); tenuta come riferimento ma non è il deploy in uso.
