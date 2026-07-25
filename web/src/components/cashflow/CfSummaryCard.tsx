@@ -157,7 +157,9 @@ function SpendGauge({
         return (
             <div style={{ marginTop: 13 }}>
                 {track(
-                    <div style={{ width: "100%", background: "var(--danger)" }} />,
+                    <div
+                        style={{ width: "100%", background: "var(--danger)" }}
+                    />,
                 )}
                 {caption(T("no_income_period"))}
             </div>
@@ -302,7 +304,11 @@ export default function CfSummaryCard({
                         fontVariantNumeric: "tabular-nums",
                     }}
                 >
-                    <PrivacyValue scope="cashflow" field="deficit" revealControl>
+                    <PrivacyValue
+                        scope="cashflow"
+                        field="deficit"
+                        revealControl
+                    >
                         {`${net >= 0 ? "+" : ""}${formatEur(net)}`}
                     </PrivacyValue>
                 </span>
