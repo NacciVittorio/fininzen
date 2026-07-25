@@ -73,7 +73,7 @@ variables:
 
 .node:
   # Debian-based, not -alpine: the ci-tools scripts are bash, which Alpine lacks.
-  image: node:22-slim
+  image: node:24-slim
   cache:
     key: npm-$CI_COMMIT_REF_SLUG
     paths:

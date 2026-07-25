@@ -28,8 +28,8 @@ free -h   # deve mostrare 1G alla riga Swap
 apt update && apt upgrade -y
 apt install -y git python3-venv python3-pip curl sqlite3 ufw
 
-# Node.js 22 LTS (il repo Ubuntu ha Node 18, non supportato)
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+# Node.js 24 LTS (il repo Ubuntu ha Node 18, non supportato)
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt install -y nodejs
 
 # just (task runner usato dalle recipe *-prod)
