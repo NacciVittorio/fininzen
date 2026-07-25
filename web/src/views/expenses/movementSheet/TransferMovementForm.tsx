@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import FieldLabel from "../../../components/FieldLabel";
 import Select from "../../../components/Select";
 import { VerifiedToggleButton } from "../../../components/ui";
-import { filterAmountInput } from "../../../utils/formatters";
+import AmountCalculator from "../../../components/AmountCalculator";
 import type { DecimalSeparator } from "../../../utils/formatters";
 import type { Translator } from "../../../types";
 import type { TransferForm } from "../../../context/formBuilders";
@@ -100,21 +100,17 @@ export default function TransferMovementForm({
                     text={T("transfer_amount")}
                     htmlFor="transfer-amount"
                 />
-                <input
+                <AmountCalculator
                     id="transfer-amount"
-                    className="inp"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder={decimalSeparator === "," ? "0,00" : "0.00"}
                     data-testid="transfer-amount"
                     value={transferForm.amount}
-                    onChange={(event) => {
-                        setTransferError(null);
-                        setTransferForm((previous) => ({
-                            ...previous,
-                            amount: filterAmountInput(event.target.value),
-                        }));
-                    }}
+                    onChange={(amount) =>
+                        setTransferForm((previous) => ({ ...previous, amount }))
+                    }
+                    onFocusClearError={() => setTransferError(null)}
+                    decimalSeparator={decimalSeparator}
+                    placeholder={decimalSeparator === "," ? "0,00" : "0.00"}
+                    T={T}
                 />
             </div>
             <div>

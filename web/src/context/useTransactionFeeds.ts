@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { API } from "../utils/api";
-import { parseAmount, parseMoneyToString } from "../utils/formatters";
+import { parseMoneyToString, resolveAmountField } from "../utils/formatters";
 import { logError } from "../utils/logger";
 import { buildCashflowFilters } from "./feedDefaults";
 import { buildCashflowQueryParams as createCashflowQueryParams } from "./feedQueryModel";
@@ -284,11 +284,13 @@ export function useTransactionFeeds({
         if (guardDemo()) return;
         const item = cfEditTransferItem;
         if (!item || !item.to_account) return;
-        const parsedAmount = parseAmount(
+        // resolveAmountField also settles an uncommitted calculator expression
+        // ("12,50+8,30"), which the field normally resolves on blur.
+        const resolvedAmount = resolveAmountField(
             cfEditTransferForm.amount,
             decimalSeparator,
         );
-        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        if (!resolvedAmount.ok || resolvedAmount.value <= 0) {
             setCfEditTransferError(T("error_invalid_amount"));
             return;
         }
@@ -296,7 +298,7 @@ export function useTransactionFeeds({
         setCfEditTransferError(null);
         try {
             const canonicalAmount = parseMoneyToString(
-                cfEditTransferForm.amount,
+                resolvedAmount.text,
                 decimalSeparator,
             );
             if (canonicalAmount == null) {
@@ -307,7 +309,7 @@ export function useTransactionFeeds({
                 date: cfEditTransferForm.date,
                 notes: cfEditTransferForm.notes,
                 is_verified: cfEditTransferForm.is_verified,
-                // CRIT-04: canonical decimal string (validated above via parseAmount).
+                // CRIT-04: canonical decimal string (validated above via resolveAmountField).
                 price_per_share: canonicalAmount,
             };
             const r1 = await apiFetch(

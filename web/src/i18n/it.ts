@@ -1047,6 +1047,26 @@ const it: Record<string, string> = {
     offline_banner_text:
         "Sei offline — vengono mostrati gli ultimi dati sincronizzati.",
     offline_action_unavailable: "Non disponibile offline",
+
+    // Amount calculator
+    calc_title: "Calcolatrice",
+    calc_open: "Apri calcolatrice",
+    calc_apply: "Applica",
+    calc_equals: "Calcola",
+    calc_clear_all: "Cancella tutto",
+    calc_clear_entry: "Cancella voce",
+    calc_backspace: "Cancella ultimo carattere",
+    calc_op_add: "Più",
+    calc_op_sub: "Meno",
+    calc_op_mul: "Per",
+    calc_op_div: "Diviso",
+    calc_decimal_sep: "Separatore decimale",
+    calc_result: "Risultato",
+    calc_hint: "Puoi anche digitare l'operazione, es. 12,50+8,30",
+    calc_err_syntax: "Espressione non valida",
+    calc_err_divzero: "Divisione per zero",
+    calc_err_overflow: "Importo troppo grande",
+    calc_err_negative: "Il risultato dev'essere positivo",
 };
 
 export default it;

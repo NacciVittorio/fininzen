@@ -1,5 +1,9 @@
 import { API } from "../utils/api";
-import { parseAmount, parseMoneyToString, today } from "../utils/formatters";
+import {
+    parseMoneyToString,
+    resolveAmountField,
+    today,
+} from "../utils/formatters";
 import { REFRESH_REASONS } from "../utils/refreshReasons";
 import { showToast } from "../utils/toastStore";
 import { buildExpenseForm, buildTransferForm } from "./formBuilders";
@@ -138,8 +142,14 @@ export function useExpenseActions({
             setExpError(`${T("error_required_fields")} ${missing.join(", ")}`);
             return;
         }
-        const parsedExpAmount = parseAmount(expForm.amount, decimalSeparator);
-        if (isNaN(parsedExpAmount) || parsedExpAmount <= 0) {
+        // resolveAmountField also settles an uncommitted calculator expression
+        // ("12,50+8,30"), which the field normally resolves on blur — this is
+        // the belt to that braces.
+        const resolvedExpAmount = resolveAmountField(
+            expForm.amount,
+            decimalSeparator,
+        );
+        if (!resolvedExpAmount.ok || resolvedExpAmount.value <= 0) {
             // Previously this cleared the error and bailed silently, so the
             // "Add" button appeared dead. Surface why nothing happened instead.
             setExpError(T("error_invalid_amount"));
@@ -150,7 +160,7 @@ export function useExpenseActions({
             ? `${API}/expenses/${editingExpenseId}/`
             : `${API}/expenses/`;
         const canonicalAmount = parseMoneyToString(
-            expForm.amount,
+            resolvedExpAmount.text,
             decimalSeparator,
         );
         if (canonicalAmount == null) {
@@ -159,7 +169,7 @@ export function useExpenseActions({
         }
         const body = {
             ...expForm,
-            // CRIT-04: canonical decimal string (validated above via parseAmount).
+            // CRIT-04: canonical decimal string (validated above via resolveAmountField).
             amount: canonicalAmount,
             category: expForm.category || null,
             linked_asset: expForm.linked_asset

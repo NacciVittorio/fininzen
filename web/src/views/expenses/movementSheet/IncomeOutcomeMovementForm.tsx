@@ -5,7 +5,7 @@ import CategorySelect from "../../../components/CategorySelect";
 import Select from "../../../components/Select";
 import FieldLabel from "../../../components/FieldLabel";
 import { VerifiedToggleButton } from "../../../components/ui";
-import { filterAmountInput } from "../../../utils/formatters";
+import AmountCalculator from "../../../components/AmountCalculator";
 import type { DecimalSeparator } from "../../../utils/formatters";
 import type { Asset, Category } from "../../../api/types";
 import type { Translator } from "../../../types";
@@ -138,38 +138,19 @@ export default function IncomeOutcomeMovementForm({
             </div>
             <div>
                 <FieldLabel text={T("label_amount")} htmlFor="exp-amount" />
-                <div style={{ position: "relative" }}>
-                    <input
-                        id="exp-amount"
-                        className="inp"
-                        type="text"
-                        inputMode="decimal"
-                        placeholder={decimalSeparator === "," ? "0,00" : "0.00"}
-                        style={{ paddingRight: 52 }}
-                        value={expForm.amount}
-                        onChange={(event) => {
-                            setExpError(null);
-                            setExpForm((previous) => ({
-                                ...previous,
-                                amount: filterAmountInput(event.target.value),
-                            }));
-                        }}
-                    />
-                    <span
-                        style={{
-                            position: "absolute",
-                            right: 14,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            color: "var(--fg-soft)",
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 13,
-                            pointerEvents: "none",
-                        }}
-                    >
-                        EUR
-                    </span>
-                </div>
+                <AmountCalculator
+                    id="exp-amount"
+                    data-testid="exp-amount"
+                    value={expForm.amount}
+                    onChange={(amount) =>
+                        setExpForm((previous) => ({ ...previous, amount }))
+                    }
+                    onFocusClearError={() => setExpError(null)}
+                    decimalSeparator={decimalSeparator}
+                    placeholder={decimalSeparator === "," ? "0,00" : "0.00"}
+                    suffix="EUR"
+                    T={T}
+                />
             </div>
             <div>
                 <FieldLabel text={T("label_date")} htmlFor="exp-date" />

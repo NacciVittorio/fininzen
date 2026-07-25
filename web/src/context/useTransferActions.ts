@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { API } from "../utils/api";
-import { parseAmount, parseMoneyToString } from "../utils/formatters";
+import { parseMoneyToString, resolveAmountField } from "../utils/formatters";
 import { REFRESH_REASONS } from "../utils/refreshReasons";
 import { buildTransferForm } from "./formBuilders";
 import type { ApiFetcher } from "../api/client";
@@ -82,15 +82,16 @@ export function useTransferActions({
             setTransferError(T("tx_error_fields"));
             return;
         }
-        const parsedTransferAmountStandalone = parseAmount(
+        // resolveAmountField also settles an uncommitted calculator expression
+        // ("12,50+8,30"), which the field normally resolves on blur.
+        const resolvedStandalone = resolveAmountField(
             transferForm.amount,
             decimalSeparator,
         );
-        if (
-            isNaN(parsedTransferAmountStandalone) ||
-            parsedTransferAmountStandalone <= 0
-        ) {
-            setTransferError(null);
+        if (!resolvedStandalone.ok || resolvedStandalone.value <= 0) {
+            // Used to clear the error and bail, leaving the button looking
+            // dead — same fix as submitExpense.
+            setTransferError(T("error_invalid_amount"));
             return;
         }
         setTransferLoading(true);
@@ -98,7 +99,7 @@ export function useTransferActions({
         setTransferWarning(null);
         try {
             const amount = parseMoneyToString(
-                transferForm.amount,
+                resolvedStandalone.text,
                 decimalSeparator,
             );
             if (amount == null) {
@@ -110,7 +111,7 @@ export function useTransferActions({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...transferForm,
-                    // CRIT-04: canonical decimal string (validated above via parseAmount).
+                    // CRIT-04: canonical decimal string (validated above via resolveAmountField).
                     amount,
                 }),
             });
@@ -155,12 +156,12 @@ export function useTransferActions({
             setTransferError(T("tx_error_fields"));
             return;
         }
-        const parsedTransferAmount = parseAmount(
+        const resolvedTransferAmount = resolveAmountField(
             transferForm.amount,
             decimalSeparator,
         );
-        if (isNaN(parsedTransferAmount) || parsedTransferAmount <= 0) {
-            setTransferError(null);
+        if (!resolvedTransferAmount.ok || resolvedTransferAmount.value <= 0) {
+            setTransferError(T("error_invalid_amount"));
             return;
         }
         setTransferLoading(true);
@@ -168,7 +169,7 @@ export function useTransferActions({
         setTransferWarning(null);
         try {
             const amount = parseMoneyToString(
-                transferForm.amount,
+                resolvedTransferAmount.text,
                 decimalSeparator,
             );
             if (amount == null) {
@@ -179,7 +180,7 @@ export function useTransferActions({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    // CRIT-04: canonical decimal string (validated above via parseAmount).
+                    // CRIT-04: canonical decimal string (validated above via resolveAmountField).
                     ...transferForm,
                     amount,
                 }),

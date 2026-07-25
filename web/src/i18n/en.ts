@@ -1038,6 +1038,26 @@ const en: Record<string, string> = {
     // Offline
     offline_banner_text: "You're offline — showing the last synced data.",
     offline_action_unavailable: "Not available offline",
+
+    // Amount calculator
+    calc_title: "Calculator",
+    calc_open: "Open calculator",
+    calc_apply: "Apply",
+    calc_equals: "Calculate",
+    calc_clear_all: "Clear all",
+    calc_clear_entry: "Clear entry",
+    calc_backspace: "Delete last character",
+    calc_op_add: "Plus",
+    calc_op_sub: "Minus",
+    calc_op_mul: "Times",
+    calc_op_div: "Divided by",
+    calc_decimal_sep: "Decimal separator",
+    calc_result: "Result",
+    calc_hint: "You can also type the operation, e.g. 12.50+8.30",
+    calc_err_syntax: "Invalid expression",
+    calc_err_divzero: "Division by zero",
+    calc_err_overflow: "Amount too large",
+    calc_err_negative: "The result must be positive",
 };
 
 export default en;

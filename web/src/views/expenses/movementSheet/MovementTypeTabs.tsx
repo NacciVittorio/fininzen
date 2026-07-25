@@ -53,6 +53,7 @@ export default function MovementTypeTabs({
                     <button
                         key={type.key}
                         type="button"
+                        data-testid={`movement-type-${type.key}`}
                         aria-pressed={modalDir === type.key}
                         onClick={() => {
                             setModalDir(type.key);

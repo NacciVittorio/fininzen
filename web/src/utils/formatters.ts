@@ -210,6 +210,218 @@ export const isValidAmount = (
     return Number.isFinite(n) && n > 0;
 };
 
+// ── Amount expressions (in-field calculator) ────────────────────────────────
+// The amount fields accept a small arithmetic expression ("12,50+8,30") on top
+// of a plain number. Everything below is pure string/number work shared by the
+// two entry paths (typed inline and the on-screen keypad) so the maths exists
+// once. It lives in this module — and not in its own file — because it needs
+// MONEY_MAX_MAGNITUDE and filterAmountInput, which stay module-private.
+
+export type AmountEvalError =
+    "empty" | "syntax" | "divzero" | "overflow" | "negative";
+
+export type AmountEvalResult =
+    { ok: true; value: number } | { ok: false; error: AmountEvalError };
+
+const OPERATORS = "+-*/";
+const OPERATOR_RE = /[+\-*/]/;
+// Keeps the recursion depth of the parser bounded (<= ~20 frames) and stops a
+// paste of junk from ever reaching it.
+const MAX_EXPRESSION_LENGTH = 40;
+
+// Fold the display glyphs onto ASCII and drop everything that is not part of
+// an expression. The field value itself always stays ASCII: rewriting "*" into
+// "×" while the user types would move the caret to the end on every keystroke
+// (React reassigns `value`, and the browser only restores the caret when the
+// new value is identical). The pretty glyphs live on the keypad buttons only.
+const normalizeOperators = (val: string): string =>
+    val
+        .replace(/[×xX]/g, "*") // × x X
+        .replace(/÷/g, "/") // ÷
+        .replace(/[−–—]/g, "-") // − – —
+        .replace(/[\s  ]/g, "")
+        .replace(/[^0-9,.+\-*/]/g, "");
+
+// Soft filter for a field that may hold an expression. With no operator it
+// delegates to filterAmountInput, so a plain number behaves exactly as it did
+// before this feature existed (same clamping, same single separator) — that is
+// what keeps `page.fill("42.50")` and every existing form untouched.
+export const filterAmountExpression = (val: string): string => {
+    const norm = normalizeOperators(val);
+    if (!OPERATOR_RE.test(norm)) return filterAmountInput(norm);
+
+    let out = "";
+    let sepInLiteral = false;
+    for (const ch of norm) {
+        if (OPERATORS.includes(ch)) {
+            if (out === "") continue; // no leading operator
+            if (OPERATORS.includes(out[out.length - 1]!)) {
+                out = out.slice(0, -1) + ch; // collapse a run, keep the last
+            } else {
+                out += ch;
+            }
+            sepInLiteral = false; // a new literal starts
+            continue;
+        }
+        if (ch === "," || ch === ".") {
+            if (sepInLiteral) continue; // one separator per literal
+            sepInLiteral = true;
+        }
+        out += ch;
+    }
+    return out.slice(0, MAX_EXPRESSION_LENGTH);
+};
+
+export const hasAmountOperator = (val: string): boolean =>
+    /[+\-*/×÷−]/.test(val);
+
+// Money-safe rounding to 2 decimals. (n * 100) is often off by an ulp —
+// 12.50 + 8.30 gives 2079.9999999999995 — which would round down to 20.79.
+// toPrecision(12) sits well inside the double's significant digits while
+// leaving room for the accumulated error, so it repairs the binary noise
+// *before* the half-up rounding.
+const roundMoney = (n: number): number =>
+    Math.round(Number((n * 100).toPrecision(12))) / 100;
+
+const stripTrailingOperator = (s: string): string =>
+    OPERATORS.includes(s[s.length - 1] ?? "") ? s.slice(0, -1) : s;
+
+// Recursive-descent evaluator — no eval, no Function. Grammar:
+//   sum    := term (('+'|'-') term)*
+//   term   := factor (('*'|'/') factor)*
+//   factor := ('+'|'-') factor | number
+//   number := digits [(','|'.') digits] | (','|'.') digits
+// so "×" and "÷" bind tighter than "+" and "−" (2+3*4 is 14, not 20).
+// No `sep` parameter on purpose: inside an expression both "," and "." are
+// decimal marks, per literal. Applying the thousands heuristic of
+// _normalizeDecimalString here would turn "1.234+1" into 1235 instead of
+// 2,234 — unpredictable. That heuristic exists for API prefills, which never
+// come through this path, and a plain typed number can't reach 3 decimals
+// anyway because filterAmountInput clamps it.
+export const evaluateExpression = (expr: string): AmountEvalResult => {
+    const s = stripTrailingOperator(normalizeOperators(expr));
+    if (!s) return { ok: false, error: "empty" };
+
+    let i = 0;
+    let divZero = false;
+    const peek = (): string | undefined => s[i];
+    const isDigit = (c: string | undefined): boolean =>
+        c != null && c >= "0" && c <= "9";
+
+    const parseNumber = (): number | null => {
+        const start = i;
+        while (isDigit(peek())) i++;
+        if (peek() === "," || peek() === ".") {
+            i++;
+            while (isDigit(peek())) i++;
+        }
+        const lit = s.slice(start, i);
+        if (!lit || lit === "," || lit === ".") return null;
+        const n = Number(lit.replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+    };
+
+    const parseFactor = (): number | null => {
+        if (peek() === "+") {
+            i++;
+            return parseFactor();
+        }
+        if (peek() === "-") {
+            i++;
+            const v = parseFactor();
+            return v == null ? null : -v;
+        }
+        return parseNumber();
+    };
+
+    const parseTerm = (): number | null => {
+        let left = parseFactor();
+        if (left == null) return null;
+        while (peek() === "*" || peek() === "/") {
+            const op = s[i++]!;
+            const right = parseFactor();
+            if (right == null) return null;
+            if (op === "/") {
+                if (right === 0) {
+                    divZero = true;
+                    return null;
+                }
+                left = left / right;
+            } else {
+                left = left * right;
+            }
+        }
+        return left;
+    };
+
+    const parseSum = (): number | null => {
+        let left = parseTerm();
+        if (left == null) return null;
+        while (peek() === "+" || peek() === "-") {
+            const op = s[i++]!;
+            const right = parseTerm();
+            if (right == null) return null;
+            left = op === "+" ? left + right : left - right;
+        }
+        return left;
+    };
+
+    const raw = parseSum();
+    if (raw == null)
+        return { ok: false, error: divZero ? "divzero" : "syntax" };
+    if (i !== s.length) return { ok: false, error: "syntax" }; // trailing junk
+    if (!Number.isFinite(raw)) return { ok: false, error: "overflow" };
+    const value = roundMoney(raw);
+    if (!Number.isFinite(value) || Math.abs(value) > MONEY_MAX_MAGNITUDE)
+        return { ok: false, error: "overflow" };
+    // Amounts must be > 0 (isValidAmount). Reporting "negative" here is the
+    // first of three guards against a sign flip — see formatResult.
+    if (value < 0) return { ok: false, error: "negative" };
+    return { ok: true, value };
+};
+
+// Render an evaluated result back into a string the amount field can hold.
+// Returns "" for anything out of range: a negative would lose its sign inside
+// filterAmountInput (which strips "-"), so "10-15" would silently become
+// "5,00" and submit as a positive amount. Empty is the only safe answer, and
+// callers must have already caught the "negative" error anyway.
+export const formatResult = (
+    n: number,
+    sep: DecimalSeparator = ",",
+): string => {
+    if (!Number.isFinite(n) || n < 0 || n > MONEY_MAX_MAGNITUDE) return "";
+    const fixed = n.toFixed(2);
+    // No Intl.NumberFormat: it would add thousands separators, and
+    // filterAmountInput (one separator max) would mangle "1.234,56" into
+    // "1.23". The final pass through it guarantees a value the field accepts.
+    return filterAmountInput(sep === "." ? fixed : fixed.replace(".", ","));
+};
+
+// Single entry point shared by the calculator UI and the submit handlers:
+// resolve whatever the amount field holds (a plain number or an expression)
+// into the canonical field text plus its numeric value.
+export const resolveAmountField = (
+    val: string,
+    sep: DecimalSeparator = ",",
+):
+    | { ok: true; text: string; value: number }
+    | { ok: false; error: AmountEvalError } => {
+    if (!hasAmountOperator(val)) {
+        const n = parseAmount(val, sep);
+        if (!Number.isFinite(n))
+            return { ok: false, error: val.trim() ? "syntax" : "empty" };
+        // Deliberately not reformatted: running "12" through formatResult
+        // would rewrite it to "12,00" under the user's fingers on every blur.
+        return { ok: true, text: filterAmountInput(val), value: n };
+    }
+    const evaluated = evaluateExpression(val);
+    if (!evaluated.ok) return evaluated;
+    const text = formatResult(evaluated.value, sep);
+    return text
+        ? { ok: true, text, value: evaluated.value }
+        : { ok: false, error: "overflow" };
+};
+
 // Split one CSV line into trimmed fields, honoring RFC-4180 quoting: a quoted
 // field may contain the separator, and a doubled "" is an escaped quote. Bank
 // exports routinely quote descriptions that contain the delimiter, so the old

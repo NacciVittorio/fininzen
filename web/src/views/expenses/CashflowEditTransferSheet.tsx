@@ -3,7 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import FieldLabel from "../../components/FieldLabel";
 import { BottomSheet, VerifiedToggleButton } from "../../components/ui";
-import { filterAmountInput } from "../../utils/formatters";
+import AmountCalculator from "../../components/AmountCalculator";
 import type { DecimalSeparator } from "../../utils/formatters";
 import type { Translator } from "../../types";
 import type { CashflowFeedItem } from "../../context/feedTypes";
@@ -83,21 +83,22 @@ export default function CashflowEditTransferSheet({
                         />
                     </div>
                     <div>
-                        <FieldLabel text={T("label_amount")} />
-                        <input
-                            className="inp"
-                            type="text"
-                            inputMode="decimal"
+                        <FieldLabel
+                            text={T("label_amount")}
+                            htmlFor="cf-edit-transfer-amount"
+                        />
+                        <AmountCalculator
+                            id="cf-edit-transfer-amount"
+                            data-testid="cf-edit-transfer-amount"
+                            value={cfEditTransferForm.amount}
+                            onChange={(amount) =>
+                                setCfEditTransferForm((p) => ({ ...p, amount }))
+                            }
+                            decimalSeparator={decimalSeparator}
                             placeholder={
                                 decimalSeparator === "," ? "0,00" : "0.00"
                             }
-                            value={cfEditTransferForm.amount}
-                            onChange={(e) =>
-                                setCfEditTransferForm((p) => ({
-                                    ...p,
-                                    amount: filterAmountInput(e.target.value),
-                                }))
-                            }
+                            T={T}
                         />
                     </div>
                     <div>
