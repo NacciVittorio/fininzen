@@ -63,12 +63,16 @@ def _iso_now() -> str:
 def main() -> int:
     repo = _env("GITHUB_REPOSITORY", "NacciVittorio/fininzen")
     sha = _env("CI_COMMIT_SHA")
-    workflow_path = os.environ.get("GITHUB_CI_WORKFLOW_PATH", ".github/workflows/ci.yml")
+    workflow_path = os.environ.get(
+        "GITHUB_CI_WORKFLOW_PATH", ".github/workflows/ci.yml"
+    )
     workflow_name = os.environ.get("GITHUB_CI_WORKFLOW_NAME", "CI")
     timeout_seconds = int(os.environ.get("GITHUB_CI_GATE_TIMEOUT_SECONDS", "1200"))
     poll_seconds = int(os.environ.get("GITHUB_CI_GATE_POLL_SECONDS", "20"))
     deadline = time.monotonic() + timeout_seconds
-    url = f"https://api.github.com/repos/{repo}/actions/runs?head_sha={sha}&per_page=100"
+    url = (
+        f"https://api.github.com/repos/{repo}/actions/runs?head_sha={sha}&per_page=100"
+    )
 
     print(f"==> Waiting for GitHub Actions CI on {sha}")
     while True:
@@ -121,7 +125,7 @@ def main() -> int:
             )
             return 1
 
-        print(f"==> { _iso_now() } still waiting...")
+        print(f"==> {_iso_now()} still waiting...")
         time.sleep(poll_seconds)
 
 
