@@ -23,6 +23,22 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Nei campi importo dei Flussi (nuova spesa, entrata, trasferimento e modifica di un trasferimento) puoi ora fare il conto sul posto: scrivi direttamente l'operazione — per esempio «12,50+8,30» — e premi «=» o Invio per sostituirla con il totale, senza più calcolarlo a parte.",
+                "Accanto al campo c'è anche una calcolatrice: si apre con un tocco e ha i tasti +, −, × e ÷, che sul telefono la tastiera numerica non offre. «Applica» porta il risultato nel campo.",
+                "Il risultato deve restare positivo: un'operazione come «10−15» viene segnalata come errore invece di finire nel campo senza il segno meno.",
+            ],
+            en: [
+                "The amount fields in Cash Flow (new expense, income, transfer, and editing a transfer) now do the maths for you: type the operation straight in — say “12.50+8.30” — and press “=” or Enter to replace it with the total, instead of working it out elsewhere.",
+                "There is also a calculator next to the field: one tap opens it, with the +, −, × and ÷ keys the phone number pad doesn't offer. “Apply” puts the result into the field.",
+                "The result has to stay positive: an operation like “10−15” is flagged as an error rather than landing in the field with its minus sign dropped.",
+            ],
+        },
+    },
+    {
         version: "0.9.2",
         date: "2026-07-24",
         highlights: {
