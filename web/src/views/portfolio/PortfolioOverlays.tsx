@@ -4,10 +4,7 @@ import type { ComponentProps, Dispatch, SetStateAction } from "react";
 import { Icon, SpeedDialFab } from "../../components/ui";
 import type { Asset } from "../../api/types";
 import type { Translator } from "../../types";
-import type {
-    AssetTransactionFilters,
-    AssetTransactionFilterType,
-} from "../../context/feedDefaults";
+import type { AssetTransactionFilters } from "../../context/feedDefaults";
 import AddTransactionSheet from "./AddTransactionSheet";
 import ArchiveBlockedSheet from "./ArchiveBlockedSheet";
 import AssetFormSheet from "./AssetFormSheet";
@@ -36,9 +33,6 @@ type PortfolioOverlaysProps = ComponentProps<typeof AddTransactionSheet> &
         setAssetTxFilters: Dispatch<SetStateAction<AssetTransactionFilters>>;
         investments: readonly Asset[];
         archivedInvestments?: readonly Asset[];
-        toggleAssetTxType: (type: AssetTransactionFilterType) => void;
-        assetTxPeriodMode: "month" | "year";
-        setAssetTxPeriodMode: (mode: string) => void;
     };
 
 export default function PortfolioOverlays(props: PortfolioOverlaysProps) {
@@ -68,9 +62,6 @@ export default function PortfolioOverlays(props: PortfolioOverlaysProps) {
                 archivedInvestments={props.archivedInvestments}
                 filters={assetTxFilters}
                 setFilters={setAssetTxFilters}
-                toggleType={props.toggleAssetTxType}
-                periodMode={props.assetTxPeriodMode}
-                setPeriodMode={props.setAssetTxPeriodMode}
             />
             <ArchiveBlockedSheet {...props} />
             <SpeedDialFab

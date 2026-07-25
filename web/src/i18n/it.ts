@@ -182,7 +182,7 @@ const it: Record<string, string> = {
     time_all: "Sempre",
     cf_period: "Periodo",
     cf_filters: "Filtri",
-    cf_filters_apply: "Mostra risultati",
+    filters_apply: "Applica filtri",
     cf_filters_reset: "Azzera",
     cf_review: "Rivedi",
     cf_unverified_nudge: "{count} movimenti da verificare",

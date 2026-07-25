@@ -9,6 +9,13 @@ export const ALL_ASSET_TX_TYPES: AssetTransactionFilterType[] = [
     "adjustment",
 ];
 
+export const ALL_CASHFLOW_TYPES: CashflowItemType[] = [
+    "income",
+    "outcome",
+    "transfer",
+    "adjustment",
+];
+
 export interface CashflowFilters {
     types: CashflowItemType[];
     verified: boolean | null;
@@ -47,12 +54,32 @@ export const getCurrentMonthDateRange = () => {
     return { from, to };
 };
 
+// Shared by the cashflow and asset-transaction type chips (both the live
+// context togglers and the filter sheets' draft state): from "all types",
+// picking one focuses to that single type; otherwise it toggles, never
+// leaving the selection empty.
+export function nextTypeSelection<T extends string>(
+    prev: readonly T[],
+    type: T,
+    all: readonly T[],
+): T[] {
+    let types: T[];
+    if (prev.length === all.length) {
+        types = [type];
+    } else if (prev.includes(type)) {
+        types = prev.filter((t) => t !== type);
+    } else {
+        types = [...prev, type];
+    }
+    return types.length === 0 ? [type] : types;
+}
+
 export const buildCashflowFilters = (
     overrides: Partial<CashflowFilters> = {},
 ): CashflowFilters => {
     const { from, to } = getCurrentMonthDateRange();
     return {
-        types: ["income", "outcome", "transfer", "adjustment"],
+        types: [...ALL_CASHFLOW_TYPES],
         verified: null,
         category_ids: [],
         account_ids: [],
@@ -70,7 +97,7 @@ export const buildAssetTxFilters = (
     const { from, to } = getCurrentMonthDateRange();
     return {
         asset_ids: [],
-        types: ["buy", "sell", "adjustment"],
+        types: [...ALL_ASSET_TX_TYPES],
         date_from: from,
         date_to: to,
         verified: null,

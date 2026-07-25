@@ -72,11 +72,11 @@ export default function AddTransactionSheet({
                     style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: 16,
-                        padding: "8px 18px 18px",
+                        gap: 12,
+                        padding: "0 18px 8px",
                     }}
                 >
-                    <SheetTitle>
+                    <SheetTitle style={{ padding: "2px 2px 2px" }}>
                         {editingAddTxId
                             ? T("modal_edit_tx")
                             : T("add_modal_mode_transaction")}
@@ -112,23 +112,55 @@ export default function AddTransactionSheet({
                     )}
 
                     {addTxError && (
-                        <div style={{ fontSize: 13, color: "var(--danger)" }}>
+                        <div
+                            data-testid="addtx-error"
+                            style={{
+                                fontSize: 12,
+                                color: "var(--danger)",
+                                background: "var(--danger-soft)",
+                                border: "1px solid var(--danger-ring)",
+                                borderRadius: 8,
+                                padding: "8px 10px",
+                            }}
+                        >
                             {addTxError}
                         </div>
                     )}
                     {addTxAssetId && (
-                        <button
-                            className="btn btn-primary"
-                            disabled={
-                                addTxLoading ||
-                                !addTxForm.shares ||
-                                !addTxForm.price_per_share ||
-                                !addTxForm.date
-                            }
-                            onClick={handleAddTxSubmit}
+                        <div
+                            className="row"
+                            style={{
+                                justifyContent: "flex-end",
+                                gap: 8,
+                                marginTop: 8,
+                            }}
                         >
-                            {addTxLoading ? "..." : T("btn_save")}
-                        </button>
+                            <button
+                                type="button"
+                                className="btn btn-g"
+                                onClick={closeAddModal}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-p"
+                                data-testid="addtx-submit"
+                                disabled={
+                                    addTxLoading ||
+                                    !addTxForm.shares ||
+                                    !addTxForm.price_per_share ||
+                                    !addTxForm.date
+                                }
+                                onClick={handleAddTxSubmit}
+                            >
+                                {addTxLoading
+                                    ? "..."
+                                    : editingAddTxId
+                                      ? T("btn_update")
+                                      : T("btn_save")}
+                            </button>
+                        </div>
                     )}
                 </div>
             )}

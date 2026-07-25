@@ -1,6 +1,7 @@
 "use client";
 
 import type { Asset } from "../../../api/types";
+import type { Translator } from "../../../types";
 import type {
     SetAddTxAssetId,
     SetAddTxForm,
@@ -12,11 +13,13 @@ export default function SelectedAssetChip({
     setAddTxAssetId,
     setAddTxForm,
     setAddTxPriceTouched,
+    T,
 }: {
     asset?: Asset;
     setAddTxAssetId: SetAddTxAssetId;
     setAddTxForm: SetAddTxForm;
     setAddTxPriceTouched: SetTouched;
+    T: Translator;
 }) {
     return (
         <div
@@ -65,6 +68,7 @@ export default function SelectedAssetChip({
                         contribution_source: "",
                     }));
                 }}
+                data-testid="addtx-asset-clear"
                 style={{
                     background: "none",
                     border: "none",
@@ -72,10 +76,16 @@ export default function SelectedAssetChip({
                     color: "var(--fg-soft)",
                     fontSize: 18,
                     lineHeight: 1,
-                    padding: 2,
+                    // Full touch target: it used to be a 2px-padded glyph.
+                    width: 44,
+                    height: 44,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: -8,
                     flexShrink: 0,
                 }}
-                aria-label="Change asset"
+                aria-label={T("pick_asset")}
             >
                 ×
             </button>

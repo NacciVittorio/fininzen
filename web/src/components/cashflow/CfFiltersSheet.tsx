@@ -2,23 +2,22 @@
 
 import type { ReactNode } from "react";
 import { useApp } from "../../context/useApp";
-import type { CashflowItemType } from "../../context/feedTypes";
+import {
+    ALL_CASHFLOW_TYPES,
+    nextTypeSelection,
+} from "../../context/feedDefaults";
 import CategorySelect from "../CategorySelect";
 import { BottomSheet } from "../ui";
+import FilterSheetFooter from "../filters/FilterSheetFooter";
+import PeriodFilterSection from "../filters/PeriodFilterSection";
+import { useFilterDraft } from "../filters/useFilterDraft";
 
-const ALL_CF_TYPES: CashflowItemType[] = [
-    "income",
-    "outcome",
-    "transfer",
-    "adjustment",
-];
 const SORT_OPTIONS = ["-date", "date", "-amount", "amount"];
 
-// Collapses the old 8-pill filter strip into one bottom sheet. Filters apply
-// live (same handlers the popovers used) so behaviour — including the
-// type↔category constraint via toggleCfType — is unchanged; "Mostra risultati"
-// just closes the sheet. Period lives in the header now, so it is not here and
-// is not counted in the active-filter badge.
+// Collapses the old 8-pill filter strip into one bottom sheet. Edits go to a
+// draft (useFilterDraft) and only reach the feed on "Applica"; closing any other
+// way discards. The period lives here as well as in the header pager — both
+// write the same date_from/date_to, so they stay in sync.
 function Chip({
     active,
     onClick,
@@ -96,16 +95,22 @@ export default function CfFiltersSheet({
         archivedBankAccounts,
         cfFilters,
         setCfFilters,
-        toggleCfType,
+        accountingMonthDateRange,
     } = useApp();
 
-    const typesAll = cfFilters.types.length === 4;
-    const accountIds = Array.isArray(cfFilters.account_ids)
-        ? cfFilters.account_ids
+    const { draft, setDraft, apply } = useFilterDraft(
+        open,
+        cfFilters,
+        setCfFilters,
+    );
+
+    const typesAll = draft.types.length === ALL_CASHFLOW_TYPES.length;
+    const accountIds = Array.isArray(draft.account_ids)
+        ? draft.account_ids
         : [];
 
     const toggleAccount = (val: string) =>
-        setCfFilters((p) => {
+        setDraft((p) => {
             const prev = Array.isArray(p.account_ids) ? p.account_ids : [];
             return {
                 ...p,
@@ -116,9 +121,9 @@ export default function CfFiltersSheet({
         });
 
     const reset = () =>
-        setCfFilters((p) => ({
+        setDraft((p) => ({
             ...p,
-            types: ALL_CF_TYPES,
+            types: [...ALL_CASHFLOW_TYPES],
             verified: null,
             category_ids: [],
             account_ids: [],
@@ -176,24 +181,52 @@ export default function CfFiltersSheet({
                     </button>
                 </div>
 
+                <Section label={T("period_label")}>
+                    <div style={{ width: "100%" }}>
+                        <PeriodFilterSection
+                            T={T}
+                            dateFrom={draft.date_from}
+                            dateTo={draft.date_to}
+                            monthRange={accountingMonthDateRange}
+                            allChipTestId="cf-period-all"
+                            onRangeChange={({ from, to }) =>
+                                setDraft((p) => ({
+                                    ...p,
+                                    date_from: from,
+                                    date_to: to,
+                                }))
+                            }
+                        />
+                    </div>
+                </Section>
+
                 <Section label={T("type_filter_label")}>
                     <Chip
                         active={typesAll}
                         onClick={() =>
-                            setCfFilters((p) => ({
+                            setDraft((p) => ({
                                 ...p,
-                                types: ALL_CF_TYPES,
+                                types: [...ALL_CASHFLOW_TYPES],
                                 category_ids: [],
                             }))
                         }
                     >
                         {T("cf_all_types")}
                     </Chip>
-                    {ALL_CF_TYPES.map((type) => (
+                    {ALL_CASHFLOW_TYPES.map((type) => (
                         <Chip
                             key={type}
-                            active={cfFilters.types.includes(type) && !typesAll}
-                            onClick={() => toggleCfType(type)}
+                            active={draft.types.includes(type) && !typesAll}
+                            onClick={() =>
+                                setDraft((p) => ({
+                                    ...p,
+                                    types: nextTypeSelection(
+                                        p.types,
+                                        type,
+                                        ALL_CASHFLOW_TYPES,
+                                    ),
+                                }))
+                            }
                         >
                             {T("cf_" + type)}
                         </Chip>
@@ -204,9 +237,9 @@ export default function CfFiltersSheet({
                     {statusOptions.map(({ v, l }) => (
                         <Chip
                             key={String(v)}
-                            active={cfFilters.verified === v}
+                            active={draft.verified === v}
                             onClick={() =>
-                                setCfFilters((p) => ({ ...p, verified: v }))
+                                setDraft((p) => ({ ...p, verified: v }))
                             }
                         >
                             {l}
@@ -218,7 +251,7 @@ export default function CfFiltersSheet({
                     <Chip
                         active={!accountIds.length}
                         onClick={() =>
-                            setCfFilters((p) => ({ ...p, account_ids: [] }))
+                            setDraft((p) => ({ ...p, account_ids: [] }))
                         }
                     >
                         {T("cf_all_accounts")}
@@ -254,9 +287,9 @@ export default function CfFiltersSheet({
                         <CategorySelect
                             multiple
                             usePortal
-                            values={cfFilters.category_ids || []}
+                            values={draft.category_ids || []}
                             onMultiChange={(ids) =>
-                                setCfFilters((p) => ({
+                                setDraft((p) => ({
                                     ...p,
                                     category_ids: ids,
                                 }))
@@ -274,9 +307,9 @@ export default function CfFiltersSheet({
                         <Chip
                             key={val}
                             testId={`cf-sort-option-${val}`}
-                            active={(cfFilters.ordering || "-date") === val}
+                            active={(draft.ordering || "-date") === val}
                             onClick={() =>
-                                setCfFilters((p) => ({ ...p, ordering: val }))
+                                setDraft((p) => ({ ...p, ordering: val }))
                             }
                         >
                             {sortLabels[val]}
@@ -284,27 +317,16 @@ export default function CfFiltersSheet({
                     ))}
                 </Section>
 
-                <div style={{ padding: "18px 0 0" }}>
-                    <button
-                        type="button"
-                        data-testid="cf-filters-apply"
-                        onClick={onClose}
-                        style={{
-                            width: "100%",
-                            padding: "14px",
-                            borderRadius: 14,
-                            border: 0,
-                            background: "var(--btn-primary-bg)",
-                            color: "var(--btn-primary-fg)",
-                            fontSize: 16,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                        }}
-                    >
-                        {T("cf_filters_apply")}
-                    </button>
-                </div>
+                <FilterSheetFooter
+                    T={T}
+                    onCancel={onClose}
+                    onApply={() => {
+                        apply();
+                        onClose();
+                    }}
+                    applyTestId="cf-filters-apply"
+                    cancelTestId="cf-filters-cancel"
+                />
             </div>
         </BottomSheet>
     );

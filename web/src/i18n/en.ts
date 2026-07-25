@@ -182,7 +182,7 @@ const en: Record<string, string> = {
     time_all: "All time",
     cf_period: "Period",
     cf_filters: "Filters",
-    cf_filters_apply: "Show results",
+    filters_apply: "Apply filters",
     cf_filters_reset: "Reset",
     cf_review: "Review",
     cf_unverified_nudge: "{count} transactions to review",

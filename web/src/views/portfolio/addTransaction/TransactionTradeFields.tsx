@@ -1,7 +1,8 @@
 "use client";
 
+import AmountCalculator from "../../../components/AmountCalculator";
 import FieldLabel from "../../../components/FieldLabel";
-import CurrencyInputShell from "./CurrencyInputShell";
+import type { DecimalSeparator } from "../../../utils/formatters";
 import type { Asset } from "../../../api/types";
 import type { Translator } from "../../../types";
 import type { AddTransactionForm } from "../portfolioViewModel";
@@ -14,6 +15,7 @@ export default function TransactionTradeFields({
     setAddTxTaxTouched,
     asset,
     T,
+    decimalSeparator,
 }: {
     addTxForm: AddTransactionForm;
     setAddTxForm: SetAddTxForm;
@@ -21,13 +23,21 @@ export default function TransactionTradeFields({
     setAddTxTaxTouched: SetTouched;
     asset?: Asset;
     T: Translator;
+    decimalSeparator: DecimalSeparator;
 }) {
+    // Money fields use the same calculator as the CashFlow movement forms, so
+    // the currency suffix and the on-screen operators come for free.
+    const currency = asset?.currency || "EUR";
+    const amountPlaceholder = decimalSeparator === "," ? "0,00" : "0.00";
+
     return (
         <>
             <div>
-                <FieldLabel text={T("tx_date")} />
+                <FieldLabel text={T("tx_date")} htmlFor="addtx-date" />
                 <div style={{ overflow: "hidden", borderRadius: 10 }}>
                     <input
+                        id="addtx-date"
+                        data-testid="addtx-date"
                         type="date"
                         className="inp"
                         value={addTxForm.date}
@@ -43,16 +53,20 @@ export default function TransactionTradeFields({
                 </div>
             </div>
 
+            {/* auto-fit rather than a hard 1fr 1fr: below ~320px the two fields
+                would otherwise be too narrow to read. */}
             <div
                 style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
                     gap: 10,
                 }}
             >
                 <div>
-                    <FieldLabel text={T("tx_shares")} />
+                    <FieldLabel text={T("tx_shares")} htmlFor="addtx-shares" />
                     <input
+                        id="addtx-shares"
+                        data-testid="addtx-shares"
                         type="text"
                         inputMode="decimal"
                         className="inp"
@@ -67,67 +81,64 @@ export default function TransactionTradeFields({
                     />
                 </div>
                 <div>
-                    <FieldLabel text={T("tx_price")} />
-                    <CurrencyInputShell asset={asset}>
-                        <input
-                            type="text"
-                            inputMode="decimal"
-                            className="inp"
-                            placeholder="0.00"
-                            style={{ paddingRight: 46 }}
-                            value={addTxForm.price_per_share}
-                            onChange={(event) => {
-                                setAddTxPriceTouched(true);
-                                setAddTxForm((previous) => ({
-                                    ...previous,
-                                    price_per_share: event.target.value,
-                                }));
-                            }}
-                        />
-                    </CurrencyInputShell>
+                    <FieldLabel text={T("tx_price")} htmlFor="addtx-price" />
+                    <AmountCalculator
+                        id="addtx-price"
+                        data-testid="addtx-price"
+                        value={addTxForm.price_per_share}
+                        onChange={(value) => {
+                            setAddTxPriceTouched(true);
+                            setAddTxForm((previous) => ({
+                                ...previous,
+                                price_per_share: value,
+                            }));
+                        }}
+                        decimalSeparator={decimalSeparator}
+                        placeholder={amountPlaceholder}
+                        suffix={currency}
+                        T={T}
+                    />
                 </div>
             </div>
 
             <div>
-                <FieldLabel text={T("tx_fee")} />
-                <CurrencyInputShell asset={asset}>
-                    <input
-                        type="text"
-                        inputMode="decimal"
-                        className="inp"
-                        placeholder="0.00"
-                        style={{ paddingRight: 46 }}
-                        value={addTxForm.fee}
-                        onChange={(event) =>
-                            setAddTxForm((previous) => ({
-                                ...previous,
-                                fee: event.target.value,
-                            }))
-                        }
-                    />
-                </CurrencyInputShell>
+                <FieldLabel text={T("tx_fee")} htmlFor="addtx-fee" />
+                <AmountCalculator
+                    id="addtx-fee"
+                    data-testid="addtx-fee"
+                    value={addTxForm.fee}
+                    onChange={(value) =>
+                        setAddTxForm((previous) => ({
+                            ...previous,
+                            fee: value,
+                        }))
+                    }
+                    decimalSeparator={decimalSeparator}
+                    placeholder={amountPlaceholder}
+                    suffix={currency}
+                    T={T}
+                />
             </div>
 
             {addTxForm.transaction_type === "sell" && (
                 <div>
-                    <FieldLabel text={T("tx_tax_paid")} />
-                    <CurrencyInputShell asset={asset}>
-                        <input
-                            type="text"
-                            inputMode="decimal"
-                            className="inp"
-                            placeholder="0.00"
-                            style={{ paddingRight: 46 }}
-                            value={addTxForm.tax_amount}
-                            onChange={(event) => {
-                                setAddTxTaxTouched(true);
-                                setAddTxForm((previous) => ({
-                                    ...previous,
-                                    tax_amount: event.target.value,
-                                }));
-                            }}
-                        />
-                    </CurrencyInputShell>
+                    <FieldLabel text={T("tx_tax_paid")} htmlFor="addtx-tax" />
+                    <AmountCalculator
+                        id="addtx-tax"
+                        data-testid="addtx-tax"
+                        value={addTxForm.tax_amount}
+                        onChange={(value) => {
+                            setAddTxTaxTouched(true);
+                            setAddTxForm((previous) => ({
+                                ...previous,
+                                tax_amount: value,
+                            }));
+                        }}
+                        decimalSeparator={decimalSeparator}
+                        placeholder={amountPlaceholder}
+                        suffix={currency}
+                        T={T}
+                    />
                 </div>
             )}
         </>

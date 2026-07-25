@@ -2,7 +2,11 @@ import { useCallback, useRef, useState } from "react";
 import { API } from "../utils/api";
 import { parseMoneyToString, resolveAmountField } from "../utils/formatters";
 import { logError } from "../utils/logger";
-import { buildCashflowFilters } from "./feedDefaults";
+import {
+    ALL_CASHFLOW_TYPES,
+    buildCashflowFilters,
+    nextTypeSelection,
+} from "./feedDefaults";
 import { buildCashflowQueryParams as createCashflowQueryParams } from "./feedQueryModel";
 import { useAssetTransactionFeed } from "./useAssetTransactionFeed";
 import { useCashflowBulkActions } from "./useCashflowBulkActions";
@@ -248,20 +252,10 @@ export function useTransactionFeeds({
     }, [apiFetch, cfFilters, buildCashflowQueryParams]);
 
     const toggleCfType = useCallback((type: CashflowItemType) => {
-        setCfFilters((prev) => {
-            let types;
-            // From "all types", selecting one should focus to that single type.
-            if (prev.types.length === 4) {
-                types = [type];
-            } else if (prev.types.includes(type)) {
-                types = prev.types.filter((t) => t !== type);
-            } else {
-                types = [...prev.types, type];
-            }
-            // Keep at least one selected type.
-            if (types.length === 0) types = [type];
-            return { ...prev, types };
-        });
+        setCfFilters((prev) => ({
+            ...prev,
+            types: nextTypeSelection(prev.types, type, ALL_CASHFLOW_TYPES),
+        }));
     }, []);
 
     const openCfEditTransfer = useCallback((item: CashflowFeedItem) => {

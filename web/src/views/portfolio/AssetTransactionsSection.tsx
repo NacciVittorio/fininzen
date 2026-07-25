@@ -9,9 +9,11 @@ import type { NumericValue, Translator } from "../../types";
 import type { EntityId } from "../../context/feedTypes";
 import {
     ALL_ASSET_TX_TYPES,
+    getCurrentMonthDateRange,
     type AssetTransactionFilters,
 } from "../../context/feedDefaults";
 import type { AssetTransactionFeedItem } from "../../context/useAssetTransactionFeed";
+import { isDefaultPeriod } from "../transactionFeedModel";
 import type { DecoratedDatedItem } from "../transactionFeedModel";
 
 export default function AssetTransactionsSection({
@@ -72,11 +74,18 @@ export default function AssetTransactionsSection({
     formatEur: (value: NumericValue) => string;
 }) {
     const typeActive = assetTxFilters.types.length < ALL_ASSET_TX_TYPES.length;
+    // The feed opens on the current month, so counting any date_from made the
+    // badge read "1" from the start; it now counts only once the period moves.
+    const periodActive = !isDefaultPeriod(
+        assetTxFilters.date_from,
+        assetTxFilters.date_to,
+        [getCurrentMonthDateRange()],
+    );
     const activeFilterCount =
         (assetTxFilters.asset_ids?.length ? 1 : 0) +
         (typeActive ? 1 : 0) +
         (assetTxFilters.verified !== null ? 1 : 0) +
-        (assetTxFilters.date_from ? 1 : 0) +
+        (periodActive ? 1 : 0) +
         ((assetTxFilters.ordering || "-date") !== "-date" ? 1 : 0);
 
     return (
