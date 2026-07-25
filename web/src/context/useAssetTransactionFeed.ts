@@ -6,7 +6,11 @@ import {
     buildAssetTxBulkSelectionPayload,
     getSelectedCount,
 } from "./bulkSelectionModel";
-import { buildAssetTxFilters } from "./feedDefaults";
+import {
+    ALL_ASSET_TX_TYPES,
+    buildAssetTxFilters,
+    nextTypeSelection,
+} from "./feedDefaults";
 import { buildAssetTxQueryParams } from "./feedQueryModel";
 import type { ApiFetcher } from "../api/client";
 import type { Translator } from "../types";
@@ -187,23 +191,10 @@ export function useAssetTransactionFeed({
 
     const toggleAssetTxType = useCallback(
         (type: AssetTransactionFilterType) => {
-            const ALL: AssetTransactionFilterType[] = [
-                "buy",
-                "sell",
-                "adjustment",
-            ];
-            setAssetTxFilters((prev) => {
-                let types;
-                if (prev.types.length === ALL.length) {
-                    types = [type];
-                } else if (prev.types.includes(type)) {
-                    types = prev.types.filter((t) => t !== type);
-                } else {
-                    types = [...prev.types, type];
-                }
-                if (types.length === 0) types = [type];
-                return { ...prev, types };
-            });
+            setAssetTxFilters((prev) => ({
+                ...prev,
+                types: nextTypeSelection(prev.types, type, ALL_ASSET_TX_TYPES),
+            }));
         },
         [],
     );

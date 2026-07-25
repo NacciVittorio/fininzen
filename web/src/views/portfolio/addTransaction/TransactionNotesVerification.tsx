@@ -18,8 +18,10 @@ export default function TransactionNotesVerification({
     return (
         <>
             <div>
-                <FieldLabel text={T("tx_notes")} />
+                <FieldLabel text={T("tx_notes")} htmlFor="addtx-notes" />
                 <input
+                    id="addtx-notes"
+                    data-testid="addtx-notes"
                     className="inp"
                     placeholder={T("tx_notes")}
                     value={addTxForm.notes}

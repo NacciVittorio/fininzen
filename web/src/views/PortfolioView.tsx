@@ -74,9 +74,6 @@ export default function PortfolioView() {
     // an untouched field keeps the auto snapshot (server recomputes at the current
     // rate); a touched one is a manual override the rate-change popup won't rewrite.
     const [addTxTaxTouched, setAddTxTaxTouched] = useState(false);
-    const [assetTxPeriodMode, setAssetTxPeriodMode] = useState<
-        "month" | "year"
-    >("month");
     const [debouncedAssetTxFilters, setDebouncedAssetTxFilters] =
         useState(assetTxFilters);
     const [allocGroup, setAllocGroup] = useState("all");
@@ -496,10 +493,6 @@ export default function PortfolioView() {
                 triggerAssetTxBulkVerify={triggerAssetTxBulkVerify}
                 txFiltersSheetOpen={txFiltersSheetOpen}
                 setTxFiltersSheetOpen={setTxFiltersSheetOpen}
-                assetTxPeriodMode={assetTxPeriodMode}
-                setAssetTxPeriodMode={(mode) =>
-                    setAssetTxPeriodMode(mode as "month" | "year")
-                }
                 archiveBlockedModal={archiveBlockedModal}
                 setArchiveBlockedModal={setArchiveBlockedModal}
                 hasActiveOverlay={hasActiveOverlay}

@@ -94,6 +94,7 @@ export default function AddTransactionForm({
                 setAddTxAssetId={setAddTxAssetId}
                 setAddTxForm={setAddTxForm}
                 setAddTxPriceTouched={setAddTxPriceTouched}
+                T={T}
             />
 
             <TransactionTypeToggle
@@ -109,6 +110,7 @@ export default function AddTransactionForm({
                 setAddTxTaxTouched={setAddTxTaxTouched}
                 asset={asset}
                 T={T}
+                decimalSeparator={decimalSeparator}
             />
 
             <TransactionTotalPreview

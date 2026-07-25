@@ -117,12 +117,39 @@ export function getCashflowPeriod(
     return { kind: "month", month, year };
 }
 
-export function countCashflowFilters(filters: CashflowFilters): number {
+/**
+ * Both feeds open on the current month, so a period only counts as an active
+ * filter once it deviates from it — otherwise the badge would read "1" on a
+ * freshly loaded page (which is what the Investments count used to do).
+ *
+ * Several ranges can qualify as "the current month": the feeds are seeded with a
+ * calendar month while Cash Flow's header pages by accounting month, and those
+ * differ when the accounting month doesn't start on the 1st. Any of them means
+ * "the user hasn't narrowed the period".
+ */
+export function isDefaultPeriod(
+    dateFrom: string,
+    dateTo: string,
+    defaultRanges: readonly { from: string; to: string }[],
+): boolean {
+    return defaultRanges.some(
+        (range) => dateFrom === range.from && dateTo === range.to,
+    );
+}
+
+export function countCashflowFilters(
+    filters: CashflowFilters,
+    defaultRanges: readonly { from: string; to: string }[] = [],
+): number {
     return (
         (filters.types.length !== 4 ? 1 : 0) +
         (filters.verified !== null && filters.verified !== undefined ? 1 : 0) +
         (filters.account_ids?.length ? 1 : 0) +
         (filters.category_ids?.length ? 1 : 0) +
-        ((filters.ordering || "-date") !== "-date" ? 1 : 0)
+        ((filters.ordering || "-date") !== "-date" ? 1 : 0) +
+        (defaultRanges.length &&
+        !isDefaultPeriod(filters.date_from, filters.date_to, defaultRanges)
+            ? 1
+            : 0)
     );
 }

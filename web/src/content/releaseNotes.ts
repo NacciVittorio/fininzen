@@ -23,6 +23,22 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Nei Movimenti e negli Investimenti i filtri ora funzionano allo stesso modo e non si applicano più da soli: scegli conto, categoria, periodo o tipo e la modifica resta in bozza finché non tocchi «Applica filtri» — «Annulla», lo sfondo, Esc o trascinare la scheda in basso annullano invece la modifica.",
+                "Corretto il filtro «Anno» negli Investimenti, che prima non aveva alcun effetto: ora mostra una griglia di 12 anni tra cui scegliere e applica subito il periodo selezionato.",
+                "La scheda «Nuova transazione» del portafoglio è stata rinnovata: i menu di conto/attività ora sono coerenti con il resto dell'app (niente più popup bianco nel tema scuro), e prezzo, commissioni e tasse hanno la stessa calcolatrice già disponibile nei Movimenti.",
+            ],
+            en: [
+                "In Cash Flow and Investments the filters now behave the same way and no longer apply themselves: pick account, category, period or type and the change stays in draft until you tap “Apply filters” — “Cancel”, the backdrop, Esc, or dragging the sheet down all discard it instead.",
+                "Fixed the “Year” filter in Investments, which previously had no effect: it now shows a 12-year grid to choose from and applies the selected period immediately.",
+                "The Portfolio “New transaction” sheet has been refreshed: the account/asset menus now match the rest of the app (no more white popup in dark mode), and price, fees and tax use the same calculator already available in Cash Flow.",
+            ],
+        },
+    },
+    {
         version: "0.10.0",
         date: "2026-07-25",
         highlights: {

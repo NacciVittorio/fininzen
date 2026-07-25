@@ -46,11 +46,6 @@ export default function CashflowOverlays(props: CashflowOverlaysProps) {
         setFiltersSheetOpen,
         periodSheetOpen,
         setPeriodSheetOpen,
-        periodMonth,
-        periodYear,
-        cfPeriodMode,
-        setCfPeriodMode,
-        setAccountingMonth,
         accountingMonthDateRange,
         cfFilters,
         setCfFilters,
@@ -98,11 +93,6 @@ export default function CashflowOverlays(props: CashflowOverlaysProps) {
                 T={T}
                 cfFilters={cfFilters}
                 setCfFilters={setCfFilters}
-                periodMonth={periodMonth}
-                periodYear={periodYear}
-                cfPeriodMode={cfPeriodMode}
-                setCfPeriodMode={setCfPeriodMode}
-                setAccountingMonth={setAccountingMonth}
                 accountingMonthDateRange={accountingMonthDateRange}
             />
             <Fab

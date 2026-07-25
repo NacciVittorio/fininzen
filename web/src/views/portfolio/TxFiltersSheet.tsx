@@ -1,16 +1,17 @@
 "use client";
 
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import {
-    BottomSheet,
-    Label,
-    MonthPicker,
-    SheetTitle,
-} from "../../components/ui";
+import { BottomSheet, Label, SheetTitle } from "../../components/ui";
+import FilterSheetFooter from "../../components/filters/FilterSheetFooter";
+import PeriodFilterSection, {
+    calendarMonthRange,
+} from "../../components/filters/PeriodFilterSection";
+import { useFilterDraft } from "../../components/filters/useFilterDraft";
 import type { Asset } from "../../api/types";
 import type { Translator } from "../../types";
 import {
     ALL_ASSET_TX_TYPES,
+    nextTypeSelection,
     type AssetTransactionFilters,
     type AssetTransactionFilterType,
 } from "../../context/feedDefaults";
@@ -75,9 +76,6 @@ export default function TxFiltersSheet({
     archivedInvestments = [],
     filters,
     setFilters,
-    toggleType,
-    periodMode,
-    setPeriodMode,
 }: {
     open: boolean;
     onClose: () => void;
@@ -86,15 +84,19 @@ export default function TxFiltersSheet({
     archivedInvestments?: readonly Asset[];
     filters: AssetTransactionFilters;
     setFilters: Dispatch<SetStateAction<AssetTransactionFilters>>;
-    toggleType: (type: AssetTransactionFilterType) => void;
-    periodMode: "month" | "year";
-    setPeriodMode: (mode: string) => void;
 }) {
+    // Nothing reaches the feed until "Applica" — see useFilterDraft.
+    const { draft, setDraft, apply } = useFilterDraft(
+        open,
+        filters,
+        setFilters,
+    );
+
     const reset = () =>
-        setFilters((p) => ({
+        setDraft((p) => ({
             ...p,
             asset_ids: [],
-            types: ALL_ASSET_TX_TYPES,
+            types: [...ALL_ASSET_TX_TYPES],
             verified: null,
             date_from: "",
             date_to: "",
@@ -104,13 +106,59 @@ export default function TxFiltersSheet({
     return (
         <BottomSheet open={open} onClose={onClose} ariaLabel={T("cf_filters")}>
             <div style={{ padding: "8px 18px 18px" }}>
-                <SheetTitle>{T("cf_filters")}</SheetTitle>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
+                    }}
+                >
+                    <SheetTitle>{T("cf_filters")}</SheetTitle>
+                    <button
+                        type="button"
+                        data-testid="asset-tx-filters-reset"
+                        onClick={reset}
+                        style={{
+                            border: 0,
+                            background: "none",
+                            color: "var(--accent)",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                        }}
+                    >
+                        {T("cf_filters_reset")}
+                    </button>
+                </div>
+
+                {/* Period first, mirroring the Cash Flow sheet. */}
+                <div style={{ marginBottom: 18 }}>
+                    <Label style={{ marginBottom: 8, display: "block" }}>
+                        {T("period_label")}
+                    </Label>
+                    <PeriodFilterSection
+                        T={T}
+                        dateFrom={draft.date_from}
+                        dateTo={draft.date_to}
+                        monthRange={calendarMonthRange}
+                        allChipTestId="asset-tx-period-all"
+                        onRangeChange={({ from, to }) =>
+                            setDraft((p) => ({
+                                ...p,
+                                date_from: from,
+                                date_to: to,
+                            }))
+                        }
+                    />
+                </div>
 
                 <SheetSection label={T("portfolio_tx_filter_all_assets")}>
                     <FilterChip
-                        active={!filters.asset_ids?.length}
+                        active={!draft.asset_ids?.length}
                         onClick={() =>
-                            setFilters((p) => ({ ...p, asset_ids: [] }))
+                            setDraft((p) => ({ ...p, asset_ids: [] }))
                         }
                     >
                         {T("portfolio_tx_filter_all_assets")}
@@ -119,10 +167,10 @@ export default function TxFiltersSheet({
                         <FilterChip
                             key={a.id}
                             active={
-                                String(filters.asset_ids?.[0]) === String(a.id)
+                                String(draft.asset_ids?.[0]) === String(a.id)
                             }
                             onClick={() =>
-                                setFilters((p) => ({ ...p, asset_ids: [a.id] }))
+                                setDraft((p) => ({ ...p, asset_ids: [a.id] }))
                             }
                         >
                             {a.name}
@@ -132,10 +180,10 @@ export default function TxFiltersSheet({
                         <FilterChip
                             key={a.id}
                             active={
-                                String(filters.asset_ids?.[0]) === String(a.id)
+                                String(draft.asset_ids?.[0]) === String(a.id)
                             }
                             onClick={() =>
-                                setFilters((p) => ({ ...p, asset_ids: [a.id] }))
+                                setDraft((p) => ({ ...p, asset_ids: [a.id] }))
                             }
                         >
                             {`${a.name} (${T("label_archived")})`}
@@ -146,12 +194,12 @@ export default function TxFiltersSheet({
                 <SheetSection label={T("type_filter_label")}>
                     <FilterChip
                         active={
-                            filters.types.length === ALL_ASSET_TX_TYPES.length
+                            draft.types.length === ALL_ASSET_TX_TYPES.length
                         }
                         onClick={() =>
-                            setFilters((p) => ({
+                            setDraft((p) => ({
                                 ...p,
-                                types: ALL_ASSET_TX_TYPES,
+                                types: [...ALL_ASSET_TX_TYPES],
                             }))
                         }
                     >
@@ -161,10 +209,19 @@ export default function TxFiltersSheet({
                         <FilterChip
                             key={type}
                             active={
-                                filters.types.includes(type) &&
-                                filters.types.length < ALL_ASSET_TX_TYPES.length
+                                draft.types.includes(type) &&
+                                draft.types.length < ALL_ASSET_TX_TYPES.length
                             }
-                            onClick={() => toggleType(type)}
+                            onClick={() =>
+                                setDraft((p) => ({
+                                    ...p,
+                                    types: nextTypeSelection(
+                                        p.types,
+                                        type as AssetTransactionFilterType,
+                                        ALL_ASSET_TX_TYPES,
+                                    ),
+                                }))
+                            }
                         >
                             {T(`tx_type_${type}`)}
                         </FilterChip>
@@ -179,71 +236,15 @@ export default function TxFiltersSheet({
                     ].map(({ val, label }) => (
                         <FilterChip
                             key={String(val)}
-                            active={filters.verified === val}
+                            active={draft.verified === val}
                             onClick={() =>
-                                setFilters((p) => ({ ...p, verified: val }))
+                                setDraft((p) => ({ ...p, verified: val }))
                             }
                         >
                             {label}
                         </FilterChip>
                     ))}
                 </SheetSection>
-
-                <div style={{ marginBottom: 18 }}>
-                    <Label style={{ marginBottom: 8, display: "block" }}>
-                        {T("period_label")}
-                    </Label>
-                    <div style={{ marginBottom: 10 }}>
-                        <FilterChip
-                            active={!filters.date_from}
-                            onClick={() =>
-                                setFilters((p) => ({
-                                    ...p,
-                                    date_from: "",
-                                    date_to: "",
-                                }))
-                            }
-                        >
-                            {T("time_all")}
-                        </FilterChip>
-                    </div>
-                    <MonthPicker
-                        month={
-                            filters.date_from
-                                ? new Date(filters.date_from).getMonth() + 1
-                                : new Date().getMonth() + 1
-                        }
-                        year={
-                            filters.date_from
-                                ? new Date(filters.date_from).getFullYear()
-                                : new Date().getFullYear()
-                        }
-                        viewMode={periodMode}
-                        onChange={({ month, year }) => {
-                            if (month) {
-                                const from = `${year}-${String(month).padStart(2, "0")}-01`;
-                                const lastDay = new Date(
-                                    year,
-                                    month,
-                                    0,
-                                ).getDate();
-                                const to = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-                                setFilters((p) => ({
-                                    ...p,
-                                    date_from: from,
-                                    date_to: to,
-                                }));
-                            } else {
-                                setFilters((p) => ({
-                                    ...p,
-                                    date_from: `${year}-01-01`,
-                                    date_to: `${year}-12-31`,
-                                }));
-                            }
-                        }}
-                        onViewModeChange={setPeriodMode}
-                    />
-                </div>
 
                 <SheetSection label={T("sort_label")}>
                     {[
@@ -255,9 +256,9 @@ export default function TxFiltersSheet({
                         <FilterChip
                             key={val}
                             testId={`asset-tx-sort-option-${val}`}
-                            active={(filters.ordering || "-date") === val}
+                            active={(draft.ordering || "-date") === val}
                             onClick={() =>
-                                setFilters((p) => ({ ...p, ordering: val }))
+                                setDraft((p) => ({ ...p, ordering: val }))
                             }
                         >
                             {label}
@@ -265,21 +266,16 @@ export default function TxFiltersSheet({
                     ))}
                 </SheetSection>
 
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 8,
-                        marginTop: 4,
+                <FilterSheetFooter
+                    T={T}
+                    onCancel={onClose}
+                    onApply={() => {
+                        apply();
+                        onClose();
                     }}
-                >
-                    <button className="btn btn-g pressable" onClick={reset}>
-                        {T("cf_filters_reset", "Reset")}
-                    </button>
-                    <button className="btn btn-p pressable" onClick={onClose}>
-                        {T("btn_close", "OK")}
-                    </button>
-                </div>
+                    applyTestId="asset-tx-filters-apply"
+                    cancelTestId="asset-tx-filters-cancel"
+                />
             </div>
         </BottomSheet>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import FieldLabel from "../../../components/FieldLabel";
+import Select from "../../../components/Select";
 import type { Asset } from "../../../api/types";
 import type { Translator } from "../../../types";
 import type {
@@ -26,13 +27,16 @@ export default function TransactionAssetPicker({
 }) {
     return (
         <div>
-            <FieldLabel text={T("pick_asset")} />
-            <select
-                className="inp"
+            <FieldLabel text={T("pick_asset")} htmlFor="addtx-asset" />
+            {/* No autoFocus: it fought BottomSheet's own focusFirst(). */}
+            <Select
+                id="addtx-asset"
+                usePortal
+                data-testid="addtx-asset"
                 value={addTxAssetId}
-                autoFocus
-                onChange={(event) => {
-                    setAddTxAssetId(event.target.value);
+                placeholder={T("pick_asset")}
+                onChange={(value) => {
+                    setAddTxAssetId(value);
                     setAddTxPriceTouched(false);
                     setAddTxForm((previous) => ({
                         ...previous,
@@ -40,17 +44,16 @@ export default function TransactionAssetPicker({
                         contribution_source: "",
                     }));
                 }}
-            >
-                <option value="">{T("pick_asset")}</option>
-                {investments
+                options={investments
                     .filter((asset) => asset.tracking_type === "AUTO")
-                    .map((asset) => (
-                        <option key={asset.id} value={asset.id}>
-                            {asset.name}{" "}
-                            {asset.ticker ? `(${asset.ticker})` : ""}
-                        </option>
-                    ))}
-            </select>
+                    .map((asset) => ({
+                        value: String(asset.id),
+                        label: asset.ticker
+                            ? `${asset.name} (${asset.ticker})`
+                            : asset.name,
+                        keywords: asset.ticker || undefined,
+                    }))}
+            />
         </div>
     );
 }

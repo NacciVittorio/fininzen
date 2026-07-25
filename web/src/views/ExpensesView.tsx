@@ -7,6 +7,7 @@ import { useFormatters } from "../utils/useFormatters";
 import { PullToRefresh } from "../components/ui";
 import type { CfItem } from "../components/cashflow/CfTransactionRow";
 import type { CashflowFeedItem, EntityId } from "../context/feedTypes";
+import { getCurrentMonthDateRange } from "../context/feedDefaults";
 import CashflowFeed from "./expenses/CashflowFeed";
 import CashflowOverlays from "./expenses/CashflowOverlays";
 import type { DeleteCfTarget } from "./expenses/CashflowDeleteConfirmModal";
@@ -103,10 +104,9 @@ export default function ExpensesView() {
     // Transaction tapped open in the detail sheet; row whose swipe actions are revealed.
     const [detailItem, setDetailItem] = useState<CfItem | null>(null);
     const [swipedRowId, setSwipedRowId] = useState<EntityId | null>(null);
-    // Period / Filtri bottom-sheet visibility. Declared up here (not next to the
-    // period useMemo below) because the accounting-month sync effect reads
-    // periodSheetOpen in its dependency array, which is evaluated during render —
-    // a later declaration would hit the temporal dead zone and crash the view.
+    // Period / Filtri bottom-sheet visibility. The month/year mode of the period
+    // picker is not tracked here: PeriodFilterSection derives it from the active
+    // range each time the sheet mounts.
     const [periodSheetOpen, setPeriodSheetOpen] = useState(false);
     const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
@@ -116,7 +116,6 @@ export default function ExpensesView() {
     // Above this many rows, verify/unverify requires explicit confirmation.
     // select-all-filtered always confirms (the user can't see every target row).
     const BULK_VERIFY_CONFIRM_THRESHOLD = 25;
-    const [cfPeriodMode, setCfPeriodMode] = useState<"month" | "year">("month");
     // Ephemeral toast shown when a click tries to add a row of a kind that
     // doesn't match the current locked selection kind. Observed via the tick
     // counter the context bumps — separate state keeps the message + timer
@@ -234,27 +233,6 @@ export default function ExpensesView() {
         wasExpModalOpenRef.current = showExpModal;
     }, [showExpModal, loadCfFeed]);
 
-    useEffect(() => {
-        if (!periodSheetOpen) return;
-        if (!cfFilters.date_from || !cfFilters.date_to) {
-            setCfPeriodMode("month");
-            return;
-        }
-        const from = new Date(cfFilters.date_from);
-        const fromYear = from.getFullYear();
-        const fromMonth = from.getMonth() + 1;
-        const accountingRange = accountingMonthDateRange(fromYear, fromMonth);
-        const sameAccountingMonth =
-            cfFilters.date_from === accountingRange.from &&
-            cfFilters.date_to === accountingRange.to;
-        setCfPeriodMode(sameAccountingMonth ? "month" : "year");
-    }, [
-        accountingMonthDateRange,
-        periodSheetOpen,
-        cfFilters.date_from,
-        cfFilters.date_to,
-    ]);
-
     const totals = useMemo(
         () => getCashflowTotals(cfItems, cfSummary),
         [cfItems, cfSummary],
@@ -297,9 +275,20 @@ export default function ExpensesView() {
         (periodYear === curAccounting.year &&
             periodMonth >= curAccounting.month);
 
-    // Active-filter badge on the "Filtri" button. Period lives in the header and
-    // is intentionally excluded (matches the prototype).
-    const activeFilterCount = countCashflowFilters(cfFilters);
+    // Active-filter badge on the "Filtri" button. The period now lives in the
+    // sheet as well as the header, so it counts — but only once it moves off the
+    // current month (see isDefaultPeriod).
+    const defaultPeriodRanges = useMemo(
+        () => [
+            accountingMonthDateRange(curAccounting.year, curAccounting.month),
+            getCurrentMonthDateRange(),
+        ],
+        [accountingMonthDateRange, curAccounting.year, curAccounting.month],
+    );
+    const activeFilterCount = countCashflowFilters(
+        cfFilters,
+        defaultPeriodRanges,
+    );
 
     // "Da verificare" nudge — counts unverified rows currently loaded for the
     // period. Hidden once the user is already filtering to unverified only.
@@ -504,11 +493,6 @@ export default function ExpensesView() {
                 setPeriodSheetOpen={setPeriodSheetOpen}
                 cfFilters={cfFilters}
                 setCfFilters={setCfFilters}
-                periodMonth={periodMonth}
-                periodYear={periodYear}
-                cfPeriodMode={cfPeriodMode}
-                setCfPeriodMode={setCfPeriodMode as (mode: string) => void}
-                setAccountingMonth={setAccountingMonth}
                 accountingMonthDateRange={accountingMonthDateRange}
                 hasActiveOverlay={hasActiveOverlay}
                 openExpenseModal={openExpenseModal}
