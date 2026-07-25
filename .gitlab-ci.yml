@@ -1,45 +1,29 @@
-# GitLab CI — lint + test + build on every MR and on main; publish a Release on
-# a `v*` tag. The job bodies live in ci-tools/*.sh so the same commands run here
-# and locally (they are what `just lint test` shells out to).
+# GitLab merge gate + release + Renovate. GitHub Actions still executes the
+# heavy lint/test/build jobs via push mirror; GitLab now hosts the lightweight
+# policy gate that waits for the GitHub CI result on the same SHA and fails the
+# MR if GitHub is red.
 #
-# ┌─ PAUSED ────────────────────────────────────────────────────────────────────
-# │ This project's GitLab compute quota is exhausted, so every pipeline failed
-# │ instantly with `ci_quota_exceeded` and painted each MR red for no reason.
-# │ The `workflow:` block below therefore creates no pipeline at all.
-# │
-# │ CI now runs on GitHub Actions instead: a push mirror copies every ref to
-# │ github.com/NacciVittorio/fininzen (public repo → free minutes), where
-# │ .github/workflows/ci.yml runs these same ci-tools/*.sh scripts and posts the
-# │ result back onto the commit, so it shows in the MR widget here.
-# │
-# │ The jobs below are kept intact and up to date: to come back to GitLab CI,
-# │ restore the original `workflow:` rules (kept commented out) and disable the
-# │ mirror. See wiki/CI_GITHUB_MIRROR.md.
-# └─────────────────────────────────────────────────────────────────────────────
+# The heavy job bodies still live in ci-tools/*.sh so they stay shared with the
+# GitHub workflow. On GitLab we keep them defined but never scheduled; they are
+# documented here so we can switch back if the GitLab quota ever returns.
 
 stages:
+  - gate
   - lint
   - test
   - build
   - release
 
-# Create no pipeline, ever — see the PAUSED note above. This is deliberately a
-# no-op `workflow:` rather than disabling CI/CD in the project settings, because
-# that would also hide the pipeline widget in the MR, which is exactly where the
-# GitHub Actions commit status needs to appear.
 workflow:
   rules:
+    # Merge requests and pushes to `main` need a pipeline so GitLab can enforce
+    # the GitHub CI result before merge. Tags and schedules stay enabled for the
+    # release and Renovate jobs below.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v/
+    - if: $CI_PIPELINE_SOURCE == "schedule"
     - when: never
-    # ── Original rules, to restore when the compute quota is back ──
-    # Gate the whole pipeline: MRs, main, version tags, and the weekly Renovate
-    # schedule. Without this a push to a branch with an open MR builds twice (a
-    # branch pipeline and a detached MR pipeline).
-    #
-    # - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    # - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    # - if: $CI_COMMIT_TAG =~ /^v/
-    # - if: $CI_PIPELINE_SOURCE == "schedule"
-    # - when: never
 
 default:
   # Cancel superseded pipelines when a new commit lands on the same ref.
@@ -54,15 +38,17 @@ variables:
   DJANGO_SECRET_KEY: "ci-secret-key-for-fininzen-tests-with-more-than-50-characters"
   DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
 
-# The lint/test/build jobs validate a commit, so they have no reason to run on a
-# tag (the commit they point at was already green) or on the Renovate schedule.
+# The lint/test/build jobs are now GitHub-only. On GitLab they are defined but
+# never scheduled so the mirror can keep using the same shared job bodies.
 .ci-rules:
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - when: on_success
+    - when: never
+
+.gate-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
 
 .python:
   image: python:3.12-slim
@@ -85,6 +71,15 @@ variables:
       alias: postgres
 
 # ── Lint ──────────────────────────────────────────────────────────────────────
+
+github-ci-gate:
+  extends: .gate-rules
+  stage: gate
+  image: python:3.12-slim
+  variables:
+    GITHUB_REPOSITORY: NacciVittorio/fininzen
+  script:
+    - python ci-tools/check-github-ci.py
 
 backend-lint:
   extends:
