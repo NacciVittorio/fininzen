@@ -1,12 +1,18 @@
 name: Release
 
-# Publish a GitHub Release whenever a version tag is pushed. The tag itself is
-# created locally by `just release` (commitizen writes VERSION + CHANGELOG.md and
-# tags vX.Y.Z), pushed to GitLab, and copied here by the push mirror — which is
-# what triggers this workflow. See wiki/VERSIONING.md.
+# Publish the Release for a version tag — on GitHub *and* on GitLab. The tag
+# itself is created locally by `just release` (commitizen writes VERSION +
+# CHANGELOG.md and tags vX.Y.Z) and pushed to GitLab; the push mirror copies it
+# here, which is what triggers this workflow. See wiki/VERSIONING.md.
 #
-# The GitLab-side twin is the `release` job in .gitlab-ci.yml. Both call
-# ci-tools/release-notes.sh so the notes are extracted identically.
+# The GitLab-side twin, the `release` job in .gitlab-ci.yml, is dormant while
+# the GitLab compute quota is exhausted — a tag pipeline there dies on
+# `ci_quota_exceeded` before the job starts. So this workflow creates both
+# releases, from the one RELEASE_NOTES.md that ci-tools/release-notes.sh
+# extracts, and stays the single source until that job is switched back on.
+#
+# `workflow_dispatch` is the recovery path for a tag whose release is missing:
+# `gh workflow run release.yml --ref vX.Y.Z` re-runs this against that tag.
 
 on:
   push:
@@ -19,8 +25,15 @@ permissions:
 
 jobs:
   release:
-    name: Publish GitHub Release
+    name: Publish Release
     runs-on: ubuntu-latest
+    env:
+      # Job-level, not step-level, so the `if:` guard on the GitLab step reads a
+      # populated env context — same arrangement as the `gitlab-status` job in
+      # ci.yml.
+      GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+      # URL-encoded path of the GitLab project (`/` → %2F).
+      GITLAB_PROJECT: fininzengroup%2Ffininzen
     steps:
       - uses: actions/checkout@v7
 
@@ -36,3 +49,38 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           body_path: RELEASE_NOTES.md
+
+      - name: Create GitLab Release
+        # Needs the GITLAB_API_TOKEN secret (an `api`-scoped personal access
+        # token); the step no-ops while it is unset, matching how the
+        # `gitlab-status` job in ci.yml treats it. The tag is already on GitLab
+        # by the time this runs: `just release` pushes it to origin (GitLab),
+        # and only then does the mirror copy it here.
+        if: env.GITLAB_API_TOKEN != ''
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          echo "==> Creating GitLab Release ${TAG}"
+          code=$(curl --silent --output /tmp/gitlab-release.json --write-out '%{http_code}' \
+            --request POST \
+            --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+            --data-urlencode "tag_name=${TAG}" \
+            --data-urlencode "name=${TAG}" \
+            --data-urlencode "description@RELEASE_NOTES.md" \
+            "https://gitlab.com/api/v4/projects/${GITLAB_PROJECT}/releases")
+          case "$code" in
+            201)
+              echo "GitLab release ${TAG} created."
+              ;;
+            409)
+              # Re-running this workflow on an already-released tag is a normal
+              # recovery path, not a failure.
+              echo "::warning::GitLab release ${TAG} already exists; left untouched."
+              ;;
+            *)
+              echo "::error::GitLab returned HTTP $code creating release ${TAG}."
+              cat /tmp/gitlab-release.json
+              exit 1
+              ;;
+          esac

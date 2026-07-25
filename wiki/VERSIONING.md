@@ -144,9 +144,19 @@ the `just release` recipe.
    - updates `CHANGELOG.md` with the new section;
    - creates the release commit and the `vX.Y.Z` tag;
    - finally runs `git push --follow-tags`.
-4. Pushing the tag triggers the **`release` job in `.gitlab-ci.yml`**, which
-   creates the **GitLab Release** with notes extracted from `CHANGELOG.md` by
-   `ci-tools/release-notes.sh`.
+4. Pushing the tag reaches GitLab first, then the push mirror copies it to
+   GitHub, which triggers **`.github/workflows/release.yml`**. That workflow
+   creates the **GitHub Release** *and* the **GitLab Release**, both from the
+   notes `ci-tools/release-notes.sh` extracts from `CHANGELOG.md`.
+
+   The GitLab-side twin — the `release` job in `.gitlab-ci.yml` — is dormant
+   while the GitLab compute quota is exhausted, since a tag pipeline there dies
+   on `ci_quota_exceeded` before the job starts. See
+   [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md).
+
+   If a release is missing for a tag that is already pushed, re-run the workflow
+   against that tag: `gh workflow run release.yml --ref vX.Y.Z`. It is safe to
+   repeat — an existing release is left untouched, not duplicated.
 
 > **First run (bootstrap).** `cz bump` needs an existing tag to compute the next
 > version and an incremental changelog. The very first `just release` therefore
@@ -155,7 +165,7 @@ the `just release` recipe.
 > From the second run on it bumps normally. You never tag by hand.
 
 From then on the backend (at runtime) and the web app (on its next build/deploy)
-report the new version, and the Release is visible on GitLab.
+report the new version, and the Release is visible on both GitLab and GitHub.
 
 ### What NOT to do by hand
 
@@ -176,5 +186,6 @@ report the new version, and the Release is visible on GitLab.
 | `web/src/content/releaseNotes.ts` | Hand-written user-facing notes (it/en).              |
 | `scripts/stamp_release_notes.py`  | Stamps the `UNRELEASED` entry during the bump.       |
 | `justfile`                        | The `release` recipe.                               |
-| `.gitlab-ci.yml`                  | The `release` job: publishes the Release on tag push.|
+| `.github/workflows/release.yml`   | Publishes the GitHub *and* GitLab Release on tag push.|
+| `.gitlab-ci.yml`                  | The `release` job — dormant twin, see CI_GITHUB_MIRROR.|
 | `ci-tools/release-notes.sh`       | Extracts the tag's CHANGELOG section for the notes. |
