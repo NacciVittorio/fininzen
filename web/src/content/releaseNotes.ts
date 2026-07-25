@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.11.0",
+        date: "2026-07-25",
         highlights: {
             it: [
                 "Nei Movimenti e negli Investimenti i filtri ora funzionano allo stesso modo e non si applicano più da soli: scegli conto, categoria, periodo o tipo e la modifica resta in bozza finché non tocchi «Applica filtri» — «Annulla», lo sfondo, Esc o trascinare la scheda in basso annullano invece la modifica.",

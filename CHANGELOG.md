@@ -6,6 +6,16 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.11.0 (2026-07-25)
+
+### Feat
+
+- **web**: unify Cash Flow / Investments filters and refresh the add-transaction sheet
+
+### Fix
+
+- **web**: patch next and transitive deps for known CVEs
+
 ## v0.10.0 (2026-07-25)
 
 ### Feat
