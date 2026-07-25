@@ -3,6 +3,9 @@
     "version": "0.10.0",
     "private": true,
     "description": "fininzen frontend — Next.js App Router (SSR)",
+    "engines": {
+        "node": ">=24"
+    },
     "scripts": {
         "dev": "next dev",
         "build": "next build",
@@ -19,7 +22,7 @@
         "@tanstack/query-sync-storage-persister": "^5.101.2",
         "@tanstack/react-query": "^5.62.0",
         "@tanstack/react-query-persist-client": "^5.101.2",
-        "next": "^15.5.0",
+        "next": "^15.5.21",
         "react": "^19.2.6",
         "react-dom": "^19.2.6",
         "serwist": "^9.5.11"
@@ -42,6 +45,12 @@
     },
     "overrides": {
         "postcss": "^8.5.10",
-        "js-yaml": "^4.2.0"
+        "js-yaml": "^4.2.0",
+        "sharp": "^0.35.3",
+        "@eslint/eslintrc": {
+            "minimatch": {
+                "brace-expansion": "^1.1.16"
+            }
+        }
     }
 }
