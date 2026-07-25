@@ -15,6 +15,23 @@
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "web-minor-patch",
       "addLabels": ["frontend"]
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "docker-minor-patch",
+      "addLabels": ["docker"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "ci-minor-patch",
+      "addLabels": ["ci"]
+    },
+    {
+      "matchManagers": ["nvm"],
+      "groupName": "node-runtime",
+      "addLabels": ["runtime"]
     }
   ]
 }
