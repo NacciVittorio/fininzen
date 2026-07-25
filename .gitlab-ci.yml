@@ -1,6 +1,21 @@
 # GitLab CI — lint + test + build on every MR and on main; publish a Release on
 # a `v*` tag. The job bodies live in ci-tools/*.sh so the same commands run here
 # and locally (they are what `just lint test` shells out to).
+#
+# ┌─ PAUSED ────────────────────────────────────────────────────────────────────
+# │ This project's GitLab compute quota is exhausted, so every pipeline failed
+# │ instantly with `ci_quota_exceeded` and painted each MR red for no reason.
+# │ The `workflow:` block below therefore creates no pipeline at all.
+# │
+# │ CI now runs on GitHub Actions instead: a push mirror copies every ref to
+# │ github.com/NacciVittorio/fininzen (public repo → free minutes), where
+# │ .github/workflows/ci.yml runs these same ci-tools/*.sh scripts and posts the
+# │ result back onto the commit, so it shows in the MR widget here.
+# │
+# │ The jobs below are kept intact and up to date: to come back to GitLab CI,
+# │ restore the original `workflow:` rules (kept commented out) and disable the
+# │ mirror. See wiki/CI_GITHUB_MIRROR.md.
+# └─────────────────────────────────────────────────────────────────────────────
 
 stages:
   - lint
@@ -8,16 +23,23 @@ stages:
   - build
   - release
 
-# Gate the whole pipeline: MRs, main, version tags, and the weekly Renovate
-# schedule. Without this a push to a branch with an open MR builds twice (a
-# branch pipeline and a detached MR pipeline).
+# Create no pipeline, ever — see the PAUSED note above. This is deliberately a
+# no-op `workflow:` rather than disabling CI/CD in the project settings, because
+# that would also hide the pipeline widget in the MR, which is exactly where the
+# GitHub Actions commit status needs to appear.
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_TAG =~ /^v/
-    - if: $CI_PIPELINE_SOURCE == "schedule"
     - when: never
+    # ── Original rules, to restore when the compute quota is back ──
+    # Gate the whole pipeline: MRs, main, version tags, and the weekly Renovate
+    # schedule. Without this a push to a branch with an open MR builds twice (a
+    # branch pipeline and a detached MR pipeline).
+    #
+    # - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # - if: $CI_COMMIT_TAG =~ /^v/
+    # - if: $CI_PIPELINE_SOURCE == "schedule"
+    # - when: never
 
 default:
   # Cancel superseded pipelines when a new commit lands on the same ref.
@@ -181,6 +203,10 @@ release:
 # project access token with `api` + `write_repository` — as a masked CI
 # variable. Config lives in renovate.json. Until the token exists the rule keeps
 # the job from running at all.
+#
+# Superseded while the quota is exhausted by .github/workflows/renovate.yml,
+# which runs this same image on GitHub Actions with RENOVATE_PLATFORM=gitlab, so
+# the MRs still open here. Keep the two in sync if the env vars below change.
 renovate:
   stage: lint
   image: renovate/renovate:latest

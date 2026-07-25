@@ -20,6 +20,9 @@ approfondite.
 
 - [VERSIONING.md](VERSIONING.md) — schema SemVer unico backend/frontend, fonte di verità
   (`VERSION`) e come si taglia una release con `just release`.
+- [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md) — la CI gira su GitHub Actions via push
+  mirror da GitLab (quota compute esaurita): come funziona, i due token da configurare
+  a mano e come tornare indietro.
 - [ISSUES.md](ISSUES.md) — convenzioni per aprire le issue (titoli, template, label).
 
 ## Archivio

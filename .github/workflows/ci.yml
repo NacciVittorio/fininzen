@@ -1,0 +1,199 @@
+name: CI
+
+# Lint + test + build, run on GitHub Actions because the GitLab compute quota is
+# exhausted. GitLab stays the repo we work in (branches, MRs, review); a push
+# mirror copies every ref here, and `on: push` below turns that mirror push into
+# a pipeline. See wiki/CI_GITHUB_MIRROR.md.
+#
+# The job bodies are `ci-tools/*.sh`, the same scripts .gitlab-ci.yml and
+# `just lint test` call, so the three stay in sync by construction. Keep new
+# steps in those scripts, not inline here.
+
+on:
+  push:
+    # Every branch, not just main: the mirror is the only way code reaches this
+    # repo, and a feature branch has to be tested *before* it is merged on
+    # GitLab. Tag pushes carry no branch ref, so they don't match here — they
+    # are release.yml's job, and .gitlab-ci.yml likewise skips lint/test on tags.
+    branches: ["**"]
+  # Manual re-runs from the Actions tab (a flaky run, or a re-check after fixing
+  # something on the GitLab side). `pull_request` is deliberately absent: no PR
+  # is ever opened here, so it would be dead configuration.
+  workflow_dispatch:
+
+concurrency:
+  # Mirrors `interruptible: true` in .gitlab-ci.yml.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Shared Django vars for non-production jobs (no DB guard, no security checks),
+  # kept identical to the `variables:` block in .gitlab-ci.yml.
+  DJANGO_SECRET_KEY: "ci-secret-key-for-fininzen-tests-with-more-than-50-characters"
+  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+
+jobs:
+  backend-lint:
+    name: Backend lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: bash ci-tools/install-backend.sh
+      - run: bash ci-tools/lint-backend.sh
+
+  web:
+    name: Web lint + build
+    # .gitlab-ci.yml splits this into web-lint and web-build with
+    # `needs: web-lint`. Here they are one job: same order, but `npm ci` runs
+    # once instead of twice.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: bash ci-tools/install-web.sh
+      - run: bash ci-tools/lint-web.sh
+      - run: bash ci-tools/build-web.sh
+
+  backend-test:
+    name: Backend tests (migration drift + pytest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: fininzen_test
+          POSTGRES_USER: fininzen
+          POSTGRES_PASSWORD: fininzen
+        # GitLab reaches the service by its `postgres` alias on the shared
+        # network; Actions needs the port published to the runner instead.
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fininzen -d fininzen_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: "postgres://fininzen:fininzen@127.0.0.1:5432/fininzen_test"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: bash ci-tools/install-backend.sh
+      - run: bash ci-tools/check-migrations.sh
+      - run: bash ci-tools/test-backend.sh
+
+  backend-postgres:
+    name: Backend on Postgres (migrate + pytest)
+    # Production runs on PostgreSQL with AES-256-GCM field encryption; this job
+    # exercises the suite against the real engine so Postgres-only behaviour
+    # (sequences, JSON/array SQL, the encrypted columns) is covered before merge.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fininzen
+          POSTGRES_USER: fininzen
+          POSTGRES_PASSWORD: fininzen
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fininzen"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgres://fininzen:fininzen@127.0.0.1:5432/fininzen"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: bash ci-tools/install-backend.sh
+      - run: bash ci-tools/migrate.sh
+      - run: bash ci-tools/test-backend.sh
+
+  api-contract:
+    name: API contract (OpenAPI schema + typed client are in sync)
+    # Regenerates openapi.json and web/src/api/schema.d.ts, then fails if either
+    # differs from what is committed, so a serializer change that isn't
+    # reflected in the generated types breaks CI instead of drifting silently.
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_DEBUG: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: bash ci-tools/install-backend.sh
+      - run: bash ci-tools/install-web.sh
+      - run: bash ci-tools/check-api-contract.sh
+
+  gitlab-status:
+    name: Report result to the GitLab MR
+    # Without this the pipeline result lives only in this repo's Actions tab,
+    # which is useless when the review happens in a GitLab MR. Posting a commit
+    # status makes it show up in the MR widget there.
+    #
+    # Needs the GITLAB_API_TOKEN secret; the step no-ops while it is unset, so
+    # this job never fails the pipeline just because the token isn't configured
+    # yet. Note that a commit status is *visible* on GitLab Free but cannot be
+    # made a required merge check (that is External Status Checks, Ultimate).
+    if: always()
+    needs: [backend-lint, web, backend-test, backend-postgres, api-contract]
+    runs-on: ubuntu-latest
+    env:
+      GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+      # URL-encoded path of the GitLab project (`/` → %2F).
+      GITLAB_PROJECT: fininzengroup%2Ffininzen
+    steps:
+      - name: POST commit status to GitLab
+        if: env.GITLAB_API_TOKEN != ''
+        run: |
+          set -euo pipefail
+          if ${{ contains(needs.*.result, 'failure') }}; then
+            state=failed
+          elif ${{ contains(needs.*.result, 'cancelled') }}; then
+            state=canceled
+          else
+            state=success
+          fi
+          echo "==> Reporting '$state' for ${GITHUB_SHA} to GitLab"
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --request POST \
+            --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+            --data-urlencode "state=${state}" \
+            --data-urlencode "name=GitHub Actions / CI" \
+            --data-urlencode "target_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --data-urlencode "description=Run on GitHub Actions (GitLab CI quota exhausted)" \
+            "https://gitlab.com/api/v4/projects/${GITLAB_PROJECT}/statuses/${GITHUB_SHA}")
+          # 201 = created. 404 means the commit isn't on GitLab yet (possible if
+          # a ref reached GitHub some other way) — report it without failing CI,
+          # since the code itself is already green or red on its own merits.
+          if [ "$code" = "201" ]; then
+            echo "GitLab commit status created."
+          else
+            echo "::warning::GitLab returned HTTP $code; commit status not recorded."
+          fi

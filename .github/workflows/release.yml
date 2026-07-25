@@ -1,0 +1,38 @@
+name: Release
+
+# Publish a GitHub Release whenever a version tag is pushed. The tag itself is
+# created locally by `just release` (commitizen writes VERSION + CHANGELOG.md and
+# tags vX.Y.Z), pushed to GitLab, and copied here by the push mirror — which is
+# what triggers this workflow. See wiki/VERSIONING.md.
+#
+# The GitLab-side twin is the `release` job in .gitlab-ci.yml. Both call
+# ci-tools/release-notes.sh so the notes are extracted identically.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Extract changelog section for this tag
+        env:
+          # release-notes.sh reads $CI_COMMIT_TAG, GitLab's variable name. Map
+          # GitHub's equivalent onto it rather than forking the script.
+          CI_COMMIT_TAG: ${{ github.ref_name }}
+        run: bash ci-tools/release-notes.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md

@@ -1,0 +1,49 @@
+name: Renovate
+
+# Dependency updates. This replaces .github/dependabot.yml, which was removed
+# because Dependabot can only open pull requests *here* — and this repo is a
+# read-only mirror, so those PRs would be wiped by the next mirror sync.
+#
+# Instead Renovate runs on GitHub Actions (free compute on a public repo) but is
+# pointed at GitLab, so the merge requests land in the repo we actually work in.
+# It is a straight port of the `renovate` job in .gitlab-ci.yml, which can't run
+# any more because the GitLab compute quota is exhausted.
+#
+# Config lives in renovate.json, which already reproduces the grouping
+# Dependabot used (backend-minor-patch, web-minor-patch, matching labels).
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC, matching the weekly cadence Dependabot had.
+    # NOTE: scheduled workflows only run from the default branch, so this file
+    # has to be merged to main before it fires at all.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    name: Open dependency MRs on GitLab
+    runs-on: ubuntu-latest
+    # Same image the GitLab job used, so behaviour matches and there is no
+    # third-party action version to track.
+    container:
+      image: renovate/renovate:latest
+    env:
+      RENOVATE_PLATFORM: gitlab
+      RENOVATE_ENDPOINT: https://gitlab.com/api/v4
+      RENOVATE_REPOSITORIES: fininzengroup/fininzen
+      # Project access token with `api` + `write_repository`, stored as a repo
+      # secret. Without it Renovate has no way to open MRs, so the job is
+      # skipped rather than left to fail every Monday.
+      RENOVATE_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+      # Lets Renovate fetch release notes from github.com without hitting the
+      # anonymous rate limit. Read-only, and scoped to this run.
+      GITHUB_COM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Run Renovate
+        if: env.RENOVATE_TOKEN != ''
+        # No checkout: Renovate clones the GitLab project itself over the API.
+        run: renovate
