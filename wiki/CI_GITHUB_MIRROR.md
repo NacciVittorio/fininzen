@@ -54,7 +54,7 @@ Status Checks*, disponibili solo in Ultimate.
 
 ## Dipendenze
 
-[`renovate.json`](../renovate.json) sostituisce Dependabot e mantiene gli stessi
+[`renovate.json`](../.github/renovate.json) sostituisce Dependabot e mantiene gli stessi
 gruppi principali di aggiornamento. Il workflow GitHub gira con
 `RENOVATE_PLATFORM=gitlab`, quindi le MR finiscono nel progetto GitLab.
 

@@ -6,7 +6,7 @@ Caddy (systemd, non Docker) per un altro dominio (`finnet.nacci.eu`) sulle
 porte 80/443: il Caddy di questo stack non può fare il bind delle stesse
 porte, quindi è temporaneamente pubblicato su una porta alternativa
 (`HTTP_PORT`, es. `8080`) e quello di sistema fa da relay verso di lui. Guida
-completa: [wiki/VPS_DEPLOY_CHECKLIST.md](/wiki/VPS_DEPLOY_CHECKLIST.md).
+completa: [wiki/VPS_DEPLOY_CHECKLIST.md](/wiki/archive/VPS_DEPLOY_CHECKLIST.md).
 
 ```
 browser ──https://fininzen.nacci.eu──▶ caddy di sistema (systemd, :80/:443, TLS)
@@ -92,7 +92,7 @@ dc up -d --build           # rebuild immagini; migrate/collectstatic automatici
 
 Metodo **ufficiale**: `just production-backup` (→ `scripts/backup_db.sh`), che fa un
 `pg_dump --format=custom` dal container con rotazione e cifratura at-rest opzionale.
-Vedi [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md) §8 per schedulazione e restore.
+Vedi [wiki/DOCKER_DEPLOY.md](/wiki/archive/DOCKER_DEPLOY.md) §8 per schedulazione e restore.
 
 Dump **rapido ad-hoc** (SQL semplice, senza rotazione/cifratura):
 

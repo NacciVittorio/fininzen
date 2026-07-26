@@ -9,7 +9,7 @@ name: Renovate
 # It is a straight port of the `renovate` job in .gitlab-ci.yml, which can't run
 # any more because the GitLab compute quota is exhausted.
 #
-# Config lives in renovate.json, which already reproduces the grouping
+# Config lives in .github/renovate.json, which already reproduces the grouping
 # Dependabot used (backend-minor-patch, web-minor-patch, matching labels).
 
 on:

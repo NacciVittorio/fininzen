@@ -6,7 +6,7 @@
 # this stack's Caddy is temporarily published on an alternate host port via
 # HTTP_PORT (see ./Caddyfile) instead of binding 80/443 directly — the host
 # Caddy relays fininzen.nacci.eu to it. See ./README.md and
-# wiki/VPS_DEPLOY_CHECKLIST.md for the current setup and the future flip back
+# wiki/archive/VPS_DEPLOY_CHECKLIST.md for the current setup and the future flip back
 # to owning 80/443 directly once that host Caddy is retired.
 #
 #   cp deploy/docker/production/.env.example deploy/docker/production/.env   # then edit

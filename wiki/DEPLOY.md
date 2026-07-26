@@ -7,7 +7,7 @@ Stack: **Django 6 + Gunicorn** · **Next.js SSR** (`next start`) · **Caddy** (s
 > impediscono gli upgrade. Questo percorso fa girare tutto direttamente con
 > systemd e usa **SQLite** come database: un solo file, nessun processo/RAM extra.
 > Lo stack Docker/Postgres resta in `deploy/docker/` come riferimento ma **non
-> viene usato**. Guida Docker (storica): [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md).
+> viene usato**. Guida Docker (storica): [archive/DOCKER_DEPLOY.md](archive/DOCKER_DEPLOY.md).
 
 ## 1. Swap file (fondamentale con 1 GB RAM)
 

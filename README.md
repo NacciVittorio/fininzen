@@ -21,7 +21,7 @@ just doctor
 just install
 ```
 
-L'ambiente di sviluppo usa un `venv/` Python locale (gestito da `just install`) — niente Nix/devenv.
+L'ambiente di sviluppo usa un `venv/` Python locale, gestito da `just install`.
 
 ### Database locale (opzionale: parità con la produzione)
 
@@ -38,7 +38,7 @@ Il materiale Docker del repo vive sotto `deploy/docker/`:
 - `deploy/docker/production/` per il deploy di produzione completo in container
 
 In produzione il deploy è containerizzato (Caddy + Next.js + Django + Postgres +
-Redis via `docker compose`): vedi la guida [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
+Redis via `docker compose`): vedi la guida [wiki/DOCKER_DEPLOY.md](/wiki/archive/DOCKER_DEPLOY.md).
 
 ## Avvio
 
@@ -102,7 +102,7 @@ compose` grezzo mostrato in [Database locale](#database-locale-opzionale-parità
 ### Stack Docker (deploy in produzione)
 
 Da eseguire sul server, dalla root del repo (richiedono `deploy/docker/production/.env`).
-Guida completa: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md).
+Guida completa: [wiki/DOCKER_DEPLOY.md](/wiki/archive/DOCKER_DEPLOY.md).
 
 ```sh
 just production-up             # build + avvio dello stack completo
@@ -126,7 +126,7 @@ rilascio è automatizzato da `just release`. Metodologia e flusso completo:
 ## Deploy
 
 Per il deploy containerizzato su un server Linux (da VM vuota a stack online),
-seguire la guida: [wiki/DOCKER_DEPLOY.md](/wiki/DOCKER_DEPLOY.md)
+seguire la guida: [wiki/DOCKER_DEPLOY.md](/wiki/archive/DOCKER_DEPLOY.md)
 
 ## API Endpoints
 

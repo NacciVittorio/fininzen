@@ -22,7 +22,7 @@ enabled from repository code alone.
 - Back up PostgreSQL with `scripts/backup_db.sh` (pg_dump `--format=custom` from
   the container, with rotation and optional at-rest encryption), then schedule
   `scripts/backup_offsite.sh` after it for off-site replication. See
-  `wiki/DOCKER_DEPLOY.md` §8.
+  `wiki/archive/DOCKER_DEPLOY.md` §8.
 - Run a restore test periodically against a disposable path, not the live DB.
 
 ## Gunicorn
@@ -39,13 +39,13 @@ enabled from repository code alone.
   request windows.
 - In the Docker stack, schedule it via host cron calling the backend container
   (`docker compose ... exec -T backend python manage.py refresh_asset_prices`) —
-  see `wiki/DOCKER_DEPLOY.md` §7.
+  see `wiki/archive/DOCKER_DEPLOY.md` §7.
 
 ## Docker Reference
 
 - `deploy/docker/production/compose.yml` is the production topology: Caddy + Next.js +
   Django/Gunicorn (two workers) + PostgreSQL 18 + Redis 7. See
-  `wiki/DOCKER_DEPLOY.md`.
+  `wiki/archive/DOCKER_DEPLOY.md`.
 - `deploy/docker/backend/` holds the Django backend image (Dockerfile +
   entrypoint) built by the stack; `deploy/docker/local/` is dev infra
   (Postgres + Redis only).

@@ -2,7 +2,7 @@
 
 Guida operativa per il deploy in corso su una VPS (IP `217.160.187.118`). Spunta le caselle
 man mano che procedi; puoi riprendere da dove ti eri fermato. Riferimento generico completo:
-`wiki/DOCKER_DEPLOY.md`.
+`wiki/archive/DOCKER_DEPLOY.md`.
 
 ## Decisioni prese
 
@@ -50,7 +50,7 @@ chiedimi se ci sono modifiche di deploy in sospeso.
 
 ## 0. Da fare prima di riprendere
 
-- [ ] Verifica che i file in `deploy/docker/production/` e `wiki/VPS_DEPLOY_CHECKLIST.md`
+- [ ] Verifica che i file in `deploy/docker/production/` e `wiki/archive/VPS_DEPLOY_CHECKLIST.md`
       riflettano l'architettura "Caddy nello stack Docker, porta alternativa temporanea"
       descritta sopra (non quella "niente Caddy Docker" di un tentativo precedente, già
       superato). Se in dubbio, `git log --oneline -5` e chiedimi conferma.
@@ -166,7 +166,7 @@ chiedimi se ci sono modifiche di deploy in sospeso.
       ```bash
       alias dc='docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml'
       ```
-- [ ] Cron `dockerapp` (`crontab -e`): refresh prezzi orario (§7 `wiki/DOCKER_DEPLOY.md`) +
+- [ ] Cron `dockerapp` (`crontab -e`): refresh prezzi orario (§7 `wiki/archive/DOCKER_DEPLOY.md`) +
       `scripts/backup_db.sh` (+ eventuale `scripts/backup_offsite.sh`).
 
 ## 4. Blocco relay sul Caddy di sistema (temporaneo, come **root**)

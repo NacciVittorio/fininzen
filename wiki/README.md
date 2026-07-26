@@ -31,5 +31,9 @@ Documenti storici, conservati per riferimento ma non più parte del flusso opera
 
 - [archive/POSTGRES_MIGRATION.md](archive/POSTGRES_MIGRATION.md) — migrazione una-tantum
   SQLite → PostgreSQL (cutover completato).
-- [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) — guida Docker storica (Caddy + Next.js + Django
-  + Postgres + Redis in container); tenuta come riferimento ma non è il deploy in uso.
+- [archive/DOCKER_DEPLOY.md](archive/DOCKER_DEPLOY.md) — guida Docker storica (Caddy +
+  Next.js + Django + Postgres + Redis in container); tenuta come riferimento ma non è il
+  deploy in uso.
+- [archive/VPS_DEPLOY_CHECKLIST.md](archive/VPS_DEPLOY_CHECKLIST.md) — checklist per la
+  migrazione a stack Docker su VPS; non eseguita, il deploy attivo resta bare-metal
+  ([DEPLOY.md](DEPLOY.md)).

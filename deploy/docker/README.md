@@ -31,5 +31,5 @@ docker compose --env-file deploy/docker/production/.env \
 ```
 
 Guida completa da VM vuota (utente, permessi, SSH, .env, cron prezzi, backup):
-**[wiki/DOCKER_DEPLOY.md](../../wiki/DOCKER_DEPLOY.md)**. Riferimento rapido dei
+**[wiki/DOCKER_DEPLOY.md](../../wiki/archive/DOCKER_DEPLOY.md)**. Riferimento rapido dei
 comandi: [production/README.md](production/README.md).

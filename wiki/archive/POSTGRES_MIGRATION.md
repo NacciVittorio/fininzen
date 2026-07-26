@@ -4,7 +4,7 @@
 > storico.** La produzione gira ormai su PostgreSQL. Il tooling
 > (`manage.py migrate_sqlite_to_postgres`) resta nel codice per riferimento, ma
 > questo runbook non fa più parte del flusso operativo. Per backup/restore in stato
-> stazionario vedi [DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md) §8.
+> stazionario vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) §8.
 
 Questa guida copre il passaggio una-tantum dal vecchio `db.sqlite3` (database di
 sviluppo) al PostgreSQL dello stack Docker, con cifratura applicativa
@@ -12,7 +12,7 @@ AES-256-GCM dei campi sensibili. Dopo lo switch la produzione gira solo su
 Postgres dentro i container.
 
 Presuppone lo stack già in piedi (`just production-up`) e un `.env` completo in
-`deploy/docker/production/.env` — vedi [DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md).
+`deploy/docker/production/.env` — vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md).
 
 ## Cosa viene cifrato
 
@@ -29,7 +29,7 @@ importi, date, FK, owner, tipi transazione, ticker, e `Expense.description`
 trigram produrrebbe falsi positivi e gonfierebbe i totali).
 
 I backup (`pg_dump`) contengono comunque importi/date in chiaro: cifrali a riposo
-con `BACKUP_ENC_PASSPHRASE` (vedi [DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md) §8).
+con `BACKUP_ENC_PASSPHRASE` (vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) §8).
 
 ## Come funziona la cifratura in migrazione
 
@@ -155,4 +155,4 @@ Postgres non è completa.
 Il backup/restore in stato stazionario **non** fa più parte di questo runbook di
 migrazione. La procedura canonica (dump `--format=custom`, rotazione, cifratura
 at-rest, replica off-site e restore nello stack) vive in
-[DOCKER_DEPLOY.md](../DOCKER_DEPLOY.md) §8.
+[DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) §8.

@@ -45,9 +45,5 @@ RELEASE_NOTES.md
 .claude
 CLAUDE.md
 
-# direnv / devenv
-.direnv
-.devenv/
-
 # Design handoff (local-only)
 handoff/

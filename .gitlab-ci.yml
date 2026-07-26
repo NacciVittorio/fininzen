@@ -231,7 +231,7 @@ release:
 # Replaces Dependabot, which is GitHub-only. Runs from a weekly pipeline
 # schedule (Settings → CI/CD → Pipeline schedules) and needs RENOVATE_TOKEN — a
 # project access token with `api` + `write_repository` — as a masked CI
-# variable. Config lives in renovate.json. Until the token exists the rule keeps
+# variable. Config lives in .github/renovate.json. Until the token exists the rule keeps
 # the job from running at all.
 #
 # Superseded while the quota is exhausted by .github/workflows/renovate.yml,

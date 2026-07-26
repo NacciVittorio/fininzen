@@ -8,10 +8,10 @@ minimum_pre_commit_version: "4.0.0"
 # Generated artifacts: never let a hook reformat these, or they drift from what
 # the codegen (just schema / npm run generate:api) produces and the CI
 # api-contract job fails.
-exclude: '^(openapi\.json|web/src/api/schema\.d\.ts|\.devenv/)'
+exclude: '^(openapi\.json|web/src/api/schema\.d\.ts)'
 
 repos:
-  # ---- Python: lint + format (Nix-provided binary via devenv, avoids stub-ld) ----
+  # ---- Python: lint + format (repo's venv on PATH) ----
   - repo: local
     hooks:
       - id: ruff
@@ -49,7 +49,7 @@ repos:
       - id: check-toml
       - id: detect-private-key
 
-  # ---- Secret guard (Nix-provided binary via devenv, avoids stub-ld) ----
+  # ---- Secret guard (expects `ripsecrets` on PATH) ----
   - repo: local
     hooks:
       - id: ripsecrets
