@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.11.1 (2026-07-26)
+
+### Fix
+
+- **web**: unblock the transaction update and tidy the Investments sheets and Accounts page
+
 ## v0.11.0 (2026-07-25)
 
 ### Feat

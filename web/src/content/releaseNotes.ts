@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.11.1",
+        date: "2026-07-26",
         highlights: {
             it: [
                 "Modificando una transazione negli Investimenti, cambiare la data non blocca più il salvataggio: il prezzo per quota viene di nuovo recuperato da solo (prima succedeva solo per le nuove transazioni), e sotto il campo trovi scritto se è in corso il recupero o se per quella data — un weekend, un festivo — la quotazione non esiste e va inserita a mano.",
