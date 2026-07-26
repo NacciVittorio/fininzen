@@ -32,7 +32,7 @@ export default function TransactionTradeFields({
     decimalSeparator: DecimalSeparator;
 }) {
     // Money fields use the same calculator as the CashFlow movement forms, so
-    // the currency suffix and the on-screen operators come for free.
+    // the currency suffix and the operator bar come for free.
     const currency = asset?.currency || "EUR";
     const amountPlaceholder = decimalSeparator === "," ? "0,00" : "0.00";
 

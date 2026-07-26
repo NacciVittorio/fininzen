@@ -23,6 +23,22 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "I campi importo non hanno più l'icona della calcolatrice né il pulsante «=»: il campo è tornato pulito, sia nei Movimenti sia negli Investimenti.",
+                "Le operazioni si fanno ora direttamente dalla tastiera del telefono: appena tocchi un campo importo compare una barretta con +, −, × e ÷ proprio sopra i tasti, così i numeri li scrivi con il tastierino di sempre e l'operazione la componi senza aprire nulla. «=» calcola il totale.",
+                "Su Android la tastiera non copre più la scheda: prima, aprendo «Nuova spesa» e toccando l'importo, data e pulsanti «Annulla»/«Aggiungi» finivano sotto la tastiera e la scheda non si poteva salvare. Ora la scheda si restringe sopra la tastiera come già faceva su iPhone.",
+            ],
+            en: [
+                "The amount fields no longer carry a calculator icon or an “=” button: the field is clean again, in both Cash Flow and Investments.",
+                "The maths now happens straight off the phone keyboard: touch an amount field and a slim bar with +, −, × and ÷ appears right above the keys, so you type the numbers on the usual number pad and build the operation without opening anything. “=” works out the total.",
+                "On Android the keyboard no longer covers the sheet: opening “New expense” and tapping the amount used to push the date and the “Cancel”/“Add” buttons under the keyboard, leaving no way to save. The sheet now shrinks to sit above the keyboard, as it already did on iPhone.",
+            ],
+        },
+    },
+    {
         version: "0.11.1",
         date: "2026-07-26",
         highlights: {

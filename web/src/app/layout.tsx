@@ -40,6 +40,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
     themeColor: "#f7f7f5",
     viewportFit: "cover",
+    // Chrome/Android defaults to `resizes-visual`: the layout viewport keeps its
+    // full height when the on-screen keyboard opens, so 100dvh stays put and
+    // every position:fixed overlay — BottomSheet above all — ends up *under* the
+    // keyboard, with body scroll locked and no way to reach the Save row.
+    // `resizes-content` shrinks the layout viewport instead, which is what
+    // iOS Safari already achieves by shifting the visual viewport. Safari
+    // ignores the key, so this is Android-only in practice.
+    interactiveWidget: "resizes-content",
 };
 
 // iOS standalone splash screens. The Metadata API has no field for

@@ -2,26 +2,35 @@ import { test, expect, Page } from "@playwright/test";
 import { loginAsDemo } from "./helpers/auth";
 
 // The in-field amount calculator: an expression typed inline ("12,50+8,30")
-// and the on-screen keypad. Every case here is client-side only — nothing is
-// submitted — so the read-only demo account is enough.
+// and the operator bar that docks above the OS keyboard. Every case here is
+// client-side only — nothing is submitted — so the read-only demo account is
+// enough.
 //
 // Selectors are data-testid only: the UI language follows the account's
 // profile and is not deterministic across runs. No waitForLoadState
 // ("networkidle") either — the dev server's HMR websocket never lets it settle.
+//
+// The bar is gated on a viewport narrower than 640px; playwright.config.ts runs
+// at 390×844, so it is in range for every test in this file.
 
 const AMOUNT = '[data-testid="exp-amount"]';
-const EQUALS = '[data-testid="amount-equals"]';
 const ERROR = '[data-testid="amount-error"]';
-const TRIGGER = '[data-testid="amount-calc-trigger"]';
-const PAD = '[data-testid="amount-calculator-pad"]';
-const DISPLAY = '[data-testid="calc-display"]';
-const APPLY = '[data-testid="calc-apply"]';
+const BAR = '[data-testid="amount-operator-bar"]';
 const SHEET = ".bottom-sheet__panel";
 
-const key = (id: string) => `[data-testid="calc-key-${id}"]`;
+const barKey = (id: string) => `[data-testid="calc-bar-${id}"]`;
 
 async function openMovementSheet(page: Page): Promise<void> {
     await page.goto("/cashflow");
+    // next dev injects <nextjs-portal>, whose error badge lands in the
+    // bottom-left corner — exactly on top of the bar's first key, which then
+    // swallows the click. next.config.ts already turns off the dev-tools
+    // indicator under E2E=1 for the same reason (it overlapped the bottom nav);
+    // the error badge is separate and cannot be configured away, so hide the
+    // whole portal. It is dev-server furniture, never part of a build.
+    await page.addStyleTag({
+        content: "nextjs-portal { display: none !important; }",
+    });
     await expect(page.locator('[data-testid="expenses-add-fab"]')).toBeVisible({
         timeout: 15_000,
     });
@@ -60,15 +69,13 @@ test.describe("Amount calculator", () => {
 
     // ── Non-regression: a plain number must behave exactly as before ────────
 
-    test("plain number is untouched and shows no = button", async () => {
+    test("plain number is untouched", async () => {
         await page.fill(AMOUNT, "42.50");
         await expect(page.locator(AMOUNT)).toHaveValue("42.50");
-        await expect(page.locator(EQUALS)).toBeHidden();
     });
 
-    // expenses.spec.ts drives this field as `input[inputmode="decimal"]`, and
-    // the pad flips inputMode to "none" while it is open. Pin the resting
-    // state so that selector keeps resolving to exactly this one input.
+    // expenses.spec.ts drives this field as `input[inputmode="decimal"]`. Pin
+    // it so that selector keeps resolving to exactly this one input.
     test("field is still the sheet's only inputmode=decimal input", async () => {
         const decimals = page.locator(`${SHEET} input[inputmode="decimal"]`);
         await expect(decimals).toHaveCount(1);
@@ -81,6 +88,17 @@ test.describe("Amount calculator", () => {
         await expect(page.locator(AMOUNT)).toHaveValue(`12${sep}34`);
     });
 
+    // The field carries no chrome of its own any more: no calculator icon, no
+    // inline "=". Both were removed in favour of the operator bar.
+    test("the field has no in-field buttons", async () => {
+        await expect(
+            page.locator('[data-testid="amount-calc-trigger"]'),
+        ).toHaveCount(0);
+        await expect(page.locator('[data-testid="amount-equals"]')).toHaveCount(
+            0,
+        );
+    });
+
     // ── Inline expressions ─────────────────────────────────────────────────
 
     test("sum resolves on Enter", async () => {
@@ -88,19 +106,6 @@ test.describe("Amount calculator", () => {
         await page.fill(AMOUNT, `12${sep}50+8${sep}30`);
         await page.locator(AMOUNT).press("Enter");
         await expect(page.locator(AMOUNT)).toHaveValue(`20${sep}80`);
-    });
-
-    test("= button appears once an operator is typed", async () => {
-        await expect(page.locator(EQUALS)).toBeHidden();
-        await page.fill(AMOUNT, "12+8");
-        await expect(page.locator(EQUALS)).toBeVisible();
-    });
-
-    test("sum resolves on = click", async () => {
-        const sep = await separator(page);
-        await page.fill(AMOUNT, "10*3");
-        await page.click(EQUALS);
-        await expect(page.locator(AMOUNT)).toHaveValue(`30${sep}00`);
     });
 
     test("multiplication binds tighter than addition", async () => {
@@ -150,88 +155,60 @@ test.describe("Amount calculator", () => {
         await expect(page.locator(ERROR)).toBeVisible();
     });
 
-    // ── Keypad ─────────────────────────────────────────────────────────────
+    // ── Operator bar ───────────────────────────────────────────────────────
 
-    test("trigger opens the pad", async () => {
-        await page.click(TRIGGER);
-        await expect(page.locator(PAD)).toBeVisible();
+    test("the bar follows the field's focus", async () => {
+        await expect(page.locator(BAR)).toBeHidden();
+        await page.locator(AMOUNT).focus();
+        await expect(page.locator(BAR)).toBeVisible();
+        await page.locator(AMOUNT).blur();
+        await expect(page.locator(BAR)).toBeHidden();
     });
 
-    test("pad seeds from the current field value", async () => {
+    // The regression this guards: without preventDefault on the keys' mousedown
+    // the input blurs on every tap, which on a phone drops the OS keyboard and
+    // takes the bar down with it.
+    test("an operator key inserts without stealing focus", async () => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}50`);
-        await page.click(TRIGGER);
-        await expect(page.locator(DISPLAY)).toHaveText(`12${sep}50`);
+        await page.click(barKey("plus"));
+        await expect(page.locator(AMOUNT)).toHaveValue(`12${sep}50+`);
+        await expect(page.locator(AMOUNT)).toBeFocused();
+        await expect(page.locator(BAR)).toBeVisible();
     });
 
-    test("compose a sum on the pad and apply it", async () => {
+    test("compose a sum from the bar and resolve it with =", async () => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}50`);
-        await page.click(TRIGGER);
-        await page.click(key("plus"));
-        await page.click(key("8"));
-        await page.click(key("sep"));
-        await page.click(key("3"));
-        await page.click(key("0"));
-        await page.click(APPLY);
-        await expect(page.locator(PAD)).toBeHidden();
+        await page.click(barKey("plus"));
+        await page.locator(AMOUNT).pressSequentially(`8${sep}30`);
+        await page.click(barKey("equals"));
         await expect(page.locator(AMOUNT)).toHaveValue(`20${sep}80`);
     });
 
-    test("= inside the pad shows the result", async () => {
-        const sep = await separator(page);
-        await page.click(TRIGGER);
-        await page.click(key("7"));
-        await page.click(key("mul"));
-        await page.click(key("6"));
-        await page.click(key("equals"));
-        await expect(page.locator(DISPLAY)).toHaveText(`42${sep}00`);
-        await expect(page.locator(APPLY)).toBeEnabled();
+    test("every operator key reaches the field", async () => {
+        await page.fill(AMOUNT, "10");
+        await page.click(barKey("mul"));
+        await expect(page.locator(AMOUNT)).toHaveValue("10*");
+        await page.click(barKey("div"));
+        // filterAmountExpression collapses a run of operators to the last one.
+        await expect(page.locator(AMOUNT)).toHaveValue("10/");
+        await page.click(barKey("minus"));
+        await expect(page.locator(AMOUNT)).toHaveValue("10-");
     });
 
-    test("Apply is disabled while the expression cannot be evaluated", async () => {
-        await page.click(TRIGGER);
-        await page.click(key("5"));
-        await page.click(key("div"));
-        await page.click(key("0"));
-        await expect(page.locator(APPLY)).toBeDisabled();
+    test("backspace deletes the character before the caret", async () => {
+        await page.fill(AMOUNT, "123");
+        await page.click(barKey("back"));
+        await expect(page.locator(AMOUNT)).toHaveValue("12");
     });
 
-    test("backspace and AC edit the display", async () => {
-        await page.click(TRIGGER);
-        await page.click(key("1"));
-        await page.click(key("2"));
-        await page.click(key("3"));
-        await page.click(key("back"));
-        await expect(page.locator(DISPLAY)).toHaveText("12");
-        await page.click(key("ac"));
-        await expect(page.locator(DISPLAY)).toHaveText("0");
-    });
+    // ── The bar lives outside the sheet and must not take it down ───────────
 
-    // ── Scoping: the pad lives inside a BottomSheet and must not take it
-    //    down with it. Both of these regress loudly if the capture-phase
-    //    Escape handler or the pad's own backdrop is removed.
-
-    test("Escape closes the pad and leaves the sheet open", async () => {
-        await page.click(TRIGGER);
-        await expect(page.locator(PAD)).toBeVisible();
-        await page.keyboard.press("Escape");
-        await expect(page.locator(PAD)).toBeHidden();
+    test("using the bar leaves the sheet open", async () => {
+        await page.locator(AMOUNT).focus();
+        await page.click(barKey("plus"));
         await expect(page.locator(SHEET)).toBeVisible();
-    });
-
-    test("clicking outside the pad leaves the sheet open", async () => {
-        await page.click(TRIGGER);
-        await expect(page.locator(PAD)).toBeVisible();
-        await page.mouse.click(20, 20);
-        await expect(page.locator(PAD)).toBeHidden();
-        await expect(page.locator(SHEET)).toBeVisible();
-    });
-
-    test("focus returns to the trigger after closing", async () => {
-        await page.click(TRIGGER);
-        await page.keyboard.press("Escape");
-        await expect(page.locator(TRIGGER)).toBeFocused();
     });
 
     // ── Transfer form ──────────────────────────────────────────────────────
