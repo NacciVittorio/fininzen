@@ -8,20 +8,31 @@ import { lockBodyScroll, unlockBodyScroll } from "./scrollLock";
 // Reusable iOS-style bottom sheet: slides up from the bottom over a dimmed
 // backdrop, with a drag-handle, safe-area padding, Escape-to-close, body
 // scroll-lock, and drag-to-dismiss gesture on the handle.
+//
+// `header` and `footer` are optional pinned slots that stay put while only the
+// children scroll — tall forms would otherwise bury their title and their
+// Cancel/Save row below the fold. Sheets that pass neither render exactly as
+// before.
 type BottomSheetProps = {
     open?: boolean;
     onClose?: () => void;
     children?: ReactNode;
+    header?: ReactNode;
+    footer?: ReactNode;
     maxHeight?: number | string;
     ariaLabel?: string;
+    panelClassName?: string;
 };
 
 export default function BottomSheet({
     open,
     onClose,
     children,
+    header,
+    footer,
     maxHeight = "88dvh",
     ariaLabel,
+    panelClassName,
 }: BottomSheetProps) {
     // mounted keeps the node alive through the close animation; shown drives the
     // enter/leave transition one frame after mount so the slide-up plays.
@@ -181,7 +192,11 @@ export default function BottomSheet({
                 aria-modal="true"
                 aria-label={ariaLabel}
                 tabIndex={-1}
-                className="bottom-sheet__panel"
+                className={
+                    panelClassName
+                        ? `bottom-sheet__panel ${panelClassName}`
+                        : "bottom-sheet__panel"
+                }
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     position: "relative",
@@ -226,14 +241,41 @@ export default function BottomSheet({
                         }}
                     />
                 </div>
+                {header != null && (
+                    <div
+                        style={{
+                            flexShrink: 0,
+                            padding: "0 18px 10px",
+                            borderBottom: "1px solid var(--rule)",
+                        }}
+                    >
+                        {header}
+                    </div>
+                )}
+                {/* `flex: 1 1 auto` + `minHeight: 0` lets this shrink so the
+                    pinned slots survive the panel's maxHeight clamp; with short
+                    content the panel still sizes to its children. */}
                 <div
                     style={{
+                        flex: "1 1 auto",
+                        minHeight: 0,
                         overflowY: "auto",
                         WebkitOverflowScrolling: "touch",
                     }}
                 >
                     {children}
                 </div>
+                {footer != null && (
+                    <div
+                        style={{
+                            flexShrink: 0,
+                            padding: "12px 18px 0",
+                            borderTop: "1px solid var(--rule)",
+                        }}
+                    >
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>
     );

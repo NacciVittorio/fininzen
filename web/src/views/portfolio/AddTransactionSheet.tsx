@@ -8,6 +8,7 @@ import type { AddTransactionForm as AddTransactionFormState } from "./portfolioV
 import type { estimateSellTax } from "./portfolioCalculations";
 import type {
     AccountOption,
+    AddTxPriceStatus,
     GetAvailableContributionSources,
     SetAddTxAssetId,
     SetAddTxForm,
@@ -28,6 +29,7 @@ export default function AddTransactionSheet({
     addTxLoading,
     setAddTxPriceTouched,
     setAddTxTaxTouched,
+    addTxPriceStatus,
     editingAddTxItem,
     investments,
     bankAccounts,
@@ -48,6 +50,7 @@ export default function AddTransactionSheet({
     addTxLoading: boolean;
     setAddTxPriceTouched: SetTouched;
     setAddTxTaxTouched: SetTouched;
+    addTxPriceStatus?: AddTxPriceStatus;
     editingAddTxItem?: Parameters<typeof estimateSellTax>[3];
     investments: readonly Asset[];
     bankAccounts: readonly AccountOption[];
@@ -57,30 +60,84 @@ export default function AddTransactionSheet({
     decimalSeparator: DecimalSeparator;
     formatEur: (value: number) => string;
 }) {
+    const title = editingAddTxId
+        ? T("modal_edit_tx")
+        : T("add_modal_mode_transaction");
+
     return (
         <BottomSheet
             open={addModalOpen}
             onClose={closeAddModal}
-            ariaLabel={
-                editingAddTxId
-                    ? T("modal_edit_tx")
-                    : T("add_modal_mode_transaction")
+            ariaLabel={title}
+            panelClassName="bottom-sheet__panel--wide"
+            header={
+                addModalOpen ? (
+                    <SheetTitle style={{ margin: 0, padding: "2px" }}>
+                        {title}
+                    </SheetTitle>
+                ) : null
+            }
+            footer={
+                // Pinned so the error and the actions stay reachable without
+                // scrolling the whole form — the error only ever appears on
+                // submit, which is exactly when it must be visible.
+                addModalOpen && addTxAssetId ? (
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                        }}
+                    >
+                        {addTxError && (
+                            <div
+                                data-testid="addtx-error"
+                                style={{
+                                    fontSize: 12,
+                                    color: "var(--danger)",
+                                    background: "var(--danger-soft)",
+                                    border: "1px solid var(--danger-ring)",
+                                    borderRadius: 8,
+                                    padding: "8px 10px",
+                                }}
+                            >
+                                {addTxError}
+                            </div>
+                        )}
+                        <div
+                            className="row"
+                            style={{ justifyContent: "flex-end", gap: 8 }}
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-g"
+                                onClick={closeAddModal}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            {/* Only gated on the in-flight request: a missing
+                                field must produce a message, not an inert
+                                button the user can't diagnose. */}
+                            <button
+                                type="button"
+                                className="btn btn-p"
+                                data-testid="addtx-submit"
+                                disabled={addTxLoading}
+                                onClick={handleAddTxSubmit}
+                            >
+                                {addTxLoading
+                                    ? "..."
+                                    : editingAddTxId
+                                      ? T("btn_update")
+                                      : T("btn_save")}
+                            </button>
+                        </div>
+                    </div>
+                ) : null
             }
         >
             {addModalOpen && (
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 12,
-                        padding: "0 18px 8px",
-                    }}
-                >
-                    <SheetTitle style={{ padding: "2px 2px 2px" }}>
-                        {editingAddTxId
-                            ? T("modal_edit_tx")
-                            : T("add_modal_mode_transaction")}
-                    </SheetTitle>
+                <div style={{ padding: "12px 18px 8px" }}>
                     {!addTxAssetId ? (
                         <TransactionAssetPicker
                             addTxAssetId={addTxAssetId}
@@ -98,6 +155,7 @@ export default function AddTransactionSheet({
                             setAddTxForm={setAddTxForm}
                             setAddTxPriceTouched={setAddTxPriceTouched}
                             setAddTxTaxTouched={setAddTxTaxTouched}
+                            addTxPriceStatus={addTxPriceStatus}
                             editingAddTxId={editingAddTxId}
                             editingAddTxItem={editingAddTxItem}
                             investments={investments}
@@ -109,58 +167,6 @@ export default function AddTransactionSheet({
                             decimalSeparator={decimalSeparator}
                             formatEur={formatEur}
                         />
-                    )}
-
-                    {addTxError && (
-                        <div
-                            data-testid="addtx-error"
-                            style={{
-                                fontSize: 12,
-                                color: "var(--danger)",
-                                background: "var(--danger-soft)",
-                                border: "1px solid var(--danger-ring)",
-                                borderRadius: 8,
-                                padding: "8px 10px",
-                            }}
-                        >
-                            {addTxError}
-                        </div>
-                    )}
-                    {addTxAssetId && (
-                        <div
-                            className="row"
-                            style={{
-                                justifyContent: "flex-end",
-                                gap: 8,
-                                marginTop: 8,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="btn btn-g"
-                                onClick={closeAddModal}
-                            >
-                                {T("btn_cancel")}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-p"
-                                data-testid="addtx-submit"
-                                disabled={
-                                    addTxLoading ||
-                                    !addTxForm.shares ||
-                                    !addTxForm.price_per_share ||
-                                    !addTxForm.date
-                                }
-                                onClick={handleAddTxSubmit}
-                            >
-                                {addTxLoading
-                                    ? "..."
-                                    : editingAddTxId
-                                      ? T("btn_update")
-                                      : T("btn_save")}
-                            </button>
-                        </div>
                     )}
                 </div>
             )}

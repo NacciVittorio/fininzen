@@ -418,6 +418,43 @@ textarea.inp {
         border-left: 1px solid var(--rule);
         border-right: 1px solid var(--rule);
     }
+    /* Opt-in for the long forms that lay their fields out in two columns. */
+    .bottom-sheet__panel--wide {
+        width: min(760px, calc(100vw - 48px));
+    }
+}
+
+/* ── Sheet forms: single column on mobile, two on desktop ─────────────────
+   The Investments forms run 9-14 controls deep, which pushed the fields (and
+   before the pinned footer, the buttons) below the fold. Every rule below is
+   inert at ≤760px so mobile stays pixel-identical. */
+.sheet-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+/* Paired fields that already share a row on mobile via their own auto-fit
+   grid; on desktop they dissolve into the parent grid instead of splitting a
+   single column in half. */
+.sheet-form-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+@media (min-width: 761px) {
+    .sheet-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 14px;
+        row-gap: 12px;
+        align-items: start;
+    }
+    .sheet-form-grid > .sheet-form-grid__full {
+        grid-column: 1 / -1;
+    }
+    .sheet-form-grid > .sheet-form-pair {
+        display: contents;
+    }
 }
 
 /* ── Mobile: show brand mark in slim AppHeader (sidebar hidden) ──────────── */
@@ -726,11 +763,6 @@ textarea.inp {
 .page-narrow {
     width: 100%;
     max-width: var(--page-max-narrow);
-    margin-inline: auto;
-}
-.page-medium {
-    width: 100%;
-    max-width: var(--page-max-medium);
     margin-inline: auto;
 }
 

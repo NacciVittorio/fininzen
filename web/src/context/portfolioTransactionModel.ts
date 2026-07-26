@@ -36,8 +36,17 @@ export const buildPortfolioTransactionPayload = ({
     parseFlexibleDecimal,
     parseMoneyToString,
 }: BuildPortfolioTransactionPayloadArgs): PortfolioTransactionPayloadResult => {
-    if (!form.shares || !form.price_per_share || !form.date) {
-        return { ok: false, errorKey: "tx_error_fields" };
+    // One key per missing field rather than a single catch-all: the add/edit sheet
+    // surfaces this straight to the user, and "date, shares and price are
+    // required" doesn't say which one is actually empty.
+    if (!form.date) {
+        return { ok: false, errorKey: "tx_error_date_required" };
+    }
+    if (!form.shares) {
+        return { ok: false, errorKey: "tx_error_shares_required" };
+    }
+    if (!form.price_per_share) {
+        return { ok: false, errorKey: "tx_error_price_required" };
     }
 
     const parsedShares = parseFlexibleDecimal(form.shares);

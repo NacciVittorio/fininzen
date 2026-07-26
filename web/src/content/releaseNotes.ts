@@ -23,6 +23,26 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Modificando una transazione negli Investimenti, cambiare la data non blocca più il salvataggio: il prezzo per quota viene di nuovo recuperato da solo (prima succedeva solo per le nuove transazioni), e sotto il campo trovi scritto se è in corso il recupero o se per quella data — un weekend, un festivo — la quotazione non esiste e va inserita a mano.",
+                "Se manca un dato obbligatorio, il pulsante «Aggiorna» non resta più spento e muto: ora si può premere e ti dice esattamente cosa manca, per esempio «Inserisci il prezzo per quota».",
+                "Nelle schede degli Investimenti il titolo e i pulsanti «Annulla»/«Salva» restano ora fissi: non devi più scorrere fino in fondo per salvare o chiudere. Su schermi grandi i campi si dispongono su due colonne, così la scheda ci sta quasi tutta senza scorrere.",
+                "La pagina Conti ora ha la stessa larghezza delle altre schede: passando da un tab all'altro il contenuto non si restringe più.",
+                "I conti sono ora divisi per tipo, ciascuno con il proprio totale.",
+            ],
+            en: [
+                "When editing an Investments transaction, changing the date no longer blocks saving: the price per share is fetched automatically again (before, that only happened for new transactions), and a line under the field now tells you whether the lookup is running or whether there is simply no quote for that date — a weekend or a holiday — and you have to type it in.",
+                "When a required field is missing, the “Update” button is no longer greyed out and silent: you can press it and it tells you exactly what's missing, for example “Enter the price per share”.",
+                "In the Investments sheets the title and the “Cancel”/“Save” buttons now stay pinned: no more scrolling to the bottom just to save or close. On large screens the fields are laid out in two columns, so most of the sheet fits without scrolling.",
+                "The Accounts page is now the same width as the other tabs: switching between tabs no longer makes the content shrink.",
+                "Accounts are now split by account type, each with its own total.",
+            ],
+        },
+    },
+    {
         version: "0.11.0",
         date: "2026-07-25",
         highlights: {

@@ -70,7 +70,6 @@
     --sidebar-w: 220px;
     --content-pad: 32px 44px;
     --page-max: 1200px; /* app-level centered container            */
-    --page-max-medium: 980px; /* accounts                                */
     --page-max-narrow: 860px; /* settings, changelog, cashflow stacked   */
     --rail-w: 336px; /* cashflow desktop right rail             */
 
