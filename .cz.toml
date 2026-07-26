@@ -17,9 +17,18 @@ major_version_zero = true
 # Single source of truth (VERSION) plus the web package manifest. The backend
 # reads VERSION at runtime and Next.js inlines it at build time, so these two
 # files are all that need rewriting on a bump.
+#
+# package-lock.json carries the same number twice (the root object and
+# packages."") and was NOT listed here, so it silently fell behind every release
+# until the next `npm install` rewrote it and dirtied the tree. Listing it keeps
+# it in step. cz only rewrites lines matching the pattern *and* containing the
+# outgoing version, so the hundreds of dependency `"version"` lines are left
+# alone — unless a dependency ever sits on the exact app version, which would
+# show up in the bump diff.
 version_files = [
     "VERSION",
     "web/package.json:\"version\"",
+    "web/package-lock.json:\"version\"",
 ]
 # openapi.json carries its own info.version (generated from VERSION by
 # drf-spectacular), but it must be *regenerated*, not text-substituted like the
