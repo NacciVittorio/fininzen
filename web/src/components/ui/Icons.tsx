@@ -156,18 +156,6 @@ const ICON_PATHS: Record<string, ReactNode> = {
             <path d="m13 16 4 4 4-4" />
         </>
     ),
-    calculator: (
-        <>
-            <rect x="4" y="3" width="16" height="18" rx="2" />
-            <path d="M8 7h8" />
-            <path d="M8 12h.01" />
-            <path d="M12 12h.01" />
-            <path d="M16 12h.01" />
-            <path d="M8 16h.01" />
-            <path d="M12 16h.01" />
-            <path d="M16 16h.01" />
-        </>
-    ),
 };
 
 type IconProps = ComponentPropsWithoutRef<"svg"> & {

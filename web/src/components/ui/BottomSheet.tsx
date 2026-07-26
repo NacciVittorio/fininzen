@@ -211,7 +211,13 @@ export default function BottomSheet({
                     transform: `translateY(${typeof sheetTranslate === "number" ? sheetTranslate + "px" : sheetTranslate})`,
                     transition: sheetTransition,
                     boxShadow: "var(--shadow-deep)",
-                    paddingBottom: "max(20px, env(safe-area-inset-bottom))",
+                    // --amount-bar-h is set on <html> by AmountCalculator's
+                    // operator bar, which docks above the OS keyboard —
+                    // i.e. exactly over a sheet's pinned Cancel/Save row.
+                    // Padding by its height makes room instead of overlapping;
+                    // the 0px fallback leaves every other sheet unchanged.
+                    paddingBottom:
+                        "calc(max(20px, env(safe-area-inset-bottom)) + var(--amount-bar-h, 0px))",
                 }}
             >
                 {/* Drag handle — touch/pointer target for dismiss gesture */}

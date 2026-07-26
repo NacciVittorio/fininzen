@@ -213,7 +213,7 @@ export const isValidAmount = (
 // ── Amount expressions (in-field calculator) ────────────────────────────────
 // The amount fields accept a small arithmetic expression ("12,50+8,30") on top
 // of a plain number. Everything below is pure string/number work shared by the
-// two entry paths (typed inline and the on-screen keypad) so the maths exists
+// two entry paths (typed inline and the operator bar) so the maths exists
 // once. It lives in this module — and not in its own file — because it needs
 // MONEY_MAX_MAGNITUDE and filterAmountInput, which stay module-private.
 
@@ -233,7 +233,7 @@ const MAX_EXPRESSION_LENGTH = 40;
 // an expression. The field value itself always stays ASCII: rewriting "*" into
 // "×" while the user types would move the caret to the end on every keystroke
 // (React reassigns `value`, and the browser only restores the caret when the
-// new value is identical). The pretty glyphs live on the keypad buttons only.
+// new value is identical). The pretty glyphs live on the bar's keys only.
 const normalizeOperators = (val: string): string =>
     val
         .replace(/[×xX]/g, "*") // × x X
