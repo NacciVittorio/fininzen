@@ -627,6 +627,11 @@ const en: Record<string, string> = {
     asset_delete_confirm: "Delete this asset and all its investments?",
     tx_history_btn: "History",
     tx_error_fields: "Date, shares and price are required",
+    tx_error_date_required: "Enter the date",
+    tx_error_shares_required: "Enter the number of shares",
+    tx_error_price_required: "Enter the price per share",
+    tx_price_unavailable:
+        "No price available for this date — enter it manually",
     // Edit / validation
     modal_edit_expense: "Edit Expense",
     modal_edit_tx: "Edit Investment",

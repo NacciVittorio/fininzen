@@ -13,14 +13,13 @@ import {
     KpiCard,
     Fab,
     Icon,
-    GroupedList,
     PullToRefresh,
 } from "../components/ui";
 import type { SwipeAction } from "../components/ui";
 import type { Asset } from "../api/types";
 import type { EntityId } from "../context/feedTypes";
 import AccountDetailSheet from "./bankAccounts/AccountDetailSheet";
-import AccountRow from "./bankAccounts/AccountRow";
+import AccountTypeGroups from "./bankAccounts/AccountTypeGroups";
 import BankAccountSheets from "./bankAccounts/BankAccountSheets";
 import type {
     AccountMigrationAsset,
@@ -255,7 +254,11 @@ export default function BankAccountsView() {
     return (
         <>
             <PullToRefresh onRefresh={handlePullRefresh}>
-                <div className="page-medium">
+                {/* No inner max-width: the route layout's .page-container
+                    (1200px) already matches Dashboard/Investments/FIRE. The old
+                    980px .page-medium made this tab visibly narrower — and
+                    misaligned with its own header — on every tab switch. */}
+                <div>
                     <LargeTitleHeader
                         eyebrow={T("total_balance")}
                         title={
@@ -326,80 +329,20 @@ export default function BankAccountsView() {
                         )}
                     </KpiStrip>
 
-                    {bankAccounts.length === 0 ? (
-                        <div
-                            style={{
-                                textAlign: "center",
-                                padding: "60px 20px",
-                                color: "var(--fg-soft)",
-                            }}
-                        >
-                            <div style={{ marginBottom: 14, opacity: 0.4 }}>
-                                <Icon name="accounts" size={36} />
-                            </div>
-                            <div style={{ fontSize: 14, marginBottom: 8 }}>
-                                {T("no_accounts")}
-                            </div>
-                        </div>
-                    ) : (
-                        <GroupedList>
-                            {bankAccounts.map((a, i) => (
-                                <AccountRow
-                                    key={a.id}
-                                    a={a}
-                                    T={T}
-                                    isLast={i === bankAccounts.length - 1}
-                                    openSwipeId={openSwipeId}
-                                    onRequestSwipeOpen={setOpenSwipeId}
-                                    actions={swipeActionsFor(a)}
-                                    onTap={() => setDetailAccountId(a.id)}
-                                />
-                            ))}
-                        </GroupedList>
-                    )}
-
-                    {/* ── Archived accounts section ────────────────────────────── */}
-                    {archivedBankAccounts.length > 0 && (
-                        <GroupedList style={{ marginTop: 24 }}>
-                            <GroupedList.Item
-                                label={`${T("label_archived_accounts")} (${archivedBankAccounts.length})`}
-                                icon={<Icon name="archive" size={16} />}
-                                onClick={() => setArchivedExpanded((p) => !p)}
-                                action={
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            display: "inline-block",
-                                            color: "var(--fg-faint)",
-                                            fontSize: 17,
-                                            transform: archivedExpanded
-                                                ? "rotate(90deg)"
-                                                : "rotate(0deg)",
-                                            transition: "transform 0.18s ease",
-                                        }}
-                                    >
-                                        ›
-                                    </span>
-                                }
-                            />
-                            {archivedExpanded &&
-                                archivedBankAccounts.map((a, i) => (
-                                    <AccountRow
-                                        key={a.id}
-                                        a={a}
-                                        T={T}
-                                        isLast={
-                                            i ===
-                                            archivedBankAccounts.length - 1
-                                        }
-                                        openSwipeId={openSwipeId}
-                                        onRequestSwipeOpen={setOpenSwipeId}
-                                        actions={swipeActionsFor(a)}
-                                        onTap={() => setDetailAccountId(a.id)}
-                                    />
-                                ))}
-                        </GroupedList>
-                    )}
+                    <AccountTypeGroups
+                        bankAccounts={bankAccounts}
+                        bankAccountTypes={bankAccountTypes}
+                        archivedBankAccounts={archivedBankAccounts}
+                        archivedExpanded={archivedExpanded}
+                        setArchivedExpanded={setArchivedExpanded}
+                        openSwipeId={openSwipeId}
+                        setOpenSwipeId={setOpenSwipeId}
+                        swipeActionsFor={swipeActionsFor}
+                        onSelectAccount={setDetailAccountId}
+                        T={T}
+                        masked={masked}
+                        formatEur={formatEur}
+                    />
                 </div>
             </PullToRefresh>
 

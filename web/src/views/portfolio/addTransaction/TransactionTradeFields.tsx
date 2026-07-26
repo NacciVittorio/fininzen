@@ -6,13 +6,18 @@ import type { DecimalSeparator } from "../../../utils/formatters";
 import type { Asset } from "../../../api/types";
 import type { Translator } from "../../../types";
 import type { AddTransactionForm } from "../portfolioViewModel";
-import type { SetAddTxForm, SetTouched } from "./addTransactionTypes";
+import type {
+    AddTxPriceStatus,
+    SetAddTxForm,
+    SetTouched,
+} from "./addTransactionTypes";
 
 export default function TransactionTradeFields({
     addTxForm,
     setAddTxForm,
     setAddTxPriceTouched,
     setAddTxTaxTouched,
+    addTxPriceStatus = "idle",
     asset,
     T,
     decimalSeparator,
@@ -21,6 +26,7 @@ export default function TransactionTradeFields({
     setAddTxForm: SetAddTxForm;
     setAddTxPriceTouched: SetTouched;
     setAddTxTaxTouched: SetTouched;
+    addTxPriceStatus?: AddTxPriceStatus;
     asset?: Asset;
     T: Translator;
     decimalSeparator: DecimalSeparator;
@@ -54,14 +60,10 @@ export default function TransactionTradeFields({
             </div>
 
             {/* auto-fit rather than a hard 1fr 1fr: below ~320px the two fields
-                would otherwise be too narrow to read. */}
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                    gap: 10,
-                }}
-            >
+                would otherwise be too narrow to read. On desktop the wrapper
+                becomes `display: contents` so the two fields join the sheet's
+                own two-column grid instead of splitting a single column. */}
+            <div className="sheet-form-pair">
                 <div>
                     <FieldLabel text={T("tx_shares")} htmlFor="addtx-shares" />
                     <input
@@ -98,6 +100,27 @@ export default function TransactionTradeFields({
                         suffix={currency}
                         T={T}
                     />
+                    {/* Why the field is (still) empty: the historical-price
+                        lookup is running, or the backend has no quote for the
+                        chosen date and the user has to type it. */}
+                    {addTxPriceStatus !== "idle" && (
+                        <div
+                            data-testid="addtx-price-status"
+                            style={{
+                                marginTop: 4,
+                                fontSize: 11,
+                                lineHeight: 1.35,
+                                color:
+                                    addTxPriceStatus === "unavailable"
+                                        ? "var(--warning)"
+                                        : "var(--fg-soft)",
+                            }}
+                        >
+                            {addTxPriceStatus === "unavailable"
+                                ? T("tx_price_unavailable")
+                                : T("tx_autofill_hint")}
+                        </div>
+                    )}
                 </div>
             </div>
 

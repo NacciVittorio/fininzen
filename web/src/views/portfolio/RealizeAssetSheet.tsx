@@ -69,6 +69,55 @@ export default function RealizeAssetSheet({
             open={!!realizeModal}
             onClose={() => setRealizeModal(null)}
             ariaLabel={T("modal_realize_asset")}
+            header={
+                realizeModal ? (
+                    <SheetTitle style={{ margin: 0 }}>
+                        {T("modal_realize_asset")}
+                    </SheetTitle>
+                ) : null
+            }
+            footer={
+                realizeModal ? (
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                        }}
+                    >
+                        {realizeError && (
+                            <div
+                                style={{
+                                    color: "var(--danger)",
+                                    fontSize: 13,
+                                }}
+                            >
+                                {realizeError}
+                            </div>
+                        )}
+                        <div
+                            className="row"
+                            style={{ justifyContent: "flex-end", gap: 8 }}
+                        >
+                            <button
+                                className="btn btn-g"
+                                onClick={() => setRealizeModal(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                className="btn btn-p"
+                                disabled={realizeLoading}
+                                onClick={submitRealizeAsset}
+                            >
+                                {realizeLoading
+                                    ? "..."
+                                    : T("btn_realize_asset")}
+                            </button>
+                        </div>
+                    </div>
+                ) : null
+            }
         >
             {realizeModal && (
                 <div
@@ -76,10 +125,9 @@ export default function RealizeAssetSheet({
                         display: "flex",
                         flexDirection: "column",
                         gap: 14,
-                        padding: "8px 18px 18px",
+                        padding: "12px 18px 18px",
                     }}
                 >
-                    <SheetTitle>{T("modal_realize_asset")}</SheetTitle>
                     <div>
                         <FieldLabel text={T("label_sale_price")} />
                         <input
@@ -142,29 +190,6 @@ export default function RealizeAssetSheet({
                         }}
                     >
                         {T("tx_estimated_tax")}: {formatEur(taxPreview)}
-                    </div>
-                    {realizeError && (
-                        <div style={{ color: "var(--danger)", fontSize: 13 }}>
-                            {realizeError}
-                        </div>
-                    )}
-                    <div
-                        className="row"
-                        style={{ justifyContent: "flex-end", gap: 8 }}
-                    >
-                        <button
-                            className="btn btn-g"
-                            onClick={() => setRealizeModal(null)}
-                        >
-                            {T("btn_cancel")}
-                        </button>
-                        <button
-                            className="btn btn-p"
-                            disabled={realizeLoading}
-                            onClick={submitRealizeAsset}
-                        >
-                            {realizeLoading ? "..." : T("btn_realize_asset")}
-                        </button>
                     </div>
                 </div>
             )}

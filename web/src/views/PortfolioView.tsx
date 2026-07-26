@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { useApp } from "../context/useApp";
 import { API } from "../utils/api";
@@ -10,6 +10,7 @@ import { regroupTargets } from "../utils/allocationGroups";
 import type { Asset, ContributionSource } from "../api/types";
 import type { EntityId } from "../context/feedTypes";
 import type { AssetTransactionFeedItem } from "../context/useAssetTransactionFeed";
+import type { AddTxPriceStatus } from "./portfolio/addTransaction/addTransactionTypes";
 import PrivacyValue from "../components/PrivacyValue";
 import PortfolioContent from "./portfolio/PortfolioContent";
 import PortfolioOverlays from "./portfolio/PortfolioOverlays";
@@ -70,6 +71,13 @@ export default function PortfolioView() {
     const [editingAddTxId, setEditingAddTxId] = useState<EntityId | null>(null);
     const [editingAddTxItem, setEditingAddTxItem] = useState<EditingItem>(null);
     const [addTxPriceTouched, setAddTxPriceTouched] = useState(false);
+    // Surfaces the historical-price autofill to the user: "loading" while the
+    // lookup runs, "unavailable" when the backend has no quote for that date
+    // (weekend/holiday/pre-IPO → 404). Without it the price field just silently
+    // stayed empty and the submit gave no clue why nothing happened.
+    const [addTxPriceStatus, setAddTxPriceStatus] =
+        useState<AddTxPriceStatus>("idle");
+    const addTxPriceAbortRef = useRef<AbortController | null>(null);
     // Whether the user has hand-edited the tax field. Drives tax_amount_is_manual:
     // an untouched field keeps the auto snapshot (server recomputes at the current
     // rate); a touched one is a manual override the rate-change popup won't rewrite.
@@ -306,45 +314,75 @@ export default function PortfolioView() {
         setAddTxTaxTouched(false);
     };
 
+    // Autofill the price from the asset's historical quote. It runs in edit mode
+    // too: `openEditTransaction` marks the price as touched, so the saved value is
+    // safe, and the lookup only kicks in once the user actually changes the date
+    // (which clears the field). Skipping it on edit was the reason changing a date
+    // left the price permanently empty and the submit silently blocked.
     useEffect(() => {
         const selectedAsset = assets.find(
             (a) => String(a.id) === String(addTxAssetId),
         );
         if (
             !addModalOpen ||
-            editingAddTxId ||
             !selectedAsset?.ticker ||
             !addTxForm.date ||
-            addTxPriceTouched
-        )
+            addTxPriceTouched ||
+            addTxForm.price_per_share
+        ) {
+            // Nothing to look up (no ticker, the field is already filled, or the
+            // user is typing it themselves): drop any stale hint. Guarding on the
+            // filled price also stops a background `assets` refresh from
+            // re-running the lookup and flashing the hint. Same-value setState
+            // is a no-op, so this can't loop.
+            setAddTxPriceStatus("idle");
             return;
-        let cancelled = false;
+        }
+        // Abort any in-flight lookup so a late response for an older date can't
+        // land on top of the current one.
+        addTxPriceAbortRef.current?.abort();
+        const controller = new AbortController();
+        addTxPriceAbortRef.current = controller;
         const run = async () => {
+            setAddTxPriceStatus("loading");
             try {
                 const res = await apiFetch(
                     `${API}/portfolio/${selectedAsset.id}/historical-price/?date=${addTxForm.date}`,
+                    { signal: controller.signal },
                 );
-                if (!res.ok || cancelled) return;
-                const data = await res.json();
-                if (cancelled || !data?.close) return;
+                if (controller.signal.aborted) return;
+                const data = res.ok ? await res.json() : null;
+                if (controller.signal.aborted) return;
+                if (!data?.close) {
+                    // The backend answered and has no quote for this date.
+                    setAddTxPriceStatus("unavailable");
+                    return;
+                }
+                setAddTxPriceStatus("idle");
                 setAddTxForm((prev) => {
                     if (prev.price_per_share) return prev;
                     return { ...prev, price_per_share: String(data.close) };
                 });
             } catch {
-                // best effort
+                // Network/abort failure: no definitive answer, so no hint —
+                // the submit-time validation still explains the empty field.
+                if (!controller.signal.aborted) setAddTxPriceStatus("idle");
+            } finally {
+                if (addTxPriceAbortRef.current === controller) {
+                    addTxPriceAbortRef.current = null;
+                }
             }
         };
         run();
         return () => {
-            cancelled = true;
+            controller.abort();
         };
     }, [
         addModalOpen,
-        editingAddTxId,
         assets,
         addTxAssetId,
         addTxForm.date,
+        addTxForm.price_per_share,
         addTxPriceTouched,
         apiFetch,
     ]);
@@ -470,6 +508,7 @@ export default function PortfolioView() {
                 addTxLoading={addTxLoading}
                 setAddTxPriceTouched={setAddTxPriceTouched}
                 setAddTxTaxTouched={setAddTxTaxTouched}
+                addTxPriceStatus={addTxPriceStatus}
                 editingAddTxItem={editingAddTxItem}
                 getAvailableContributionSources={
                     getAvailableContributionSources

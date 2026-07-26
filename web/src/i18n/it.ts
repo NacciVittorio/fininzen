@@ -630,6 +630,11 @@ const it: Record<string, string> = {
     asset_delete_confirm: "Eliminare questo asset e tutti i suoi investimenti?",
     tx_history_btn: "Storico",
     tx_error_fields: "Data, quote e prezzo sono obbligatori",
+    tx_error_date_required: "Inserisci la data",
+    tx_error_shares_required: "Inserisci il numero di quote",
+    tx_error_price_required: "Inserisci il prezzo per quota",
+    tx_price_unavailable:
+        "Prezzo non disponibile per questa data — inseriscilo a mano",
     // Edit / validation
     modal_edit_expense: "Modifica Spesa",
     modal_edit_tx: "Modifica Investimento",

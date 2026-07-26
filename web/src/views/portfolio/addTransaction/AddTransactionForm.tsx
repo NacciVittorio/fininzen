@@ -11,6 +11,7 @@ import type { Translator } from "../../../types";
 import type { AddTransactionForm as AddTransactionFormState } from "../portfolioViewModel";
 import type {
     AccountOption,
+    AddTxPriceStatus,
     GetAvailableContributionSources,
     SetAddTxAssetId,
     SetAddTxForm,
@@ -30,6 +31,7 @@ export default function AddTransactionForm({
     setAddTxForm,
     setAddTxPriceTouched,
     setAddTxTaxTouched,
+    addTxPriceStatus,
     editingAddTxId,
     editingAddTxItem,
     investments,
@@ -45,6 +47,7 @@ export default function AddTransactionForm({
     setAddTxForm: SetAddTxForm;
     setAddTxPriceTouched: SetTouched;
     setAddTxTaxTouched: SetTouched;
+    addTxPriceStatus?: AddTxPriceStatus;
     editingAddTxId?: Parameters<typeof estimateSellTax>[2];
     editingAddTxItem?: Parameters<typeof estimateSellTax>[3];
     investments: readonly Asset[];
@@ -87,42 +90,52 @@ export default function AddTransactionForm({
         editingAddTxItem,
     );
 
+    // `sheet-form-grid` is a plain flex column on mobile (unchanged) and a
+    // two-column grid from 761px up, so the sheet stops being taller than the
+    // viewport on desktop. Blocks that read as one unit span both columns.
     return (
-        <>
-            <SelectedAssetChip
-                asset={asset}
-                setAddTxAssetId={setAddTxAssetId}
-                setAddTxForm={setAddTxForm}
-                setAddTxPriceTouched={setAddTxPriceTouched}
-                T={T}
-            />
+        <div className="sheet-form-grid">
+            <div className="sheet-form-grid__full">
+                <SelectedAssetChip
+                    asset={asset}
+                    setAddTxAssetId={setAddTxAssetId}
+                    setAddTxForm={setAddTxForm}
+                    setAddTxPriceTouched={setAddTxPriceTouched}
+                    T={T}
+                />
+            </div>
 
-            <TransactionTypeToggle
-                addTxForm={addTxForm}
-                setAddTxForm={setAddTxForm}
-                T={T}
-            />
+            <div className="sheet-form-grid__full">
+                <TransactionTypeToggle
+                    addTxForm={addTxForm}
+                    setAddTxForm={setAddTxForm}
+                    T={T}
+                />
+            </div>
 
             <TransactionTradeFields
                 addTxForm={addTxForm}
                 setAddTxForm={setAddTxForm}
                 setAddTxPriceTouched={setAddTxPriceTouched}
                 setAddTxTaxTouched={setAddTxTaxTouched}
+                addTxPriceStatus={addTxPriceStatus}
                 asset={asset}
                 T={T}
                 decimalSeparator={decimalSeparator}
             />
 
-            <TransactionTotalPreview
-                addTxForm={addTxForm}
-                asset={asset}
-                total={total}
-                parsedFee={parsedFee}
-                parsedTaxAmount={parsedTaxAmount}
-                estimatedTax={estimatedTax}
-                T={T}
-                formatEur={formatEur}
-            />
+            <div className="sheet-form-grid__full">
+                <TransactionTotalPreview
+                    addTxForm={addTxForm}
+                    asset={asset}
+                    total={total}
+                    parsedFee={parsedFee}
+                    parsedTaxAmount={parsedTaxAmount}
+                    estimatedTax={estimatedTax}
+                    T={T}
+                    formatEur={formatEur}
+                />
+            </div>
 
             <TransactionFundingFields
                 addTxForm={addTxForm}
@@ -140,6 +153,6 @@ export default function AddTransactionForm({
                 setAddTxForm={setAddTxForm}
                 T={T}
             />
-        </>
+        </div>
     );
 }

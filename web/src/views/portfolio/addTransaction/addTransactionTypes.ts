@@ -15,3 +15,8 @@ export type GetAvailableContributionSources = (
 // Bank accounts are surfaced here only as <option> rows, so a minimal structural
 // shape keeps the leaf decoupled from the full account model.
 export type AccountOption = { id: number | string; name?: string | null };
+
+// State of the historical-price autofill, rendered as a hint under the price
+// field. "unavailable" means the backend answered but has no quote for that
+// date (weekend/holiday/pre-IPO) — the user has to type the price by hand.
+export type AddTxPriceStatus = "idle" | "loading" | "unavailable";

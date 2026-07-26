@@ -151,6 +151,63 @@ test.describe("Portfolio CRUD", () => {
         await deleteInvestmentType(page, token, typeId);
     });
 
+    // Regression: the transaction sheet used to disable Save/Update whenever
+    // shares, date or price were empty, which meant no click, no submit and no
+    // explanation. Editing a transaction and changing its date clears the price
+    // (the historical-price autofill refills it, but only when the asset has a
+    // ticker), so the button silently went dead with nothing on screen saying
+    // why. It must stay clickable and name the missing field instead.
+    test("transaction sheet reports the missing price instead of going inert", async ({
+        page,
+    }) => {
+        const token = await getToken(page);
+        const { id: typeId } = await createInvestmentType(page, token);
+
+        // AUTO tracking (the sheet's asset picker only lists AUTO assets) but no
+        // ticker, so the price autofill never runs and the field stays empty.
+        const assetName = `E2E TxAsset ${Date.now()}`;
+        const res = await page.request.post("/fininzen/api/portfolio/", {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            data: {
+                name: assetName,
+                investment_type: typeId,
+                tracking_type: "AUTO",
+                currency: "EUR",
+            },
+        });
+        const { id: assetId } = await res.json();
+
+        await page.reload();
+        await page.waitForLoadState("networkidle");
+        await page.click('nav a[href="/portfolio"]');
+        await expect(page).toHaveURL(/\/portfolio$/);
+        await page.waitForLoadState("networkidle");
+
+        await page.click('[data-testid="speed-dial-main"]');
+        await page.click('[data-testid="portfolio-fab-add-transaction"]');
+
+        await page.click('[data-testid="addtx-asset"]');
+        await page.click(`[data-testid="addtx-asset-option-${assetId}"]`);
+
+        // Date is prefilled with today; supply shares only, leaving the price empty.
+        await page.fill('[data-testid="addtx-shares"]', "3");
+
+        const submit = page.locator('[data-testid="addtx-submit"]');
+        await expect(submit).toBeEnabled();
+        await submit.click();
+
+        await expect(page.locator('[data-testid="addtx-error"]')).toHaveText(
+            "Enter the price per share",
+            { timeout: 5000 },
+        );
+
+        await deleteAsset(page, token, assetId);
+        await deleteInvestmentType(page, token, typeId);
+    });
+
     test("existing asset visible in investments list", async ({ page }) => {
         const token = await getToken(page);
         const { id: typeId } = await createInvestmentType(page, token);

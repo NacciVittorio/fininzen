@@ -65,28 +65,65 @@ export default function AssetFormSheet({
     saveAsset: () => void;
     T: Translator;
 }) {
+    const title = editingAssetId ? T("modal_edit_asset") : T("modal_new_asset");
+
     return (
         <BottomSheet
             open={showAssetModal}
             onClose={closeAssetModal}
-            ariaLabel={
-                editingAssetId ? T("modal_edit_asset") : T("modal_new_asset")
+            ariaLabel={title}
+            panelClassName="bottom-sheet__panel--wide"
+            header={
+                showAssetModal ? (
+                    <SheetTitle style={{ margin: 0 }}>{title}</SheetTitle>
+                ) : null
+            }
+            footer={
+                showAssetModal ? (
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                        }}
+                    >
+                        {assetError && (
+                            <div
+                                style={{
+                                    background: "var(--danger-soft)",
+                                    border: "1px solid var(--danger-soft)",
+                                    borderRadius: 8,
+                                    padding: "8px 12px",
+                                    fontSize: 13,
+                                    color: "var(--danger)",
+                                }}
+                            >
+                                {assetError}
+                            </div>
+                        )}
+                        <div
+                            className="row"
+                            style={{ justifyContent: "flex-end", gap: 8 }}
+                        >
+                            <button
+                                className="btn btn-g"
+                                onClick={closeAssetModal}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button className="btn btn-p" onClick={saveAsset}>
+                                {editingAssetId ? T("btn_save") : T("btn_add")}
+                            </button>
+                        </div>
+                    </div>
+                ) : null
             }
         >
             {showAssetModal && (
                 <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 11,
-                        padding: "8px 18px 18px",
-                    }}
+                    className="sheet-form-grid"
+                    style={{ padding: "12px 18px 18px" }}
                 >
-                    <SheetTitle>
-                        {editingAssetId
-                            ? T("modal_edit_asset")
-                            : T("modal_new_asset")}
-                    </SheetTitle>
                     <div>
                         <FieldLabel text={T("label_name")} />
                         <input
@@ -164,14 +201,16 @@ export default function AssetFormSheet({
 
                     {assetFormSupportsContributionSource &&
                         activeContributionSources.length > 0 && (
-                            <ContributionSourceScope
-                                assetForm={assetForm}
-                                setAssetForm={setAssetForm}
-                                activeContributionSources={
-                                    activeContributionSources
-                                }
-                                T={T}
-                            />
+                            <div className="sheet-form-grid__full">
+                                <ContributionSourceScope
+                                    assetForm={assetForm}
+                                    setAssetForm={setAssetForm}
+                                    activeContributionSources={
+                                        activeContributionSources
+                                    }
+                                    T={T}
+                                />
+                            </div>
                         )}
 
                     {selectedInvType &&
@@ -279,7 +318,7 @@ export default function AssetFormSheet({
                             </select>
                         </div>
                     )}
-                    <div>
+                    <div className="sheet-form-grid__full">
                         <FieldLabel text={T("label_notes")} />
                         <textarea
                             className="inp"
@@ -293,35 +332,6 @@ export default function AssetFormSheet({
                                 }))
                             }
                         />
-                    </div>
-                    {assetError && (
-                        <div
-                            style={{
-                                background: "var(--danger-soft)",
-                                border: "1px solid var(--danger-soft)",
-                                borderRadius: 8,
-                                padding: "8px 12px",
-                                fontSize: 13,
-                                color: "var(--danger)",
-                            }}
-                        >
-                            {assetError}
-                        </div>
-                    )}
-                    <div
-                        className="row"
-                        style={{
-                            justifyContent: "flex-end",
-                            gap: 8,
-                            marginTop: 6,
-                        }}
-                    >
-                        <button className="btn btn-g" onClick={closeAssetModal}>
-                            {T("btn_cancel")}
-                        </button>
-                        <button className="btn btn-p" onClick={saveAsset}>
-                            {editingAssetId ? T("btn_save") : T("btn_add")}
-                        </button>
                     </div>
                 </div>
             )}
