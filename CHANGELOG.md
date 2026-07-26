@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.11.2 (2026-07-27)
+
+### Fix
+
+- **web**: replace the amount calculator pad with a bar above the keyboard
+
 ## v0.11.1 (2026-07-26)
 
 ### Fix

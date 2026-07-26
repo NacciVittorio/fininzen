@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.11.2",
+        date: "2026-07-27",
         highlights: {
             it: [
                 "I campi importo non hanno più l'icona della calcolatrice né il pulsante «=»: il campo è tornato pulito, sia nei Movimenti sia negli Investimenti.",
