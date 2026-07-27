@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 // E2E against the Next.js dev server on :3000, which proxies `/fininzen/api/*`
 // to the Django dev server on :8000 (see next.config). Django must already be
@@ -10,11 +10,25 @@ export default defineConfig({
     workers: 1,
     use: {
         baseURL: "http://localhost:3000",
-        // The primary nav is a bottom bar (a `<nav>`) only at ≤760px; on desktop
-        // it is a sidebar `<aside>`. The specs drive navigation via `nav a[href]`,
-        // so run at a mobile viewport where that `<nav>` is rendered and visible.
-        viewport: { width: 390, height: 844 },
     },
+    projects: [
+        {
+            // The primary nav is a bottom bar (a `<nav>`) only at ≤760px; on
+            // desktop it is a sidebar `<aside>`. The specs drive navigation via
+            // `nav a[href]`, so this (the suite's original/default profile)
+            // runs at a mobile-sized viewport, without device emulation, where
+            // that `<nav>` is rendered and visible.
+            name: "mobile-viewport",
+            use: { viewport: { width: 390, height: 844 } },
+        },
+        {
+            // Real Android Chrome emulation (UA, touch, DPR) so graphical
+            // regressions specific to Blink/Android — not just a narrow
+            // desktop-Chromium viewport — get caught by the existing suite.
+            name: "Mobile Chrome (Android)",
+            use: { ...devices["Pixel 7"] },
+        },
+    ],
     webServer: {
         command: "npm run dev",
         url: "http://localhost:3000/login",
