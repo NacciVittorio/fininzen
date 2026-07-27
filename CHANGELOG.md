@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.11.3 (2026-07-27)
+
+### Fix
+
+- **web**: use 100dvh instead of static 100vh on full-height screens
+
 ## v0.11.2 (2026-07-27)
 
 ### Fix
