@@ -47,6 +47,7 @@ const DJANGO_ORIGIN = process.env.DJANGO_ORIGIN ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
+    poweredByHeader: false,
     // Disable the Next dev-tools indicator during E2E only: at the mobile
     // viewport the tests run at, its bottom-left button overlaps the bottom nav
     // and intercepts Playwright's clicks. Normal `next dev` keeps the indicator.

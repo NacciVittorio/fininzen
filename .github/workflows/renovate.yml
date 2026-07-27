@@ -30,7 +30,7 @@ jobs:
     # Same image the GitLab job used, so behaviour matches and there is no
     # third-party action version to track.
     container:
-      image: renovate/renovate:latest
+      image: renovate/renovate:latest@sha256:e22ae7e3b8714761de6dc0ccde43ab4897e61fe4bf7108de713f458953327955
     env:
       RENOVATE_PLATFORM: gitlab
       RENOVATE_ENDPOINT: https://gitlab.com/api/v4

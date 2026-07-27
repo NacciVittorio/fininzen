@@ -5,7 +5,7 @@
 #   docker build -f deploy/docker/web/Dockerfile -t fininzen-web .
 
 # ---- build stage ----
-FROM node:24-bookworm-slim AS builder
+FROM node:24-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS builder
 WORKDIR /app/web
 
 # Install deps first for layer caching. npm ci installs devDependencies too,
@@ -19,10 +19,11 @@ COPY VERSION /app/VERSION
 RUN npm run build
 
 # ---- runtime stage ----
-FROM node:24-bookworm-slim AS runner
+FROM node:24-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/web
+RUN useradd --system --create-home --home-dir /app --shell /usr/sbin/nologin fininzen
 
 # `next start` re-loads next.config.ts at boot, which still reads /app/VERSION
 # and needs node_modules present (incl. the typescript loader), so carry the
@@ -33,6 +34,9 @@ COPY --from=builder /app/web/.next ./.next
 COPY --from=builder /app/web/public ./public
 COPY --from=builder /app/web/next.config.ts ./next.config.ts
 COPY --from=builder /app/VERSION /app/VERSION
+RUN chown -R fininzen:fininzen /app
+
+USER fininzen
 
 EXPOSE 3000
 
