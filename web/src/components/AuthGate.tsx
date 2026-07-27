@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "../context/useApp";
 
 const fullScreenCentered: React.CSSProperties = {
-    minHeight: "100vh",
+    minHeight: "100dvh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

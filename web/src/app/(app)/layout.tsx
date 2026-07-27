@@ -18,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div
                     className="app-root"
                     style={{
-                        minHeight: "100vh",
+                        minHeight: "100dvh",
                         background: "var(--bg-2)",
                         color: "var(--fg)",
                         fontFamily: "var(--font-sans)",
