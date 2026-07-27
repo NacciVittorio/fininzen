@@ -6,6 +6,17 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.11.4 (2026-07-27)
+
+### Feat
+
+- **ci**: wire the Playwright e2e suite into CI
+
+### Fix
+
+- **security**: apply internal security hardening improvements
+- **e2e**: stop cashflow-calculator.spec.ts sharing one page/browser
+
 ## v0.11.3 (2026-07-27)
 
 ### Fix
