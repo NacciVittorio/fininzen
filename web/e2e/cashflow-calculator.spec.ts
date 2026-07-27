@@ -46,43 +46,44 @@ async function separator(page: Page): Promise<string> {
 }
 
 test.describe("Amount calculator", () => {
-    // One login for the whole file: the demo endpoint throttles, and a
-    // per-test loginAsDemo trips it around the twentieth case. Nothing here
-    // writes, so a single session is safe to share; each test still starts
-    // from a freshly loaded page and a freshly opened sheet.
-    test.describe.configure({ mode: "serial" });
-
-    let page: Page;
-
-    test.beforeAll(async ({ browser }) => {
-        page = await browser.newPage();
+    // Each test gets its own fresh page and login (the standard fixture),
+    // rather than 18 tests sharing one page/browser instance for the whole
+    // file: that shared page reliably went unresponsive ("Target page,
+    // context or browser has been closed") partway through when run as part
+    // of the full suite — on both macOS and GitHub's Linux runners — never
+    // when this file ran alone. Per-test demo logins are safe now that CI
+    // (ci-tools/test-e2e.sh) sets E2E_RELAX_THROTTLES=1; a bare local
+    // Django dev server needs the same env var for the same reason every
+    // other spec file in this suite already does.
+    test.beforeEach(async ({ page }) => {
+        // Login + navigation now happen inside every test's own budget (one
+        // shared page/login for the whole file used to absorb this cost
+        // once). Under full-suite load the combined wait can outrun the
+        // global 15s test timeout before the fab-visibility wait even gets
+        // there — same fix as compare-mode.spec.ts's beforeEach.
+        test.setTimeout(30_000);
         await loginAsDemo(page);
-    });
-
-    test.afterAll(async () => {
-        await page.close();
-    });
-
-    test.beforeEach(async () => {
         await openMovementSheet(page);
     });
 
     // ── Non-regression: a plain number must behave exactly as before ────────
 
-    test("plain number is untouched", async () => {
+    test("plain number is untouched", async ({ page }) => {
         await page.fill(AMOUNT, "42.50");
         await expect(page.locator(AMOUNT)).toHaveValue("42.50");
     });
 
     // expenses.spec.ts drives this field as `input[inputmode="decimal"]`. Pin
     // it so that selector keeps resolving to exactly this one input.
-    test("field is still the sheet's only inputmode=decimal input", async () => {
+    test("field is still the sheet's only inputmode=decimal input", async ({
+        page,
+    }) => {
         const decimals = page.locator(`${SHEET} input[inputmode="decimal"]`);
         await expect(decimals).toHaveCount(1);
         await expect(decimals).toHaveAttribute("data-testid", "exp-amount");
     });
 
-    test("plain number still clamps to two decimals", async () => {
+    test("plain number still clamps to two decimals", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}345`);
         await expect(page.locator(AMOUNT)).toHaveValue(`12${sep}34`);
@@ -90,7 +91,7 @@ test.describe("Amount calculator", () => {
 
     // The field carries no chrome of its own any more: no calculator icon, no
     // inline "=". Both were removed in favour of the operator bar.
-    test("the field has no in-field buttons", async () => {
+    test("the field has no in-field buttons", async ({ page }) => {
         await expect(
             page.locator('[data-testid="amount-calc-trigger"]'),
         ).toHaveCount(0);
@@ -101,35 +102,35 @@ test.describe("Amount calculator", () => {
 
     // ── Inline expressions ─────────────────────────────────────────────────
 
-    test("sum resolves on Enter", async () => {
+    test("sum resolves on Enter", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}50+8${sep}30`);
         await page.locator(AMOUNT).press("Enter");
         await expect(page.locator(AMOUNT)).toHaveValue(`20${sep}80`);
     });
 
-    test("multiplication binds tighter than addition", async () => {
+    test("multiplication binds tighter than addition", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, "2+3*4");
         await page.locator(AMOUNT).press("Enter");
         await expect(page.locator(AMOUNT)).toHaveValue(`14${sep}00`);
     });
 
-    test("unicode operator glyphs are accepted", async () => {
+    test("unicode operator glyphs are accepted", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, "10×3");
         await page.locator(AMOUNT).press("Enter");
         await expect(page.locator(AMOUNT)).toHaveValue(`30${sep}00`);
     });
 
-    test("expression resolves on blur", async () => {
+    test("expression resolves on blur", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, "5+5");
         await page.locator(AMOUNT).blur();
         await expect(page.locator(AMOUNT)).toHaveValue(`10${sep}00`);
     });
 
-    test("a trailing operator is forgiven, not an error", async () => {
+    test("a trailing operator is forgiven, not an error", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}50+`);
         await page.locator(AMOUNT).press("Enter");
@@ -139,7 +140,9 @@ test.describe("Amount calculator", () => {
 
     // ── Errors: the text is left exactly as typed, never rewritten ──────────
 
-    test("negative result is refused and the sign is never dropped", async () => {
+    test("negative result is refused and the sign is never dropped", async ({
+        page,
+    }) => {
         await page.fill(AMOUNT, "10-15");
         await page.locator(AMOUNT).press("Enter");
         // The dangerous outcome would be "5,00": filterAmountInput strips "-",
@@ -148,7 +151,7 @@ test.describe("Amount calculator", () => {
         await expect(page.locator(ERROR)).toBeVisible();
     });
 
-    test("division by zero is refused", async () => {
+    test("division by zero is refused", async ({ page }) => {
         await page.fill(AMOUNT, "10/0");
         await page.locator(AMOUNT).press("Enter");
         await expect(page.locator(AMOUNT)).toHaveValue("10/0");
@@ -157,7 +160,7 @@ test.describe("Amount calculator", () => {
 
     // ── Operator bar ───────────────────────────────────────────────────────
 
-    test("the bar follows the field's focus", async () => {
+    test("the bar follows the field's focus", async ({ page }) => {
         await expect(page.locator(BAR)).toBeHidden();
         await page.locator(AMOUNT).focus();
         await expect(page.locator(BAR)).toBeVisible();
@@ -168,7 +171,7 @@ test.describe("Amount calculator", () => {
     // The regression this guards: without preventDefault on the keys' mousedown
     // the input blurs on every tap, which on a phone drops the OS keyboard and
     // takes the bar down with it.
-    test("an operator key inserts without stealing focus", async () => {
+    test("an operator key inserts without stealing focus", async ({ page }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}50`);
         await page.click(barKey("plus"));
@@ -177,7 +180,9 @@ test.describe("Amount calculator", () => {
         await expect(page.locator(BAR)).toBeVisible();
     });
 
-    test("compose a sum from the bar and resolve it with =", async () => {
+    test("compose a sum from the bar and resolve it with =", async ({
+        page,
+    }) => {
         const sep = await separator(page);
         await page.fill(AMOUNT, `12${sep}50`);
         await page.click(barKey("plus"));
@@ -186,7 +191,7 @@ test.describe("Amount calculator", () => {
         await expect(page.locator(AMOUNT)).toHaveValue(`20${sep}80`);
     });
 
-    test("every operator key reaches the field", async () => {
+    test("every operator key reaches the field", async ({ page }) => {
         await page.fill(AMOUNT, "10");
         await page.click(barKey("mul"));
         await expect(page.locator(AMOUNT)).toHaveValue("10*");
@@ -197,7 +202,9 @@ test.describe("Amount calculator", () => {
         await expect(page.locator(AMOUNT)).toHaveValue("10-");
     });
 
-    test("backspace deletes the character before the caret", async () => {
+    test("backspace deletes the character before the caret", async ({
+        page,
+    }) => {
         await page.fill(AMOUNT, "123");
         await page.click(barKey("back"));
         await expect(page.locator(AMOUNT)).toHaveValue("12");
@@ -205,7 +212,7 @@ test.describe("Amount calculator", () => {
 
     // ── The bar lives outside the sheet and must not take it down ───────────
 
-    test("using the bar leaves the sheet open", async () => {
+    test("using the bar leaves the sheet open", async ({ page }) => {
         await page.locator(AMOUNT).focus();
         await page.click(barKey("plus"));
         await expect(page.locator(SHEET)).toBeVisible();
@@ -213,7 +220,7 @@ test.describe("Amount calculator", () => {
 
     // ── Transfer form ──────────────────────────────────────────────────────
 
-    test("transfer amount takes an expression too", async () => {
+    test("transfer amount takes an expression too", async ({ page }) => {
         const sep = await separator(page);
         await page.click('[data-testid="movement-type-transfer"]');
         const transfer = page.locator('[data-testid="transfer-amount"]');
