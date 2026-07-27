@@ -182,6 +182,26 @@ api-contract:
     - bash ci-tools/install-web.sh
     - bash ci-tools/check-api-contract.sh
 
+# Playwright E2E against a throwaway SQLite-backed Django dev server; Next runs
+# as Playwright's own webServer, built for production in CI (see
+# web/playwright.config.ts). Needs both Python and Node — nikolaik image, like
+# api-contract.
+e2e-test:
+  extends: .ci-rules
+  stage: test
+  image: nikolaik/python-nodejs:python3.12-nodejs22
+  cache:
+    - key: pip-$CI_COMMIT_REF_SLUG
+      paths:
+        - .cache/pip
+    - key: npm-$CI_COMMIT_REF_SLUG
+      paths:
+        - .cache/npm
+  script:
+    - bash ci-tools/install-backend.sh
+    - bash ci-tools/install-web.sh
+    - bash ci-tools/test-e2e.sh
+
 # ── Build ─────────────────────────────────────────────────────────────────────
 
 web-build:

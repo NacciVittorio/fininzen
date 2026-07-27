@@ -64,7 +64,9 @@ async function goToAllTransactions(page: Page): Promise<void> {
     await expect(
         page.locator('nav a[href="/cashflow"][aria-current="page"]'),
     ).toBeVisible({ timeout: 5000 });
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('[data-testid="expenses-add-fab"]')).toBeVisible({
+        timeout: 10000,
+    });
 }
 
 async function safeDelete(
@@ -94,7 +96,9 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
     }) => {
         await page.click('nav a[href="/cashflow"]');
         await expect(page).toHaveURL(/\/cashflow$/);
-        await page.waitForLoadState("networkidle");
+        await expect(
+            page.locator('[data-testid="expenses-add-fab"]'),
+        ).toBeVisible({ timeout: 10000 });
         await page.click('[data-testid="expenses-add-fab"]');
         await expect(
             page
@@ -206,8 +210,14 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
                 `[data-testid="transfer-to-account-option-${accBId}"]`,
             );
 
-            // Enter amount
+            // Enter amount, then blur it before submitting: leaving it focused
+            // and clicking Submit in the same gesture races the operator bar's
+            // teardown (it reflows the sheet on blur — see AmountCalculator.tsx)
+            // against the click, which can silently swallow the click.
             await page.fill('[data-testid="transfer-amount"]', "42.50");
+            await page
+                .locator('[data-testid="transfer-amount"]')
+                .evaluate((el: HTMLElement) => el.blur());
 
             // Submit
             await Promise.all([
@@ -262,7 +272,9 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
     test("switching to transfer resets from/to fields", async ({ page }) => {
         await page.click('nav a[href="/cashflow"]');
         await expect(page).toHaveURL(/\/cashflow$/);
-        await page.waitForLoadState("networkidle");
+        await expect(
+            page.locator('[data-testid="expenses-add-fab"]'),
+        ).toBeVisible({ timeout: 10000 });
         await page.click('[data-testid="expenses-add-fab"]');
 
         // Switch to transfer
@@ -297,7 +309,9 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
     test("Accounts page no longer has transfer button", async ({ page }) => {
         await page.click('nav a[href="/accounts"]');
         await expect(page).toHaveURL(/\/accounts$/);
-        await page.waitForLoadState("networkidle");
+        await expect(page.locator(".app-net-worth")).toBeVisible({
+            timeout: 10000,
+        });
         await expect(
             page.locator(
                 'button:has-text("Transfer"), button:has-text("Trasferisci")',

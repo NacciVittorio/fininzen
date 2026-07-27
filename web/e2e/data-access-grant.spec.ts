@@ -95,7 +95,9 @@ test.describe("DataAccessGrant UI", () => {
 
         // Reload User B page and check they see the dropdown
         await pageB.reload();
-        await pageB.waitForLoadState("networkidle");
+        await expect(pageB.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
 
         const dropdown = pageB.locator("select").filter({ hasText: "My data" });
         await expect(dropdown).toBeVisible({ timeout: 8000 });
@@ -114,7 +116,9 @@ test.describe("DataAccessGrant UI", () => {
         await createGrantViaApi(page);
 
         await pageB.reload();
-        await pageB.waitForLoadState("networkidle");
+        await expect(pageB.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
 
         const dropdown = pageB.locator("select").filter({ hasText: "My data" });
         await expect(dropdown).toBeVisible({ timeout: 8000 });
@@ -146,7 +150,9 @@ test.describe("DataAccessGrant UI", () => {
         await createGrantViaApi(page);
 
         await pageB.reload();
-        await pageB.waitForLoadState("networkidle");
+        await expect(pageB.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
 
         // Verify grant exists in User B's dropdown
         const dropdown = pageB.locator("select").filter({ hasText: "My data" });
@@ -157,7 +163,9 @@ test.describe("DataAccessGrant UI", () => {
 
         // Reload User B and verify dropdown is gone
         await pageB.reload();
-        await pageB.waitForLoadState("networkidle");
+        await expect(pageB.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
         await expect(
             pageB.locator("select").filter({ hasText: "My data" }),
         ).not.toBeVisible({
