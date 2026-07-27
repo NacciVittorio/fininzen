@@ -8,6 +8,9 @@ test.use({ viewport: { width: 1280, height: 900 } });
 
 test.describe("Compare mode — Monthly Net Worth", () => {
     test.beforeEach(async ({ page }) => {
+        // The 25s wait below needs more than the global 15s test timeout to
+        // ever have a chance to matter.
+        test.setTimeout(30_000);
         await loginAsDemo(page);
         // Clear compare-mode prefs AFTER login (evaluate doesn't persist across reloads)
         await page.evaluate(() => {

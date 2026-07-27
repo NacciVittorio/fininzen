@@ -1,5 +1,15 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { test, expect } from "@playwright/test";
 import { loginAsDemo } from "./helpers/auth";
+
+// Matches the app's own version, not a hardcoded literal that goes stale on
+// every release — see helpers/auth.ts's APP_VERSION for the same pattern.
+const APP_VERSION = readFileSync(
+    join(__dirname, "..", "..", "VERSION"),
+    "utf8",
+).trim();
 
 // The changelog is a full-page view reached from the release banner or
 // Settings → About, with no bottom-nav entry of its own. It must offer an
@@ -29,9 +39,9 @@ test.describe("Changelog", () => {
         page,
     }) => {
         await page.goto("/changelog");
-        // useAppVersion reads GET /api/health/ (0.6.0); the matching release
-        // entry is then flagged as the current one.
-        await expect(page.getByText("v0.6.0")).toBeVisible();
+        // useAppVersion reads GET /api/health/, which reports the same VERSION
+        // file; the matching release entry is then flagged as the current one.
+        await expect(page.getByText(`v${APP_VERSION}`)).toBeVisible();
         await expect(page.getByText(/In uso|In use/i)).toBeVisible();
     });
 });

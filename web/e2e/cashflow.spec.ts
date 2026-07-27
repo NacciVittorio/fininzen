@@ -41,13 +41,17 @@ async function cleanupOrphanedCats(page: Page, token: string): Promise<void> {
 
 async function goToAllTransactions(page: Page): Promise<void> {
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".app-net-worth")).toBeVisible({
+        timeout: 15000,
+    });
     await page.click('nav a[href="/cashflow"]');
     await expect(page).toHaveURL(/\/cashflow$/);
     await expect(
         page.locator('nav a[href="/cashflow"][aria-current="page"]'),
     ).toBeVisible({ timeout: 5000 });
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('[data-testid="expenses-add-fab"]')).toBeVisible({
+        timeout: 10000,
+    });
 }
 
 async function safeDelete(

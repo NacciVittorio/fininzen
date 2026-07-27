@@ -151,6 +151,29 @@ jobs:
       - run: bash ci-tools/install-web.sh
       - run: bash ci-tools/check-api-contract.sh
 
+  e2e-test:
+    name: E2E (Playwright)
+    # ci-tools/test-e2e.sh boots a throwaway SQLite-backed Django dev server;
+    # Playwright then boots Next itself as its own webServer
+    # (web/playwright.config.ts), a production build here (not `next dev`) so
+    # the HMR traffic that never lets networkidle settle isn't in the way.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: bash ci-tools/install-backend.sh
+      - run: bash ci-tools/install-web.sh
+      - run: bash ci-tools/test-e2e.sh
+
   gitlab-status:
     name: Report result to the GitLab MR
     # Without this the pipeline result lives only in this repo's Actions tab,
@@ -162,7 +185,15 @@ jobs:
     # yet. Note that a commit status is *visible* on GitLab Free but cannot be
     # made a required merge check (that is External Status Checks, Ultimate).
     if: always()
-    needs: [backend-lint, web, backend-test, backend-postgres, api-contract]
+    needs:
+      [
+        backend-lint,
+        web,
+        backend-test,
+        backend-postgres,
+        api-contract,
+        e2e-test,
+      ]
     runs-on: ubuntu-latest
     env:
       GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}

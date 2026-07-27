@@ -358,9 +358,10 @@ test.describe("Settings CSV import", () => {
             .click();
         await expect(categoryTrigger(page, 0)).toContainText(CAT_NAME);
 
-        // Clear by clicking placeholder option (first button in dropdown)
+        // Clear by clicking the placeholder option — CategorySelect always
+        // renders it as the dropdown's last button, after every category.
         await categoryTrigger(page, 0).click();
-        await categoryDropdown(page).locator("button").first().click();
+        await categoryDropdown(page).locator("button").last().click();
 
         // Trigger should show placeholder again (not the category name)
         await expect(categoryTrigger(page, 0)).not.toContainText(CAT_NAME);

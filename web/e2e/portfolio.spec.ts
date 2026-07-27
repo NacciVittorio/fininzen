@@ -74,7 +74,9 @@ test.describe("Portfolio CRUD", () => {
         });
         await page.click('nav a[href="/portfolio"]');
         await expect(page).toHaveURL(/\/portfolio$/);
-        await page.waitForLoadState("networkidle");
+        await expect(
+            page.locator('[data-testid="speed-dial-main"]'),
+        ).toBeVisible({ timeout: 10000 });
     });
 
     test("add MANUAL asset appears in list", async ({ page }) => {
@@ -83,10 +85,14 @@ test.describe("Portfolio CRUD", () => {
 
         // Reload so app fetches the newly created investment type into its state
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await expect(page.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
         await page.click('nav a[href="/portfolio"]');
         await expect(page).toHaveURL(/\/portfolio$/);
-        await page.waitForLoadState("networkidle");
+        await expect(
+            page.locator('[data-testid="speed-dial-main"]'),
+        ).toBeVisible({ timeout: 10000 });
 
         const assetName = `E2E Asset ${Date.now()}`;
 
@@ -181,10 +187,14 @@ test.describe("Portfolio CRUD", () => {
         const { id: assetId } = await res.json();
 
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await expect(page.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
         await page.click('nav a[href="/portfolio"]');
         await expect(page).toHaveURL(/\/portfolio$/);
-        await page.waitForLoadState("networkidle");
+        await expect(
+            page.locator('[data-testid="speed-dial-main"]'),
+        ).toBeVisible({ timeout: 10000 });
 
         await page.click('[data-testid="speed-dial-main"]');
         await page.click('[data-testid="portfolio-fab-add-transaction"]');
@@ -230,10 +240,14 @@ test.describe("Portfolio CRUD", () => {
 
         // Reload — asset should appear
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await expect(page.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
         await page.click('nav a[href="/portfolio"]');
         await expect(page).toHaveURL(/\/portfolio$/);
-        await page.waitForLoadState("networkidle");
+        await expect(
+            page.locator('[data-testid="speed-dial-main"]'),
+        ).toBeVisible({ timeout: 10000 });
 
         await expect(page.locator(`text=${assetName}`)).toBeVisible({
             timeout: 8000,
