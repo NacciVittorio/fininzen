@@ -259,7 +259,7 @@ release:
 # the MRs still open here. Keep the two in sync if the env vars below change.
 renovate:
   stage: lint
-  image: renovate/renovate:latest
+  image: renovate/renovate:latest@sha256:e22ae7e3b8714761de6dc0ccde43ab4897e61fe4bf7108de713f458953327955
   interruptible: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $RENOVATE_TOKEN

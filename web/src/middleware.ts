@@ -5,8 +5,9 @@ import type { NextRequest } from "next/server";
 //
 // The old Vite build injected a <meta> CSP (script-src 'self'); that mechanism
 // disappeared in the Next.js cutover, leaving the production HTML with NO CSP
-// (Caddy sets HSTS/X-Frame/nosniff/Referrer but not CSP, and Django's middleware
-// only covers /api/*). This middleware restores a strict, nonce-based policy.
+// (Caddy sets HSTS/X-Frame/nosniff/Referrer but not CSP — Django's middleware
+// sets its own copy of those on /api/*, /admin/ and /static/*). This
+// middleware restores a strict, nonce-based CSP for the Next.js pages.
 //
 // Next's App Router renders inline bootstrap/streaming <script> tags, so a flat
 // `script-src 'self'` would break hydration. Instead we mint a per-request nonce,
