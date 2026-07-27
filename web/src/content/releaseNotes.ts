@@ -23,6 +23,18 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Nella schermata di accesso, quando la tastiera o la barra degli indirizzi di Chrome su Android riducono lo spazio visibile, il pulsante «Esplora demo →» non si sovrappone più alla scritta del copyright in fondo alla pagina.",
+            ],
+            en: [
+                "On the sign-in screen, when Android Chrome's keyboard or address bar shrinks the visible viewport, the “Explore Demo →” button no longer overlaps the copyright line at the bottom of the page.",
+            ],
+        },
+    },
+    {
         version: "0.11.2",
         date: "2026-07-27",
         highlights: {

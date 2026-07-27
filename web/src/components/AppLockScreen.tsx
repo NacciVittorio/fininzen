@@ -33,7 +33,7 @@ export default function AppLockScreen() {
     return (
         <div
             style={{
-                minHeight: "100vh",
+                minHeight: "100dvh",
                 background: "var(--bg-2)",
                 color: "var(--fg)",
                 fontFamily: "var(--font-sans)",
