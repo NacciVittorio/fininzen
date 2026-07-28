@@ -23,6 +23,7 @@ def test_profile_get_creates_default_profile(client, test_user):
         "accounts": True,
         "investments": True,
         "fire": True,
+        "split": True,
     }
     assert data["accounting_month_start_day"] == 1
     assert UserProfile.objects.get(user=test_user).decimal_separator == ","
@@ -94,7 +95,10 @@ def test_profile_patch_updates_enabled_features(client, test_user):
     )
 
     assert res.status_code == 200
-    assert res.json()["enabled_features"] == features
+    # The response is normalized on read (normalize_enabled_features), so any
+    # key omitted from the PATCH payload — "split" here — comes back
+    # defaulted to True even though it was never sent or stored.
+    assert res.json()["enabled_features"] == {**features, "split": True}
     assert UserProfile.objects.get(user=test_user).enabled_features == features
 
 

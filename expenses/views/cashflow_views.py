@@ -25,7 +25,8 @@ class CashFlowFeedView(APIView):
       category            — category id
       parent_category     — parent category id
       account             — Asset id
-      types               — comma-separated subset of income,outcome,transfer,adjustment
+      types               — comma-separated subset of income,outcome,transfer,adjustment,
+                             split,split_reimbursement
       page                — page number (default 1)
       page_size           — items per page (default 50, maximum 200)
     """
@@ -106,7 +107,14 @@ class CashFlowFeedView(APIView):
                         {"error": "invalid account"}, status=status.HTTP_400_BAD_REQUEST
                     )
         if types_str:
-            valid = {"income", "outcome", "transfer", "adjustment"}
+            valid = {
+                "income",
+                "outcome",
+                "transfer",
+                "adjustment",
+                "split",
+                "split_reimbursement",
+            }
             requested = {t.strip() for t in types_str.split(",") if t.strip()}
             unknown = requested - valid
             if unknown:

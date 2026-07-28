@@ -66,6 +66,7 @@ const TAB_ROUTES: Record<string, string> = {
     accounts: "/accounts",
     portfolio: "/portfolio",
     fire: "/fire",
+    split: "/split",
     settings: "/settings",
 };
 const tabFromPathname = (pathname: string | null): string => {
@@ -391,6 +392,18 @@ export function useSessionController(providerState: AppProviderState) {
             setEnabledFeatures(features);
             // Keep auth_email fresh so the app-lock screen can re-authenticate by email
             if (data.email) localStorage.setItem("auth_email", data.email);
+            // `user` is otherwise only ever set by the interactive login()/
+            // demoLogin()/biometricLogin() callbacks — never by a session
+            // restored via the silent-refresh path (useAuthenticatedFetch's
+            // 401→refresh→retry), which is what runs on every plain page
+            // reload once the in-memory access token is gone (HIGH-21). Left
+            // unset there, `user` stayed null for the rest of the tab's life
+            // after any reload, breaking every "is this me" comparison that
+            // reads it (e.g. Split's resolveMySplitUserId/splitIdentityIsMe).
+            // applyProfileData runs on every authenticated bootstrap
+            // regardless of how the session came to be, so mirror the
+            // login callbacks here too.
+            if (data.email) setUser(data.email);
             setProfile({
                 email: data.email ?? "",
                 name: data.name ?? "",

@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "fininzen",  # app principale: modelli condivisi (DataAccessGrant)
     "expenses",  # nostra app per la gestione delle spese
     "portfolio",  # nostra app per il portafoglio investimenti
+    "splitting",  # feature Split: spese condivise tipo Splitwise
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -314,6 +315,7 @@ _THROTTLE_RATES = {
     "search_ticker": "30/minute",
     "view_as_attempt": "30/minute",
     "grant": "20/minute",
+    "split_link": "20/minute",
     "webauthn": "20/minute",
     "account": "10/minute",
     "reset": "5/minute",

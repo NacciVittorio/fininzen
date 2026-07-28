@@ -23,11 +23,13 @@ const FEATURE_KEYS = new Set<string>([
     "accounts",
     "investments",
     "fire",
+    "split",
 ]);
 
 const NAV_DEFINITIONS = [
     ["/dashboard", "dashboard", "dashboard"],
     ["/cashflow", "cashflow", "cashflow"],
+    ["/split", "split", "split"],
     ["/accounts", "accounts", "accounts"],
     ["/portfolio", "investments", "investments"],
     ["/fire", "fire", "fire"],

@@ -50,6 +50,11 @@ export function GeneralSettingsSection() {
                 description: T("feature_cashflow_desc"),
             },
             {
+                key: "split",
+                label: T("tab_split"),
+                description: T("feature_split_desc"),
+            },
+            {
                 key: "accounts",
                 label: T("tab_accounts"),
                 description: T("feature_accounts_desc"),
