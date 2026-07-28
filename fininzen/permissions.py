@@ -13,3 +13,18 @@ class IsNotDemoUser(BasePermission):
             if request.user.username == DEMO_USERNAME:
                 return False
         return True
+
+
+class IsAdmin(BasePermission):
+    """Only users whose profile role is 'admin'.
+
+    Distinct from Django's own is_staff/is_superuser, which stay reserved for
+    the (DEBUG-only) Django admin site rather than this app's admin portal.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        profile = getattr(user, "profile", None)
+        return bool(profile and profile.role == profile.ROLE_ADMIN)

@@ -53,9 +53,10 @@ function visibleNavItems(enabledFeatures: EnabledFeatures): NavigationItem[] {
 }
 
 export function Sidebar() {
-    const { T, user, isDemo, enabledFeatures } = useApp();
+    const { T, user, isDemo, enabledFeatures, profile } = useApp();
     const pathname = usePathname();
     const items = visibleNavItems(enabledFeatures);
+    const isAdmin = profile.role === "admin";
 
     return (
         <aside
@@ -130,6 +131,14 @@ export function Sidebar() {
                         active={pathname.startsWith(item.href)}
                     />
                 ))}
+                {isAdmin && (
+                    <NavItem
+                        href="/admin"
+                        icon={<Icon name="shield" />}
+                        label={T("tab_admin")}
+                        active={pathname.startsWith("/admin")}
+                    />
+                )}
             </div>
             <div
                 style={{

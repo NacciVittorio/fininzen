@@ -81,6 +81,8 @@ type UserProfile = {
     accounting_month_start_day: number;
     enabled_features: EnabledFeatures;
     last_seen_release: string;
+    status: "pending" | "approved" | "rejected";
+    role: "user" | "admin";
 };
 
 type ProfileApplyResult = {
@@ -189,10 +191,18 @@ export function useSessionController(providerState: AppProviderState) {
     const [user, setUser] = useState<string | null>(null);
 
     const login = useCallback(
-        async (email: string, password: string) => {
+        async (
+            email: string,
+            password: string,
+        ): Promise<{ ok: boolean; code?: string }> => {
             try {
                 const res = await requestLogin(email, password);
-                if (!res.ok) return false;
+                if (!res.ok) {
+                    const errBody = (await res.json().catch(() => null)) as {
+                        code?: string;
+                    } | null;
+                    return { ok: false, code: errBody?.code };
+                }
                 const data = (await res.json()) as TokenResponse;
                 resetClientState();
                 setAccessToken(data.access);
@@ -210,9 +220,9 @@ export function useSessionController(providerState: AppProviderState) {
                 setAuthSessionNonce((n) => n + 1);
                 // Fresh password login → never start locked (the user just authenticated)
                 setIsLocked(false);
-                return true;
+                return { ok: true };
             } catch {
-                return false;
+                return { ok: false };
             }
         },
         [resetClientState, setDemoConfirm, setDemoUnderstood, setTab],
@@ -289,6 +299,8 @@ export function useSessionController(providerState: AppProviderState) {
         accounting_month_start_day: 1,
         enabled_features: DEFAULT_ENABLED_FEATURES,
         last_seen_release: "",
+        status: "approved",
+        role: "user",
     });
     const [privacyPreferences, setPrivacyPreferences] =
         useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
@@ -329,6 +341,11 @@ export function useSessionController(providerState: AppProviderState) {
                     typeof data.last_seen_release === "string"
                         ? data.last_seen_release
                         : "",
+                status:
+                    data.status === "pending" || data.status === "rejected"
+                        ? data.status
+                        : "approved",
+                role: data.role === "admin" ? "admin" : "user",
             });
             setPrivacyPreferences(
                 normalizePrivacyPreferences(data.privacy_preferences),
@@ -439,6 +456,8 @@ export function useSessionController(providerState: AppProviderState) {
             accounting_month_start_day: 1,
             enabled_features: DEFAULT_ENABLED_FEATURES,
             last_seen_release: "",
+            status: "approved",
+            role: "user",
         });
         setPrivacyPreferences(DEFAULT_PRIVACY_PREFERENCES);
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);

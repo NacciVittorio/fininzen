@@ -52,6 +52,22 @@ class UserProfile(models.Model):
         (DECIMAL_DOT, "Dot"),
     ]
 
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
+    ]
+
+    ROLE_USER = "user"
+    ROLE_ADMIN = "admin"
+    ROLE_CHOICES = [
+        (ROLE_USER, "User"),
+        (ROLE_ADMIN, "Admin"),
+    ]
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -81,6 +97,22 @@ class UserProfile(models.Model):
     # server-side rather than in localStorage so dismissing it on one device also
     # dismisses it on the others. See wiki/VERSIONING.md.
     last_seen_release = models.CharField(max_length=32, blank=True, default="")
+    # Registration-approval gate: new accounts start pending and can't obtain a
+    # JWT (see ApprovalGatedTokenObtainPairSerializer) until an admin approves
+    # them. Kept separate from Django's own is_staff/is_superuser, which stay
+    # reserved for the (DEBUG-only) Django admin site.
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_USER)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_profiles",
+    )
 
     def __str__(self):
         return f"Profile<{self.user_id}>"

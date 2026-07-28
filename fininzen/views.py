@@ -5,17 +5,24 @@ fininzen/views.py — Auth views: registration, JWT token, data-sharing grants.
 import logging
 import re
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, update_last_login
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db import connection
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers, status
+from drf_spectacular.extensions import OpenApiSerializerExtension
+from drf_spectacular.utils import inline_serializer
+from rest_framework import exceptions, serializers, status
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenObtainSerializer,
+)
+from rest_framework_simplejwt.settings import api_settings as jwt_api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (
     TokenObtainPairView as _BaseTokenView,
@@ -55,8 +62,65 @@ from fininzen.mixins import require_personal_context
 logger = logging.getLogger(__name__)
 
 
+class ApprovalGatedTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Blocks token issuance for accounts pending/rejected admin approval.
+
+    Calls TokenObtainSerializer.validate() directly (not super().validate(),
+    which is TokenObtainPairSerializer's own) so credentials are checked and
+    self.user is set, but no token pair is minted before we know the account
+    is approved — an account that can never use its tokens shouldn't get any.
+    """
+
+    def validate(self, attrs):
+        TokenObtainSerializer.validate(self, attrs)
+
+        profile = getattr(self.user, "profile", None)
+        account_status = profile.status if profile else UserProfile.STATUS_APPROVED
+        if account_status != UserProfile.STATUS_APPROVED:
+            code = (
+                "account_pending"
+                if account_status == UserProfile.STATUS_PENDING
+                else "account_rejected"
+            )
+            message = (
+                "Your account is awaiting admin approval."
+                if code == "account_pending"
+                else "Your account registration was rejected."
+            )
+            raise exceptions.PermissionDenied({"detail": message, "code": code})
+
+        refresh = self.get_token(self.user)
+        data = {"refresh": str(refresh), "access": str(refresh.access_token)}
+        if jwt_api_settings.UPDATE_LAST_LOGIN:
+            update_last_login(None, self.user)
+        return data
+
+
+class _ApprovalGatedTokenObtainPairSerializerSchema(OpenApiSerializerExtension):
+    """drf-spectacular's own TokenObtainPairSerializer extension only exact-matches
+    the base simplejwt class (match_subclasses=False), so without this our
+    subclass would lose the documented access/refresh response schema and the
+    OpenAPI contract would just show "No response body" for this endpoint.
+    """
+
+    target_class = "fininzen.views.ApprovalGatedTokenObtainPairSerializer"
+
+    def map_serializer(self, auto_schema, direction):
+        fixed = inline_serializer(
+            "ApprovalGatedTokenObtainPair",
+            fields={
+                self.target.username_field: serializers.CharField(write_only=True),
+                "password": serializers.CharField(write_only=True),
+                "access": serializers.CharField(read_only=True),
+                "refresh": serializers.CharField(read_only=True),
+            },
+        )
+        return auto_schema._map_serializer(fixed, direction)
+
+
 class TokenObtainPairView(_BaseTokenView):
     throttle_classes = [LoginRateThrottle]
+    serializer_class = ApprovalGatedTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
         # HIGH-21: keep the access token in the body (SPA holds it in memory),
@@ -372,7 +436,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "transaction_preferences",
             "accounting_month_start_day",
             "last_seen_release",
+            "status",
+            "role",
         ]
+        # status/role are informational here — actual writes only happen
+        # through AdminUserViewSet.approve/reject/set_role (fininzen/admin_views.py).
+        extra_kwargs = {
+            "status": {"read_only": True},
+            "role": {"read_only": True},
+        }
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

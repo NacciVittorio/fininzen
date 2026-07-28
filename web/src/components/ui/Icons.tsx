@@ -55,6 +55,12 @@ const ICON_PATHS: Record<string, ReactNode> = {
             <path d="M9 11h6" />
         </>
     ),
+    shield: (
+        <>
+            <path d="M12 2 4 5v6c0 5 3.4 8.4 8 11 4.6-2.6 8-6 8-11V5l-8-3z" />
+            <path d="m9 12 2 2 4-4" />
+        </>
+    ),
     status: (
         <>
             <path d="m4 12 5 5L20 6" />

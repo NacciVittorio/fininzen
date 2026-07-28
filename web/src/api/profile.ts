@@ -13,6 +13,8 @@ export type ProfileResponse = {
     dashboard_config?: unknown;
     dashboard_preferences?: unknown;
     last_seen_release?: string | null;
+    status?: "pending" | "approved" | "rejected" | null;
+    role?: "user" | "admin" | null;
     [key: string]: unknown;
 };
 
