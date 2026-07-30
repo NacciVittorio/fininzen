@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.12.0",
+        date: "2026-07-30",
         highlights: {
             it: [
                 "Il pannello admin si arricchisce di tre nuove sezioni: Records (statistiche sui dati), Audit Log (cronologia delle azioni degli amministratori) e Stato del sistema (freschezza di prezzi/backup e controlli di integrità dei dati).",

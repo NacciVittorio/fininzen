@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.12.0 (2026-07-30)
+
+### Feat
+
+- **admin**: add records stats, audit log, and system health panels
+
 ## v0.11.4 (2026-07-27)
 
 ### Feat
