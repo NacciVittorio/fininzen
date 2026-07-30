@@ -86,8 +86,16 @@ export default function LoginForm() {
         setLoading(true);
 
         if (mode === "login") {
-            const ok = await login(email, password);
-            if (!ok) setError(T("login_error"));
+            const result = await login(email, password);
+            if (!result.ok) {
+                setError(
+                    result.code === "account_pending"
+                        ? T("login_error_pending")
+                        : result.code === "account_rejected"
+                          ? T("login_error_rejected")
+                          : T("login_error"),
+                );
+            }
         } else {
             const result = await register(email, password, password2);
             if (result.ok) {

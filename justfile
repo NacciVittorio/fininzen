@@ -43,6 +43,9 @@ migrate:
 superuser:
     {{venv_python}} manage.py createsuperuser
 
+promote-admin EMAIL:
+    {{venv_python}} manage.py promote_admin {{EMAIL}}
+
 reset-db:
     rm -f db.sqlite3
     just migrate
@@ -114,6 +117,9 @@ production-logs:
 
 production-superuser:
     docker compose {{production}} exec backend python manage.py createsuperuser
+
+production-promote-admin EMAIL:
+    docker compose {{production}} exec backend python manage.py promote_admin {{EMAIL}}
 
 production-refresh-prices:
     docker compose {{production}} exec -T backend python manage.py refresh_asset_prices

@@ -23,6 +23,11 @@ export type Budget = Schemas["Budget"];
 export type RecurringExpense = Schemas["RecurringExpense"];
 
 // Auth
-export type TokenObtainPair = Schemas["TokenObtainPair"];
+// The schema component is named after the serializer class
+// (ApprovalGatedTokenObtainPairSerializer, fininzen/views.py), not the endpoint.
+export type TokenObtainPair = Schemas["ApprovalGatedTokenObtainPair"];
 export type TokenRefresh = Schemas["TokenRefresh"];
 export type UserRegister = Schemas["UserRegister"];
+
+// Admin portal
+export type AdminUser = Schemas["AdminUser"];

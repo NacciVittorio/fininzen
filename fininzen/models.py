@@ -52,6 +52,22 @@ class UserProfile(models.Model):
         (DECIMAL_DOT, "Dot"),
     ]
 
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
+    ]
+
+    ROLE_USER = "user"
+    ROLE_ADMIN = "admin"
+    ROLE_CHOICES = [
+        (ROLE_USER, "User"),
+        (ROLE_ADMIN, "Admin"),
+    ]
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -81,9 +97,59 @@ class UserProfile(models.Model):
     # server-side rather than in localStorage so dismissing it on one device also
     # dismisses it on the others. See wiki/VERSIONING.md.
     last_seen_release = models.CharField(max_length=32, blank=True, default="")
+    # Registration-approval gate: new accounts start pending and can't obtain a
+    # JWT (see ApprovalGatedTokenObtainPairSerializer) until an admin approves
+    # them. Kept separate from Django's own is_staff/is_superuser, which stay
+    # reserved for the (DEBUG-only) Django admin site.
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_USER)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_profiles",
+    )
+    # Last authenticated API request, throttled to at most one write per
+    # ACTIVITY_TOUCH_INTERVAL (see TouchLastActivity) so it doesn't add a
+    # write to every request. Distinct from auth.User.last_login, which only
+    # updates on token obtain, not on continued app usage.
+    last_activity_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Profile<{self.user_id}>"
+
+
+class AdminActionLog(models.Model):
+    """Audit trail for admin-portal actions (approve/reject/role/active)."""
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="admin_actions_taken",
+    )
+    action = models.CharField(max_length=32)
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="admin_actions_received",
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return (
+            f"AdminActionLog<{self.action} by={self.actor_id} on={self.target_user_id}>"
+        )
 
 
 class DataAccessGrant(models.Model):
