@@ -72,6 +72,13 @@ type QueuedProfilePatch = {
 type AccountActionResult =
     { ok: true } | { ok: false; errorKey: string; detail?: unknown };
 
+type MfaSetupResult =
+    | { ok: true; secret: string; qrSvgBase64: string }
+    | { ok: false; errorKey: string };
+
+type MfaEnableResult =
+    { ok: true; backupCodes: string[] } | { ok: false; errorKey: string };
+
 type TransactionPreferenceKey = keyof TransactionPreferences;
 
 export function useProfilePreferences({
@@ -336,6 +343,115 @@ export function useProfilePreferences({
         [apiFetch],
     );
 
+    const changeEmail = useCallback(
+        async (
+            currentPassword: string,
+            newEmail: string,
+        ): Promise<AccountActionResult> => {
+            try {
+                const res = await apiFetch(`${API}/auth/change-email/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_email: newEmail,
+                    }),
+                });
+                if (res.status === 400) {
+                    const err = await res.json().catch(() => ({}));
+                    return {
+                        ok: false,
+                        errorKey: err.new_email
+                            ? "email_change_error_duplicate"
+                            : "email_change_error_password",
+                        detail: err,
+                    };
+                }
+                if (!res.ok)
+                    return { ok: false, errorKey: "error_save_failed" };
+                const data = await fetchUserProfile(apiFetch);
+                applyProfileData(data, accountingMonthStartDay);
+                return { ok: true };
+            } catch (e) {
+                logError("changeEmail:", e);
+                return { ok: false, errorKey: "error_network" };
+            }
+        },
+        [apiFetch, accountingMonthStartDay, applyProfileData],
+    );
+
+    const mfaSetup = useCallback(async (): Promise<MfaSetupResult> => {
+        try {
+            const res = await apiFetch(`${API}/auth/mfa/setup/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+            if (!res.ok) return { ok: false, errorKey: "error_save_failed" };
+            const data = (await res.json()) as {
+                secret: string;
+                qr_svg_base64: string;
+            };
+            return {
+                ok: true,
+                secret: data.secret,
+                qrSvgBase64: data.qr_svg_base64,
+            };
+        } catch (e) {
+            logError("mfaSetup:", e);
+            return { ok: false, errorKey: "error_network" };
+        }
+    }, [apiFetch]);
+
+    const mfaEnable = useCallback(
+        async (code: string): Promise<MfaEnableResult> => {
+            try {
+                const res = await apiFetch(`${API}/auth/mfa/enable/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code }),
+                });
+                if (res.status === 400)
+                    return { ok: false, errorKey: "mfa_error_invalid_code" };
+                if (!res.ok)
+                    return { ok: false, errorKey: "error_save_failed" };
+                const data = (await res.json()) as { backup_codes: string[] };
+                const profileData = await fetchUserProfile(apiFetch);
+                applyProfileData(profileData, accountingMonthStartDay);
+                return { ok: true, backupCodes: data.backup_codes };
+            } catch (e) {
+                logError("mfaEnable:", e);
+                return { ok: false, errorKey: "error_network" };
+            }
+        },
+        [apiFetch, accountingMonthStartDay, applyProfileData],
+    );
+
+    const mfaDisable = useCallback(
+        async (password: string): Promise<AccountActionResult> => {
+            try {
+                const res = await apiFetch(`${API}/auth/mfa/disable/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password }),
+                });
+                if (res.status === 400)
+                    return {
+                        ok: false,
+                        errorKey: "password_change_error_current",
+                    };
+                if (!res.ok)
+                    return { ok: false, errorKey: "error_save_failed" };
+                const data = await fetchUserProfile(apiFetch);
+                applyProfileData(data, accountingMonthStartDay);
+                return { ok: true };
+            } catch (e) {
+                logError("mfaDisable:", e);
+                return { ok: false, errorKey: "error_network" };
+            }
+        },
+        [apiFetch, accountingMonthStartDay, applyProfileData],
+    );
+
     const deleteAccount = useCallback(
         async (
             password: string,
@@ -573,6 +689,10 @@ export function useProfilePreferences({
         fetchProfile,
         updateProfile,
         changePassword,
+        changeEmail,
+        mfaSetup,
+        mfaEnable,
+        mfaDisable,
         deleteAccount,
         updateDecimalSeparator,
         updatePrivacyPreferences,

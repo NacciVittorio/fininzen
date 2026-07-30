@@ -15,6 +15,7 @@ export type ProfileResponse = {
     last_seen_release?: string | null;
     status?: "pending" | "approved" | "rejected" | null;
     role?: "user" | "admin" | null;
+    mfa_enabled?: boolean;
     [key: string]: unknown;
 };
 

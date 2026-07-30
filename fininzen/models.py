@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from fininzen.fields import EncryptedTextField
+
 
 FEATURE_DASHBOARD = "dashboard"
 FEATURE_CASHFLOW = "cashflow"
@@ -118,6 +120,11 @@ class UserProfile(models.Model):
     # write to every request. Distinct from auth.User.last_login, which only
     # updates on token obtain, not on continued app usage.
     last_activity_at = models.DateTimeField(null=True, blank=True)
+    # TOTP (RFC 6238) second factor. mfa_secret is set (pending) as soon as
+    # /mfa/setup/ is called but mfa_enabled only flips True once the user
+    # proves possession via /mfa/enable/ — see fininzen/mfa_views.py.
+    mfa_enabled = models.BooleanField(default=False)
+    mfa_secret = EncryptedTextField(blank=True, default="")
 
     def __str__(self):
         return f"Profile<{self.user_id}>"
@@ -233,3 +240,49 @@ class WebAuthnChallenge(models.Model):
 
     def __str__(self):
         return f"WebAuthnChallenge<user={self.user_id}, purpose={self.purpose}>"
+
+
+class MfaBackupCode(models.Model):
+    """One-time TOTP recovery codes, generated when MFA is first enabled.
+
+    Codes are shown to the user exactly once (in the /mfa/enable/ response)
+    and stored here only as a blind-index hash (fininzen.crypto.blind_index),
+    never in plaintext — same non-reversible pattern used for exact-match
+    lookups on encrypted fields elsewhere in this module.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mfa_backup_codes",
+    )
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "code_hash"])]
+
+    def __str__(self):
+        return f"MfaBackupCode<user={self.user_id}, used={self.used_at is not None}>"
+
+
+class MfaChallenge(models.Model):
+    """Bridges the gap between a password check and TOTP confirmation at login.
+
+    Created by ApprovalGatedTokenObtainPairSerializer.validate once the
+    password is verified for an mfa_enabled user, instead of minting a token
+    pair outright. /mfa/verify/ consumes it (single use) once the caller
+    proves possession of the TOTP secret or an unused backup code.
+    """
+
+    token = models.CharField(max_length=64, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mfa_challenges",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"MfaChallenge<user={self.user_id}>"

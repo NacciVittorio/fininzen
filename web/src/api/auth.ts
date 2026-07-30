@@ -9,6 +9,9 @@ export type TokenResponse = {
     access: string;
 };
 
+export type LoginResponse =
+    TokenResponse | { mfa_required: true; mfa_token: string };
+
 export type RegisterResult = {
     ok: boolean;
     status?: number;
@@ -64,6 +67,17 @@ export async function requestLogout(): Promise<Response> {
             "Content-Type": "application/json",
             "X-CSRF-Token": getCsrfToken(),
         },
+    });
+}
+
+export async function requestMfaVerify(
+    mfaToken: string,
+    code: string,
+): Promise<Response> {
+    return fetchWithTimeout(`${API}/auth/mfa/verify/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mfa_token: mfaToken, code }),
     });
 }
 

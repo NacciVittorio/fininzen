@@ -87,7 +87,13 @@ class WebAuthnRegisterChallengeView(APIView):
             authenticator_selection=AuthenticatorSelectionCriteria(
                 authenticator_attachment=AuthenticatorAttachment.PLATFORM,
                 user_verification=UserVerificationRequirement.REQUIRED,
-                resident_key=ResidentKeyRequirement.PREFERRED,
+                # DISCOURAGED (non-resident/non-discoverable), not PREFERRED: on
+                # iOS 16+/Safari a discoverable platform credential is branded
+                # by the OS as a "Passkey" (offers iCloud Keychain sync) instead
+                # of a plain Face ID/Touch ID prompt. Login never relies on
+                # discoverable credentials — the user is identified by email
+                # first (see WebAuthnAuthChallengeView) — so this is safe.
+                resident_key=ResidentKeyRequirement.DISCOURAGED,
             ),
             attestation=AttestationConveyancePreference.NONE,
         )

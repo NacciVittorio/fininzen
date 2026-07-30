@@ -4,6 +4,7 @@ fininzen/views.py — Auth views: registration, JWT token, data-sharing grants.
 
 import logging
 import re
+import secrets
 from django.conf import settings
 from django.contrib.auth.models import User, update_last_login
 from django.contrib.auth.password_validation import validate_password
@@ -40,6 +41,7 @@ from fininzen.jwt_cookies import (
 from fininzen.models import (
     DataAccessGrant,
     ENABLED_FEATURE_KEYS,
+    MfaChallenge,
     TRANSACTION_PREFERENCE_KEYS,
     UserProfile,
     normalize_enabled_features,
@@ -89,6 +91,16 @@ class ApprovalGatedTokenObtainPairSerializer(TokenObtainPairSerializer):
             )
             raise exceptions.PermissionDenied({"detail": message, "code": code})
 
+        if profile and profile.mfa_enabled:
+            # Password verified, but the token pair isn't minted yet — the
+            # client must complete /api/auth/mfa/verify/ with this opaque
+            # token + a TOTP/backup code. See fininzen/mfa_views.py.
+            MfaChallenge.objects.filter(user=self.user).delete()
+            challenge = MfaChallenge.objects.create(
+                token=secrets.token_urlsafe(32), user=self.user
+            )
+            return {"mfa_required": True, "mfa_token": challenge.token}
+
         refresh = self.get_token(self.user)
         data = {"refresh": str(refresh), "access": str(refresh.access_token)}
         if jwt_api_settings.UPDATE_LAST_LOGIN:
@@ -111,8 +123,14 @@ class _ApprovalGatedTokenObtainPairSerializerSchema(OpenApiSerializerExtension):
             fields={
                 self.target.username_field: serializers.CharField(write_only=True),
                 "password": serializers.CharField(write_only=True),
-                "access": serializers.CharField(read_only=True),
-                "refresh": serializers.CharField(read_only=True),
+                "access": serializers.CharField(read_only=True, required=False),
+                "refresh": serializers.CharField(read_only=True, required=False),
+                # Present instead of access/refresh when the account has MFA
+                # enabled — see ApprovalGatedTokenObtainPairSerializer.validate.
+                "mfa_required": serializers.BooleanField(
+                    read_only=True, required=False
+                ),
+                "mfa_token": serializers.CharField(read_only=True, required=False),
             },
         )
         return auto_schema._map_serializer(fixed, direction)
@@ -442,12 +460,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "last_seen_release",
             "status",
             "role",
+            "mfa_enabled",
         ]
         # status/role are informational here — actual writes only happen
         # through AdminUserViewSet.approve/reject/set_role (fininzen/admin_views.py).
+        # mfa_enabled is likewise informational — actual writes only happen
+        # through MfaEnableView/MfaDisableView (fininzen/mfa_views.py).
         extra_kwargs = {
             "status": {"read_only": True},
             "role": {"read_only": True},
+            "mfa_enabled": {"read_only": True},
         }
 
     def to_representation(self, instance):
@@ -628,6 +650,43 @@ class ChangePasswordView(APIView):
         user.save()
         logger.info("ChangePasswordView: user=%s changed password", user)
         return Response({"detail": "Password aggiornata."}, status=status.HTTP_200_OK)
+
+
+class ChangeEmailSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_email = serializers.EmailField(required=True)
+
+    def validate_new_email(self, value):
+        value = value.strip().lower()
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+
+class ChangeEmailView(APIView):
+    """POST /api/auth/change-email/ — cambia l'email dell'utente autenticato."""
+
+    permission_classes = [IsAuthenticated, IsNotDemoUser]
+    throttle_scope = "account"
+
+    def post(self, request):
+        require_personal_context(request)
+        serializer = ChangeEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if not user.check_password(serializer.validated_data["current_password"]):
+            return Response(
+                {"current_password": ["Password corrente non corretta."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        new_email = serializer.validated_data["new_email"]
+        # username == email since registration (UserRegisterSerializer.create),
+        # keep them in sync or login-by-email breaks.
+        user.email = new_email
+        user.username = new_email
+        user.save(update_fields=["email", "username"])
+        logger.info("ChangeEmailView: user=%s changed email", user.id)
+        return Response({"detail": "Email aggiornata."}, status=status.HTTP_200_OK)
 
 
 class DeleteAccountSerializer(serializers.Serializer):
