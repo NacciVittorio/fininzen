@@ -147,7 +147,9 @@ class AdminActionLog(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"AdminActionLog<{self.action} by={self.actor_id} on={self.target_user_id}>"
+        return (
+            f"AdminActionLog<{self.action} by={self.actor_id} on={self.target_user_id}>"
+        )
 
 
 class DataAccessGrant(models.Model):

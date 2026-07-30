@@ -16,7 +16,6 @@ def approve_existing_users(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fininzen", "0013_userprofile_last_seen_release"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

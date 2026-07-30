@@ -42,9 +42,7 @@ from fininzen.webauthn_views import (
 
 admin_router = DefaultRouter()
 admin_router.register(r"admin/users", AdminUserViewSet, basename="admin-user")
-admin_router.register(
-    r"admin/audit-log", AdminAuditLogView, basename="admin-audit-log"
-)
+admin_router.register(r"admin/audit-log", AdminAuditLogView, basename="admin-audit-log")
 
 urlpatterns = [
     # Django Admin: pannello di amministrazione automatico.

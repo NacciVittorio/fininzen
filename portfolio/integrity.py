@@ -192,9 +192,7 @@ def collect_integrity_issues():
             | ~Q(linked_asset__investment_type__is_bank_account=True)
         )
         .count(),
-        "asset_type_owner_mismatch": Asset.objects.filter(
-            investment_type__isnull=False
-        )
+        "asset_type_owner_mismatch": Asset.objects.filter(investment_type__isnull=False)
         .exclude(investment_type__owner_id=F("owner_id"))
         .count(),
         "asset_source_owner_mismatch": Asset.objects.filter(

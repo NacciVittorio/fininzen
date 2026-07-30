@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fininzen", "0015_userprofile_last_activity_at"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

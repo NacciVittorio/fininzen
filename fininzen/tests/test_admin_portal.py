@@ -357,9 +357,7 @@ def desynced_approved_user(db, admin_user):
         email="desynced@test.com",
         password="Pass!123abc",
     )
-    profile = UserProfile.objects.create(
-        user=user, status=UserProfile.STATUS_APPROVED
-    )
+    profile = UserProfile.objects.create(user=user, status=UserProfile.STATUS_APPROVED)
     assert profile.pk != user.id, "fixture failed to desync the two sequences"
     return user
 
@@ -385,9 +383,7 @@ def test_admin_can_approve_user_when_pk_and_user_id_diverge(
     profile.status = UserProfile.STATUS_PENDING
     profile.save(update_fields=["status"])
 
-    res = admin_client.post(
-        f"/api/admin/users/{desynced_approved_user.id}/approve/"
-    )
+    res = admin_client.post(f"/api/admin/users/{desynced_approved_user.id}/approve/")
 
     assert res.status_code == 200
     profile.refresh_from_db()
@@ -502,9 +498,7 @@ def test_admin_user_serializer_includes_login_and_activity_timestamps(
 ):
     res = admin_client.get("/api/admin/users/")
 
-    row = next(
-        r for r in res.json()["results"] if r["email"] == "approved@test.com"
-    )
+    row = next(r for r in res.json()["results"] if r["email"] == "approved@test.com")
     assert "last_login" in row
     assert "last_activity_at" in row
 
@@ -585,7 +579,9 @@ def test_audit_log_endpoint_lists_entries(admin_client, approved_user):
 def test_audit_log_filters_by_action(admin_client, pending_user, approved_user):
     UserProfile.objects.get_or_create(user=pending_user)
     approved_profile = UserProfile.objects.get(user=approved_user)
-    admin_client.post(f"/api/admin/users/{UserProfile.objects.get(user=pending_user).pk}/approve/")
+    admin_client.post(
+        f"/api/admin/users/{UserProfile.objects.get(user=pending_user).pk}/approve/"
+    )
     admin_client.post(
         f"/api/admin/users/{approved_profile.pk}/set_active/",
         data={"is_active": False},
