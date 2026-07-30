@@ -9,6 +9,7 @@ set -euo pipefail
 export DJANGO_DEBUG=1
 export REFRESH_COOKIE_PATH=/fininzen/api/auth/
 export E2E_RELAX_THROTTLES=1
+export E2E_AUTO_APPROVE_REGISTRATION=1
 
 echo "==> migrate (SQLite, ephemeral)"
 bash ci-tools/migrate.sh

@@ -321,6 +321,13 @@ _THROTTLE_RATES = {
 if os.environ.get("E2E_RELAX_THROTTLES"):
     _THROTTLE_RATES = {scope: "100000/minute" for scope in _THROTTLE_RATES}
 
+# Setting E2E_AUTO_APPROVE_REGISTRATION=1 skips the pending-approval gate for
+# newly registered accounts. web/e2e/helpers/auth.ts registers a throwaway
+# user and logs in immediately — with the gate on, that login 403s with
+# account_pending. Opt-in only: unset (prod, CI backend tests, pytest) new
+# accounts land in STATUS_PENDING as intended. NEVER enable on a public deployment.
+E2E_AUTO_APPROVE_REGISTRATION = bool(os.environ.get("E2E_AUTO_APPROVE_REGISTRATION"))
+
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",

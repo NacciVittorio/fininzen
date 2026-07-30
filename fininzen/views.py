@@ -224,6 +224,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         # Start new accounts already caught up on the current release, so their
         # first login doesn't announce changes that predate the account.
         UserProfile.objects.create(user=user, last_seen_release=settings.APP_VERSION)
+        if settings.E2E_AUTO_APPROVE_REGISTRATION:
+            UserProfile.objects.filter(user=user).update(
+                status=UserProfile.STATUS_APPROVED
+            )
         try:
             from portfolio.services import ensure_default_contribution_sources
 

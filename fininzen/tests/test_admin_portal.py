@@ -169,7 +169,7 @@ def test_admin_can_filter_users_by_status(admin_client, pending_user, approved_u
 def test_admin_can_approve_pending_user(admin_client, admin_user, pending_user):
     profile, _ = UserProfile.objects.get_or_create(user=pending_user)
 
-    res = admin_client.post(f"/api/admin/users/{profile.pk}/approve/")
+    res = admin_client.post(f"/api/admin/users/{pending_user.id}/approve/")
 
     assert res.status_code == 200
     profile.refresh_from_db()
@@ -184,7 +184,7 @@ def test_admin_can_approve_pending_user(admin_client, admin_user, pending_user):
 def test_admin_can_reject_pending_user(admin_client, pending_user):
     profile, _ = UserProfile.objects.get_or_create(user=pending_user)
 
-    res = admin_client.post(f"/api/admin/users/{profile.pk}/reject/")
+    res = admin_client.post(f"/api/admin/users/{pending_user.id}/reject/")
 
     assert res.status_code == 200
     profile.refresh_from_db()
@@ -192,9 +192,7 @@ def test_admin_can_reject_pending_user(admin_client, pending_user):
 
 
 def test_admin_cannot_reject_self(admin_client, admin_user):
-    profile = UserProfile.objects.get(user=admin_user)
-
-    res = admin_client.post(f"/api/admin/users/{profile.pk}/reject/")
+    res = admin_client.post(f"/api/admin/users/{admin_user.id}/reject/")
 
     assert res.status_code == 400
     assert res.json()["error"] == "cannot_reject_self"
@@ -212,8 +210,7 @@ def test_reject_blacklists_outstanding_refresh_token(admin_client, approved_user
     assert login_res.status_code == 200
     csrf = login_client.cookies[CSRF_COOKIE_NAME].value
 
-    profile = UserProfile.objects.get(user=approved_user)
-    reject_res = admin_client.post(f"/api/admin/users/{profile.pk}/reject/")
+    reject_res = admin_client.post(f"/api/admin/users/{approved_user.id}/reject/")
     assert reject_res.status_code == 200
 
     refresh_res = login_client.post(
@@ -231,7 +228,7 @@ def test_admin_can_set_role(admin_client, approved_user):
     profile = UserProfile.objects.get(user=approved_user)
 
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_role/",
+        f"/api/admin/users/{approved_user.id}/set_role/",
         data={"role": "admin"},
         content_type="application/json",
     )
@@ -245,7 +242,7 @@ def test_admin_cannot_demote_last_admin(admin_client, admin_user):
     profile = UserProfile.objects.get(user=admin_user)
 
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_role/",
+        f"/api/admin/users/{admin_user.id}/set_role/",
         data={"role": "user"},
         content_type="application/json",
     )
@@ -267,7 +264,7 @@ def test_admin_can_demote_self_when_another_admin_exists(admin_client, admin_use
 
     profile = UserProfile.objects.get(user=admin_user)
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_role/",
+        f"/api/admin/users/{admin_user.id}/set_role/",
         data={"role": "user"},
         content_type="application/json",
     )
@@ -278,10 +275,8 @@ def test_admin_can_demote_self_when_another_admin_exists(admin_client, admin_use
 
 
 def test_set_role_rejects_invalid_value(admin_client, approved_user):
-    profile = UserProfile.objects.get(user=approved_user)
-
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_role/",
+        f"/api/admin/users/{approved_user.id}/set_role/",
         data={"role": "superadmin"},
         content_type="application/json",
     )
@@ -394,10 +389,8 @@ def test_admin_can_approve_user_when_pk_and_user_id_diverge(
 
 
 def test_admin_can_disable_and_enable_user(admin_client, approved_user):
-    profile = UserProfile.objects.get(user=approved_user)
-
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_active/",
+        f"/api/admin/users/{approved_user.id}/set_active/",
         data={"is_active": False},
         content_type="application/json",
     )
@@ -408,7 +401,7 @@ def test_admin_can_disable_and_enable_user(admin_client, approved_user):
     assert _login("approved@test.com", "Pass!123abc").status_code == 401
 
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_active/",
+        f"/api/admin/users/{approved_user.id}/set_active/",
         data={"is_active": True},
         content_type="application/json",
     )
@@ -420,10 +413,8 @@ def test_admin_can_disable_and_enable_user(admin_client, approved_user):
 
 
 def test_admin_cannot_deactivate_self(admin_client, admin_user):
-    profile = UserProfile.objects.get(user=admin_user)
-
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_active/",
+        f"/api/admin/users/{admin_user.id}/set_active/",
         data={"is_active": False},
         content_type="application/json",
     )
@@ -433,10 +424,8 @@ def test_admin_cannot_deactivate_self(admin_client, admin_user):
 
 
 def test_set_active_rejects_invalid_value(admin_client, approved_user):
-    profile = UserProfile.objects.get(user=approved_user)
-
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_active/",
+        f"/api/admin/users/{approved_user.id}/set_active/",
         data={"is_active": "not-a-bool"},
         content_type="application/json",
     )
@@ -457,9 +446,8 @@ def test_disable_blacklists_outstanding_refresh_token(admin_client, approved_use
     assert login_res.status_code == 200
     csrf = login_client.cookies[CSRF_COOKIE_NAME].value
 
-    profile = UserProfile.objects.get(user=approved_user)
     res = admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_active/",
+        f"/api/admin/users/{approved_user.id}/set_active/",
         data={"is_active": False},
         content_type="application/json",
     )
@@ -554,7 +542,7 @@ def test_admin_actions_are_logged(admin_client, pending_user):
     from fininzen.models import AdminActionLog
 
     profile, _ = UserProfile.objects.get_or_create(user=pending_user)
-    admin_client.post(f"/api/admin/users/{profile.pk}/approve/")
+    admin_client.post(f"/api/admin/users/{pending_user.id}/approve/")
 
     assert AdminActionLog.objects.filter(
         action="approve_user", target_user=pending_user
@@ -562,9 +550,8 @@ def test_admin_actions_are_logged(admin_client, pending_user):
 
 
 def test_audit_log_endpoint_lists_entries(admin_client, approved_user):
-    profile = UserProfile.objects.get(user=approved_user)
     admin_client.post(
-        f"/api/admin/users/{profile.pk}/set_role/",
+        f"/api/admin/users/{approved_user.id}/set_role/",
         data={"role": "admin"},
         content_type="application/json",
     )
@@ -577,13 +564,9 @@ def test_audit_log_endpoint_lists_entries(admin_client, approved_user):
 
 
 def test_audit_log_filters_by_action(admin_client, pending_user, approved_user):
-    UserProfile.objects.get_or_create(user=pending_user)
-    approved_profile = UserProfile.objects.get(user=approved_user)
+    admin_client.post(f"/api/admin/users/{pending_user.id}/approve/")
     admin_client.post(
-        f"/api/admin/users/{UserProfile.objects.get(user=pending_user).pk}/approve/"
-    )
-    admin_client.post(
-        f"/api/admin/users/{approved_profile.pk}/set_active/",
+        f"/api/admin/users/{approved_user.id}/set_active/",
         data={"is_active": False},
         content_type="application/json",
     )
