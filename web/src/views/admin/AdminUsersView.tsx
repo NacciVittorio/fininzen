@@ -7,6 +7,7 @@ import {
     approveAdminUser,
     fetchAdminUsers,
     rejectAdminUser,
+    setAdminUserActive,
     setAdminUserRole,
 } from "../../api/admin";
 import type {
@@ -17,7 +18,8 @@ import type {
 import { GroupedList, PageHeader, Pill } from "../../components/ui";
 import Select from "../../components/Select";
 import Modal from "../../components/Modal";
-import { formatDate } from "../../utils/formatters";
+import { formatDate, formatDateTime } from "../../utils/formatters";
+import AdminSubNav from "./AdminSubNav";
 
 const STATUS_TONE: Record<AdminUserStatus, string> = {
     pending: "warning",
@@ -42,6 +44,8 @@ export default function AdminUsersView() {
     const queryClient = useQueryClient();
     const [statusFilter, setStatusFilter] = useState<AdminUserStatus | "">("");
     const [rejectTarget, setRejectTarget] = useState<AdminUserRow | null>(null);
+    const [deactivateTarget, setDeactivateTarget] =
+        useState<AdminUserRow | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
     const usersQuery = useQuery({
@@ -82,6 +86,19 @@ export default function AdminUsersView() {
         onError: () => setActionError(T("admin_action_error")),
     });
 
+    const setActiveMutation = useMutation({
+        mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+            setAdminUserActive(apiFetch, id, isActive),
+        onSuccess: () => {
+            invalidateAdmin();
+            setDeactivateTarget(null);
+        },
+        onError: () => {
+            setActionError(T("admin_action_error"));
+            setDeactivateTarget(null);
+        },
+    });
+
     const rows = usersQuery.data ?? [];
 
     return (
@@ -90,6 +107,7 @@ export default function AdminUsersView() {
                 title={T("admin_users_title")}
                 subtitle={T("admin_users_subtitle")}
             />
+            <AdminSubNav />
 
             <div style={{ maxWidth: 220, marginBottom: 16 }}>
                 <Select
@@ -124,11 +142,24 @@ export default function AdminUsersView() {
                         <GroupedList.Item
                             key={row.user_id}
                             label={row.email}
-                            subtitle={formatDate(row.date_joined)}
+                            subtitle={`${T("admin_joined_label")} ${formatDate(row.date_joined)} · ${T("admin_last_login")} ${row.last_login ? formatDateTime(row.last_login) : T("admin_never")} · ${T("admin_last_activity")} ${row.last_activity_at ? formatDateTime(row.last_activity_at) : T("admin_never")}`}
                             value={
-                                <Pill tone={STATUS_TONE[row.status]}>
-                                    {T(`admin_status_${row.status}`)}
-                                </Pill>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 6,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    {!row.is_active && (
+                                        <Pill tone="danger">
+                                            {T("admin_status_disabled")}
+                                        </Pill>
+                                    )}
+                                    <Pill tone={STATUS_TONE[row.status]}>
+                                        {T(`admin_status_${row.status}`)}
+                                    </Pill>
+                                </div>
                             }
                             action={
                                 <div
@@ -195,6 +226,42 @@ export default function AdminUsersView() {
                                                 {T("admin_reject_button")}
                                             </button>
                                         )}
+                                    {row.email !== currentUserEmail &&
+                                        (row.is_active ? (
+                                            <button
+                                                type="button"
+                                                className="btn btn-ghost"
+                                                style={{
+                                                    fontSize: 11,
+                                                    padding: "4px 10px",
+                                                }}
+                                                onClick={() =>
+                                                    setDeactivateTarget(row)
+                                                }
+                                            >
+                                                {T("admin_disable_button")}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="btn btn-ghost"
+                                                style={{
+                                                    fontSize: 11,
+                                                    padding: "4px 10px",
+                                                }}
+                                                disabled={
+                                                    setActiveMutation.isPending
+                                                }
+                                                onClick={() =>
+                                                    setActiveMutation.mutate({
+                                                        id: row.user_id,
+                                                        isActive: true,
+                                                    })
+                                                }
+                                            >
+                                                {T("admin_enable_button")}
+                                            </button>
+                                        ))}
                                 </div>
                             }
                         />
@@ -247,6 +314,56 @@ export default function AdminUsersView() {
                                 }
                             >
                                 {T("admin_reject_button")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {deactivateTarget && (
+                <Modal
+                    title={T("admin_disable_confirm_title")}
+                    onClose={() => setDeactivateTarget(null)}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                            {T("admin_disable_confirm_body").replace(
+                                "{email}",
+                                deactivateTarget.email,
+                            )}
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                justifyContent: "flex-end",
+                            }}
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-ghost"
+                                onClick={() => setDeactivateTarget(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-r"
+                                disabled={setActiveMutation.isPending}
+                                onClick={() =>
+                                    setActiveMutation.mutate({
+                                        id: deactivateTarget.user_id,
+                                        isActive: false,
+                                    })
+                                }
+                            >
+                                {T("admin_disable_button")}
                             </button>
                         </div>
                     </div>

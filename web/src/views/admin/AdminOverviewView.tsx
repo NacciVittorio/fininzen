@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useApp } from "../../context/useApp";
 import { fetchAdminOverview } from "../../api/admin";
 import { KpiCard, KpiStrip, PageHeader } from "../../components/ui";
+import AdminSubNav from "./AdminSubNav";
 
 export default function AdminOverviewView() {
     const { T, apiFetch } = useApp();
@@ -21,12 +21,8 @@ export default function AdminOverviewView() {
             <PageHeader
                 title={T("tab_admin")}
                 subtitle={T("admin_overview_subtitle")}
-                actions={
-                    <Link href="/admin/users" className="btn btn-primary">
-                        {T("admin_manage_users_button")}
-                    </Link>
-                }
             />
+            <AdminSubNav />
 
             {overviewQuery.isLoading ? (
                 <div style={{ color: "var(--fg-soft)", fontSize: 13 }}>…</div>

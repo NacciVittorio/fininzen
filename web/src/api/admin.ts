@@ -13,6 +13,8 @@ export type AdminUserRow = {
     approved_at: string | null;
     date_joined: string;
     is_active: boolean;
+    last_login: string | null;
+    last_activity_at: string | null;
 };
 
 export type AdminOverview = {
@@ -21,6 +23,33 @@ export type AdminOverview = {
     by_role: Record<AdminUserRole, number>;
     pending_count: number;
 };
+
+export type AdminRecordStats = Record<string, number>;
+
+export type AdminAuditLogEntry = {
+    id: number;
+    actor_email: string | null;
+    action: string;
+    target_email: string | null;
+    metadata: Record<string, unknown>;
+    created_at: string;
+};
+
+export type AdminHealth = {
+    prices: {
+        oldest_update: string | null;
+        newest_update: string | null;
+    };
+    fx: {
+        newest_date: string | null;
+    };
+    backup: {
+        file: string;
+        modified_at: string;
+    } | null;
+};
+
+export type AdminIntegrityReport = Record<string, number>;
 
 const withQuery = (path: string, params?: URLSearchParams): `/${string}` => {
     const query = params?.toString();
@@ -69,4 +98,39 @@ export const setAdminUserRole = (
             method: "POST",
             body: { role },
         },
+    );
+
+export const setAdminUserActive = (
+    fetcher: ApiFetcher,
+    id: number,
+    isActive: boolean,
+) =>
+    requestJsonWithFetcher<AdminUserRow>(
+        fetcher,
+        `/admin/users/${id}/set_active/`,
+        {
+            method: "POST",
+            body: { is_active: isActive },
+        },
+    );
+
+export const fetchAdminRecordStats = (fetcher: ApiFetcher) =>
+    requestJsonWithFetcher<AdminRecordStats>(fetcher, "/admin/stats/records/");
+
+export const fetchAdminAuditLog = (
+    fetcher: ApiFetcher,
+    params?: URLSearchParams,
+) =>
+    fetchAllPagesWithFetcher<AdminAuditLogEntry>(
+        fetcher,
+        withQuery("/admin/audit-log/", params),
+    );
+
+export const fetchAdminHealth = (fetcher: ApiFetcher) =>
+    requestJsonWithFetcher<AdminHealth>(fetcher, "/admin/health/");
+
+export const fetchAdminIntegrity = (fetcher: ApiFetcher) =>
+    requestJsonWithFetcher<AdminIntegrityReport>(
+        fetcher,
+        "/admin/health/integrity/",
     );

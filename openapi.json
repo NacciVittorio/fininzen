@@ -6,6 +6,90 @@
         "description": "Wealth-management API (expenses + portfolio)."
     },
     "paths": {
+        "/api/admin/audit-log/": {
+            "get": {
+                "operationId": "admin_audit_log_list",
+                "description": "GET /api/admin/audit-log/ — admin action history, newest first.\n\n?actor=<user_id> ?target_user=<user_id> ?action=<name>",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedAdminAuditLogEntryList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/admin/health/": {
+            "get": {
+                "operationId": "admin_health_retrieve",
+                "description": "GET /api/admin/health/ — operational freshness signals.\n\nReads only data already persisted by existing jobs (Asset.last_price_update,\nFXRateHistory rows, the backup directory on disk) — no journalctl/systemd\naccess from the web process.",
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/admin/health/integrity/": {
+            "get": {
+                "operationId": "admin_health_integrity_retrieve",
+                "description": "GET /api/admin/health/integrity/ — same checks as the\naudit_domain_integrity management command, for the admin UI.",
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/admin/overview/": {
             "get": {
                 "operationId": "admin_overview_retrieve",
@@ -28,10 +112,32 @@
                 }
             }
         },
+        "/api/admin/stats/records/": {
+            "get": {
+                "operationId": "admin_stats_records_retrieve",
+                "description": "GET /api/admin/stats/records/ — per-model row counts.\n\nSimple visual report: absolute counts, including the shared demo\naccount's rows (not filtered out — this is about DB size, not per-user\nstats). Reuses the model list from migrate_sqlite_to_postgres.COPY_ORDER.",
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/admin/users/": {
             "get": {
                 "operationId": "admin_users_list",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
                 "parameters": [
                     {
                         "name": "page",
@@ -71,7 +177,7 @@
         "/api/admin/users/{id}/": {
             "get": {
                 "operationId": "admin_users_retrieve",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
                 "parameters": [
                     {
                         "in": "path",
@@ -111,7 +217,7 @@
         "/api/admin/users/{id}/approve/": {
             "post": {
                 "operationId": "admin_users_approve_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
                 "parameters": [
                     {
                         "in": "path",
@@ -151,7 +257,47 @@
         "/api/admin/users/{id}/reject/": {
             "post": {
                 "operationId": "admin_users_reject_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this user profile.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminUser"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{id}/set_active/": {
+            "post": {
+                "operationId": "admin_users_set_active_create",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
                 "parameters": [
                     {
                         "in": "path",
@@ -191,7 +337,7 @@
         "/api/admin/users/{id}/set_role/": {
             "post": {
                 "operationId": "admin_users_set_role_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
                 "parameters": [
                     {
                         "in": "path",
@@ -4966,6 +5112,43 @@
     },
     "components": {
         "schemas": {
+            "AdminAuditLogEntry": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "actor_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "action": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "target_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "metadata": {
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "action",
+                    "actor_email",
+                    "created_at",
+                    "id",
+                    "metadata",
+                    "target_email"
+                ]
+            },
             "AdminUser": {
                 "type": "object",
                 "properties": {
@@ -5011,6 +5194,17 @@
                     "is_active": {
                         "type": "boolean",
                         "readOnly": true
+                    },
+                    "last_login": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "last_activity_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -5018,6 +5212,8 @@
                     "date_joined",
                     "email",
                     "is_active",
+                    "last_activity_at",
+                    "last_login",
                     "name",
                     "role",
                     "status",
@@ -5775,6 +5971,37 @@
                 "required": [
                     "name"
                 ]
+            },
+            "PaginatedAdminAuditLogEntryList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AdminAuditLogEntry"
+                        }
+                    }
+                }
             },
             "PaginatedAdminUserList": {
                 "type": "object",

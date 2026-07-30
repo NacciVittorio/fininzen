@@ -10,7 +10,14 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from fininzen.admin_views import AdminOverviewView, AdminUserViewSet
+from fininzen.admin_views import (
+    AdminAuditLogView,
+    AdminHealthView,
+    AdminIntegrityView,
+    AdminOverviewView,
+    AdminRecordStatsView,
+    AdminUserViewSet,
+)
 from fininzen.export_views import ExportView
 from fininzen.views import (
     TokenObtainPairView,
@@ -35,6 +42,9 @@ from fininzen.webauthn_views import (
 
 admin_router = DefaultRouter()
 admin_router.register(r"admin/users", AdminUserViewSet, basename="admin-user")
+admin_router.register(
+    r"admin/audit-log", AdminAuditLogView, basename="admin-audit-log"
+)
 
 urlpatterns = [
     # Django Admin: pannello di amministrazione automatico.
@@ -62,9 +72,12 @@ urlpatterns = [
     path("api/auth/webauthn/auth/challenge/", WebAuthnAuthChallengeView.as_view()),
     path("api/auth/webauthn/auth/verify/", WebAuthnAuthVerifyView.as_view()),
     path("api/auth/webauthn/credentials/", WebAuthnCredentialsView.as_view()),
-    # Admin portal: user approval/roles/overview, all IsAdmin-gated.
+    # Admin portal: user approval/roles/overview/stats, all IsAdmin-gated.
     path("api/", include(admin_router.urls)),
     path("api/admin/overview/", AdminOverviewView.as_view()),
+    path("api/admin/stats/records/", AdminRecordStatsView.as_view()),
+    path("api/admin/health/", AdminHealthView.as_view()),
+    path("api/admin/health/integrity/", AdminIntegrityView.as_view()),
     # Tutte le API delle spese sotto /api/expenses/
     path("api/expenses/", include("expenses.urls")),
     # Tutte le API del portafoglio sotto /api/portfolio/

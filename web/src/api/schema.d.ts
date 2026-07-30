@@ -4,6 +4,70 @@
  */
 
 export interface paths {
+    "/api/admin/audit-log/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/admin/audit-log/ — admin action history, newest first.
+         *
+         *     ?actor=<user_id> ?target_user=<user_id> ?action=<name>
+         */
+        get: operations["admin_audit_log_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/health/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/admin/health/ — operational freshness signals.
+         *
+         *     Reads only data already persisted by existing jobs (Asset.last_price_update,
+         *     FXRateHistory rows, the backup directory on disk) — no journalctl/systemd
+         *     access from the web process.
+         */
+        get: operations["admin_health_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/health/integrity/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/admin/health/integrity/ — same checks as the
+         *     audit_domain_integrity management command, for the admin UI.
+         */
+        get: operations["admin_health_integrity_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/overview/": {
         parameters: {
             query?: never;
@@ -28,6 +92,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/stats/records/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/admin/stats/records/ — per-model row counts.
+         *
+         *     Simple visual report: absolute counts, including the shared demo
+         *     account's rows (not filtered out — this is about DB size, not per-user
+         *     stats). Reuses the model list from migrate_sqlite_to_postgres.COPY_ORDER.
+         */
+        get: operations["admin_stats_records_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/": {
         parameters: {
             query?: never;
@@ -41,6 +128,7 @@ export interface paths {
          *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
          */
         get: operations["admin_users_list"];
         put?: never;
@@ -64,6 +152,7 @@ export interface paths {
          *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
          */
         get: operations["admin_users_retrieve"];
         put?: never;
@@ -89,6 +178,7 @@ export interface paths {
          *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
          */
         post: operations["admin_users_approve_create"];
         delete?: never;
@@ -112,8 +202,33 @@ export interface paths {
          *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
          */
         post: operations["admin_users_reject_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/set_active/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin
+         *     GET  /api/admin/users/{id}/          — detail
+         *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
+         *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
+         *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         */
+        post: operations["admin_users_set_active_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -135,6 +250,7 @@ export interface paths {
          *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
          */
         post: operations["admin_users_set_role_create"];
         delete?: never;
@@ -1764,6 +1880,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminAuditLogEntry: {
+            readonly id: number;
+            readonly actor_email: string;
+            readonly action: string;
+            readonly target_email: string;
+            readonly metadata: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
         AdminUser: {
             readonly user_id: number;
             readonly email: string;
@@ -1775,6 +1900,10 @@ export interface components {
             /** Format: date-time */
             readonly date_joined: string;
             readonly is_active: boolean;
+            /** Format: date-time */
+            readonly last_login: string;
+            /** Format: date-time */
+            readonly last_activity_at: string | null;
         };
         /**
          * @description * `pending` - Pending
@@ -1982,6 +2111,21 @@ export interface components {
             supports_contribution_source?: boolean;
             /** Format: decimal */
             tax_rate?: string;
+        };
+        PaginatedAdminAuditLogEntryList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AdminAuditLogEntry"][];
         };
         PaginatedAdminUserList: {
             /** @example 123 */
@@ -2408,7 +2552,83 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    admin_audit_log_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAdminAuditLogEntryList"];
+                };
+            };
+        };
+    };
+    admin_health_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    admin_health_integrity_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     admin_overview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    admin_stats_records_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -2493,6 +2713,28 @@ export interface operations {
         };
     };
     admin_users_reject_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this user profile. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"];
+                };
+            };
+        };
+    };
+    admin_users_set_active_create: {
         parameters: {
             query?: never;
             header?: never;

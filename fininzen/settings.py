@@ -240,6 +240,10 @@ def _build_default_database():
 DATABASES = {"default": _build_default_database()}
 DEFAULT_DB_IS_POSTGRES = DATABASES["default"]["ENGINE"].endswith("postgresql")
 
+# Where scripts/backup_db.sh writes backups (see that script's own default).
+# Read here too so the admin health panel can report the latest backup's age.
+BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
+
 # Field-level encryption keys (AES-256-GCM). Comma-separated base64 32-byte keys;
 # the first is the primary (used to encrypt), any others are kept for decryption
 # during key rotation. Empty in dev/test → encrypted fields store plaintext.
@@ -323,8 +327,8 @@ REST_FRAMEWORK = {
         "fininzen.permissions.IsNotDemoUser",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        "fininzen.authentication.TouchingJWTAuthentication",
+        "fininzen.authentication.TouchingSessionAuthentication",
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

@@ -50,6 +50,17 @@ export const formatDate = (d: string | number | Date | null | undefined) =>
           }).format(new Date(d))
         : "—";
 
+export const formatDateTime = (d: string | number | Date | null | undefined) =>
+    d
+        ? new Intl.DateTimeFormat(dateLocale(), {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+          }).format(new Date(d))
+        : "—";
+
 export const today = () => new Date().toISOString().slice(0, 10);
 
 export const currentYear = new Date().getFullYear();

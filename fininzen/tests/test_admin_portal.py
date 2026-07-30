@@ -329,3 +329,323 @@ def test_promote_admin_command_unknown_email_raises(db):
 
     with pytest.raises(CommandError):
         call_command("promote_admin", "nobody@test.com")
+
+
+# ── Actions must key off the User id, not UserProfile's own pk ──────────────
+# The two are separate auto-increment sequences that only coincide by luck in
+# a from-scratch fixture. Any User created without a matching UserProfile
+# (e.g. a superuser, or the demo account) permanently desyncs them for every
+# row created afterwards — exactly what happened in manual QA against a real
+# dev database.
+
+
+@pytest.fixture
+def desynced_approved_user(db, admin_user):
+    """An approved user whose UserProfile.pk deliberately differs from
+    user.id — mirrors a User created with no profile at all (a superuser via
+    createsuperuser, or the demo account), which consumes a User-table id
+    without consuming a UserProfile-table one and permanently shifts every
+    id created afterwards out of lockstep."""
+    User.objects.create_user(
+        username="profileless@test.com",
+        email="profileless@test.com",
+        password="Pass!123abc",
+    )
+
+    user = User.objects.create_user(
+        username="desynced@test.com",
+        email="desynced@test.com",
+        password="Pass!123abc",
+    )
+    profile = UserProfile.objects.create(
+        user=user, status=UserProfile.STATUS_APPROVED
+    )
+    assert profile.pk != user.id, "fixture failed to desync the two sequences"
+    return user
+
+
+def test_admin_can_disable_user_when_pk_and_user_id_diverge(
+    admin_client, desynced_approved_user
+):
+    res = admin_client.post(
+        f"/api/admin/users/{desynced_approved_user.id}/set_active/",
+        data={"is_active": False},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    desynced_approved_user.refresh_from_db()
+    assert desynced_approved_user.is_active is False
+
+
+def test_admin_can_approve_user_when_pk_and_user_id_diverge(
+    admin_client, desynced_approved_user
+):
+    profile = UserProfile.objects.get(user=desynced_approved_user)
+    profile.status = UserProfile.STATUS_PENDING
+    profile.save(update_fields=["status"])
+
+    res = admin_client.post(
+        f"/api/admin/users/{desynced_approved_user.id}/approve/"
+    )
+
+    assert res.status_code == 200
+    profile.refresh_from_db()
+    assert profile.status == UserProfile.STATUS_APPROVED
+
+
+# ── Enable / disable ──────────────────────────────────────────────────────────
+
+
+def test_admin_can_disable_and_enable_user(admin_client, approved_user):
+    profile = UserProfile.objects.get(user=approved_user)
+
+    res = admin_client.post(
+        f"/api/admin/users/{profile.pk}/set_active/",
+        data={"is_active": False},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    approved_user.refresh_from_db()
+    assert approved_user.is_active is False
+    assert _login("approved@test.com", "Pass!123abc").status_code == 401
+
+    res = admin_client.post(
+        f"/api/admin/users/{profile.pk}/set_active/",
+        data={"is_active": True},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    approved_user.refresh_from_db()
+    assert approved_user.is_active is True
+    assert _login("approved@test.com", "Pass!123abc").status_code == 200
+
+
+def test_admin_cannot_deactivate_self(admin_client, admin_user):
+    profile = UserProfile.objects.get(user=admin_user)
+
+    res = admin_client.post(
+        f"/api/admin/users/{profile.pk}/set_active/",
+        data={"is_active": False},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "cannot_deactivate_self"
+
+
+def test_set_active_rejects_invalid_value(admin_client, approved_user):
+    profile = UserProfile.objects.get(user=approved_user)
+
+    res = admin_client.post(
+        f"/api/admin/users/{profile.pk}/set_active/",
+        data={"is_active": "not-a-bool"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "invalid_is_active"
+
+
+def test_disable_blacklists_outstanding_refresh_token(admin_client, approved_user):
+    from fininzen.jwt_cookies import CSRF_COOKIE_NAME
+
+    login_client = Client()
+    login_res = login_client.post(
+        "/api/auth/token/",
+        data={"username": "approved@test.com", "password": "Pass!123abc"},
+        content_type="application/json",
+    )
+    assert login_res.status_code == 200
+    csrf = login_client.cookies[CSRF_COOKIE_NAME].value
+
+    profile = UserProfile.objects.get(user=approved_user)
+    res = admin_client.post(
+        f"/api/admin/users/{profile.pk}/set_active/",
+        data={"is_active": False},
+        content_type="application/json",
+    )
+    assert res.status_code == 200
+
+    refresh_res = login_client.post(
+        "/api/auth/token/refresh/",
+        content_type="application/json",
+        HTTP_X_CSRF_TOKEN=csrf,
+    )
+    assert refresh_res.status_code == 401
+
+
+# ── Demo account is never manageable via the admin portal ───────────────────
+
+
+def test_demo_user_excluded_from_admin_list(admin_client):
+    from fininzen.permissions import DEMO_USERNAME
+
+    demo_user = User.objects.create_user(
+        username=DEMO_USERNAME, email=DEMO_USERNAME, password="Pass!123abc"
+    )
+    UserProfile.objects.get_or_create(user=demo_user)
+
+    res = admin_client.get("/api/admin/users/")
+
+    emails = {row["email"] for row in res.json()["results"]}
+    assert DEMO_USERNAME not in emails
+
+
+# ── last_login / last_activity_at ────────────────────────────────────────────
+
+
+def test_admin_user_serializer_includes_login_and_activity_timestamps(
+    admin_client, approved_user
+):
+    res = admin_client.get("/api/admin/users/")
+
+    row = next(
+        r for r in res.json()["results"] if r["email"] == "approved@test.com"
+    )
+    assert "last_login" in row
+    assert "last_activity_at" in row
+
+
+def test_last_activity_is_stamped_on_authenticated_request(approved_user):
+    profile = UserProfile.objects.get(user=approved_user)
+    assert profile.last_activity_at is None
+
+    c = Client()
+    c.force_login(approved_user)
+    res = c.get("/api/auth/profile/")
+
+    assert res.status_code == 200
+    profile.refresh_from_db()
+    assert profile.last_activity_at is not None
+
+
+def test_last_activity_is_throttled_within_interval(approved_user):
+    c = Client()
+    c.force_login(approved_user)
+    c.get("/api/auth/profile/")
+    profile = UserProfile.objects.get(user=approved_user)
+    first_stamp = profile.last_activity_at
+
+    c.get("/api/auth/profile/")
+    profile.refresh_from_db()
+    assert profile.last_activity_at == first_stamp
+
+
+# ── Record-count report ──────────────────────────────────────────────────────
+
+
+def test_record_stats_returns_model_counts(admin_client):
+    res = admin_client.get("/api/admin/stats/records/")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert "expenses.Expense" in data
+    assert "portfolio.Asset" in data
+    assert data["expenses.Expense"] == 0
+
+
+def test_non_admin_cannot_view_record_stats(client, test_user):
+    res = client.get("/api/admin/stats/records/")
+
+    assert res.status_code == 403
+
+
+# ── Audit log ─────────────────────────────────────────────────────────────────
+
+
+def test_admin_actions_are_logged(admin_client, pending_user):
+    from fininzen.models import AdminActionLog
+
+    profile, _ = UserProfile.objects.get_or_create(user=pending_user)
+    admin_client.post(f"/api/admin/users/{profile.pk}/approve/")
+
+    assert AdminActionLog.objects.filter(
+        action="approve_user", target_user=pending_user
+    ).exists()
+
+
+def test_audit_log_endpoint_lists_entries(admin_client, approved_user):
+    profile = UserProfile.objects.get(user=approved_user)
+    admin_client.post(
+        f"/api/admin/users/{profile.pk}/set_role/",
+        data={"role": "admin"},
+        content_type="application/json",
+    )
+
+    res = admin_client.get("/api/admin/audit-log/")
+
+    assert res.status_code == 200
+    actions = {row["action"] for row in res.json()["results"]}
+    assert "set_role" in actions
+
+
+def test_audit_log_filters_by_action(admin_client, pending_user, approved_user):
+    UserProfile.objects.get_or_create(user=pending_user)
+    approved_profile = UserProfile.objects.get(user=approved_user)
+    admin_client.post(f"/api/admin/users/{UserProfile.objects.get(user=pending_user).pk}/approve/")
+    admin_client.post(
+        f"/api/admin/users/{approved_profile.pk}/set_active/",
+        data={"is_active": False},
+        content_type="application/json",
+    )
+
+    res = admin_client.get("/api/admin/audit-log/?action=set_active")
+
+    actions = {row["action"] for row in res.json()["results"]}
+    assert actions == {"set_active"}
+
+
+def test_non_admin_cannot_view_audit_log(client, test_user):
+    res = client.get("/api/admin/audit-log/")
+
+    assert res.status_code == 403
+
+
+# ── System health & integrity ─────────────────────────────────────────────────
+
+
+def test_admin_health_endpoint_reports_no_backup_when_dir_empty(
+    admin_client, settings, tmp_path
+):
+    settings.BACKUP_DIR = tmp_path
+
+    res = admin_client.get("/api/admin/health/")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert "prices" in data
+    assert "fx" in data
+    assert data["backup"] is None
+
+
+def test_admin_health_endpoint_finds_latest_backup(admin_client, settings, tmp_path):
+    (tmp_path / "fininzen_20260101_030000.sqlite3.gz").write_bytes(b"x")
+    settings.BACKUP_DIR = tmp_path
+
+    res = admin_client.get("/api/admin/health/")
+
+    assert res.status_code == 200
+    assert res.json()["backup"]["file"] == "fininzen_20260101_030000.sqlite3.gz"
+
+
+def test_non_admin_cannot_view_health(client, test_user):
+    res = client.get("/api/admin/health/")
+
+    assert res.status_code == 403
+
+
+def test_admin_integrity_endpoint_returns_zero_on_clean_db(admin_client):
+    res = admin_client.get("/api/admin/health/integrity/")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert all(v == 0 for v in data.values())
+
+
+def test_non_admin_cannot_view_integrity(client, test_user):
+    res = client.get("/api/admin/health/integrity/")
+
+    assert res.status_code == 403

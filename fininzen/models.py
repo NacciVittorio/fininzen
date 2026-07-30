@@ -113,9 +113,41 @@ class UserProfile(models.Model):
         blank=True,
         related_name="approved_profiles",
     )
+    # Last authenticated API request, throttled to at most one write per
+    # ACTIVITY_TOUCH_INTERVAL (see TouchLastActivity) so it doesn't add a
+    # write to every request. Distinct from auth.User.last_login, which only
+    # updates on token obtain, not on continued app usage.
+    last_activity_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Profile<{self.user_id}>"
+
+
+class AdminActionLog(models.Model):
+    """Audit trail for admin-portal actions (approve/reject/role/active)."""
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="admin_actions_taken",
+    )
+    action = models.CharField(max_length=32)
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="admin_actions_received",
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"AdminActionLog<{self.action} by={self.actor_id} on={self.target_user_id}>"
 
 
 class DataAccessGrant(models.Model):
