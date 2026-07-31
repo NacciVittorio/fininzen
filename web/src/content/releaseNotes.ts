@@ -23,6 +23,24 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Nuova voce in Impostazioni per cambiare l'email di accesso, confermando con la password attuale.",
+                "Autenticazione a due fattori (TOTP): attivala da Impostazioni con un'app come Google Authenticator o Authy, scansionando il QR code; al primo accesso ricevi 10 codici di backup monouso da conservare in caso di perdita del telefono.",
+                "Corretto Face ID su iPhone: la registrazione della chiave di accesso non mostra più il prompt «Passkey» di iCloud, ma torna a chiedere direttamente Face ID/Touch ID.",
+                "Gli amministratori possono ora disattivare l'MFA o rimuovere i passkey di un utente che ha perso il dispositivo, per aiutarlo a recuperare l'accesso.",
+            ],
+            en: [
+                "New entry in Settings to change your sign-in email, confirmed with your current password.",
+                "Two-factor authentication (TOTP): turn it on from Settings with an app like Google Authenticator or Authy by scanning the QR code; on first setup you get 10 single-use backup codes to keep somewhere safe in case you lose your phone.",
+                "Fixed Face ID on iPhone: registering a passkey no longer shows iCloud's \"Passkey\" prompt — it goes straight to Face ID/Touch ID again.",
+                "Admins can now disable MFA or remove passkeys for a user who has lost their device, to help them recover access.",
+            ],
+        },
+    },
+    {
         version: "0.12.0",
         date: "2026-07-30",
         highlights: {
