@@ -35,7 +35,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
             en: [
                 "New entry in Settings to change your sign-in email, confirmed with your current password.",
                 "Two-factor authentication (TOTP): turn it on from Settings with an app like Google Authenticator or Authy by scanning the QR code; on first setup you get 10 single-use backup codes to keep somewhere safe in case you lose your phone.",
-                "Fixed Face ID on iPhone: registering a passkey no longer shows iCloud's \"Passkey\" prompt — it goes straight to Face ID/Touch ID again.",
+                'Fixed Face ID on iPhone: registering a passkey no longer shows iCloud\'s "Passkey" prompt — it goes straight to Face ID/Touch ID again.',
                 "Admins can now disable MFA or remove passkeys for a user who has lost their device, to help them recover access.",
             ],
         },
