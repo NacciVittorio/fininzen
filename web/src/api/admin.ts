@@ -15,6 +15,8 @@ export type AdminUserRow = {
     is_active: boolean;
     last_login: string | null;
     last_activity_at: string | null;
+    mfa_enabled: boolean;
+    webauthn_credential_count: number;
 };
 
 export type AdminOverview = {
@@ -111,6 +113,24 @@ export const setAdminUserActive = (
         {
             method: "POST",
             body: { is_active: isActive },
+        },
+    );
+
+export const disableAdminUserMfa = (fetcher: ApiFetcher, id: number) =>
+    requestJsonWithFetcher<AdminUserRow>(
+        fetcher,
+        `/admin/users/${id}/disable_mfa/`,
+        {
+            method: "POST",
+        },
+    );
+
+export const clearAdminUserWebauthn = (fetcher: ApiFetcher, id: number) =>
+    requestJsonWithFetcher<AdminUserRow>(
+        fetcher,
+        `/admin/users/${id}/clear_webauthn/`,
+        {
+            method: "POST",
         },
     );
 

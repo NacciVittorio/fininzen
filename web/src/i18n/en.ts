@@ -1057,6 +1057,14 @@ const en: Record<string, string> = {
     admin_disable_confirm_title: "Disable this account?",
     admin_disable_confirm_body:
         "{email} will no longer be able to sign in until re-enabled.",
+    admin_mfa_disable_button: "Disable MFA",
+    admin_mfa_disable_confirm_title: "Disable two-factor authentication?",
+    admin_mfa_disable_confirm_body:
+        "{email} will be able to sign in with their password alone, without a TOTP code. Use this for account recovery when they've lost their authenticator device.",
+    admin_webauthn_clear_button: "Remove passkeys",
+    admin_webauthn_clear_confirm_title: "Remove all passkeys?",
+    admin_webauthn_clear_confirm_body:
+        "All Face ID/Touch ID passkeys registered by {email} will be removed. They can still sign in with their password.",
     admin_records_title: "Records",
     admin_records_subtitle: "Row counts across all application tables",
     admin_audit_log_title: "Audit log",
@@ -1066,6 +1074,8 @@ const en: Record<string, string> = {
     admin_audit_action_reject_user: "Rejected user",
     admin_audit_action_set_role: "Changed role",
     admin_audit_action_set_active: "Changed active state",
+    admin_audit_action_disable_mfa: "Disabled MFA",
+    admin_audit_action_clear_webauthn: "Removed passkeys",
     admin_health_title: "System health",
     admin_health_subtitle: "Operational freshness and data integrity",
     admin_health_prices_label: "Latest price refresh",

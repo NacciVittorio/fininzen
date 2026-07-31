@@ -461,6 +461,144 @@ def test_disable_blacklists_outstanding_refresh_token(admin_client, approved_use
     assert refresh_res.status_code == 401
 
 
+# ── MFA / WebAuthn recovery actions ──────────────────────────────────────────
+
+
+def _enable_mfa(user):
+    profile = UserProfile.objects.get(user=user)
+    profile.mfa_enabled = True
+    profile.mfa_secret = "JBSWY3DPEHPK3PXP"
+    profile.save(update_fields=["mfa_enabled", "mfa_secret"])
+    return profile
+
+
+def _add_webauthn_credential(user, suffix=b"1"):
+    from fininzen.models import WebAuthnCredential
+
+    return WebAuthnCredential.objects.create(
+        user=user, credential_id=b"cred-" + suffix, public_key=b"pubkey-" + suffix
+    )
+
+
+def test_admin_can_disable_mfa_for_user(admin_client, approved_user):
+    from fininzen.models import AdminActionLog, MfaBackupCode
+
+    _enable_mfa(approved_user)
+    MfaBackupCode.objects.create(user=approved_user, code_hash="deadbeef")
+
+    res = admin_client.post(f"/api/admin/users/{approved_user.id}/disable_mfa/")
+
+    assert res.status_code == 200
+    profile = UserProfile.objects.get(user=approved_user)
+    assert profile.mfa_enabled is False
+    assert profile.mfa_secret == ""
+    assert not MfaBackupCode.objects.filter(user=approved_user).exists()
+    assert AdminActionLog.objects.filter(
+        action="disable_mfa", target_user=approved_user
+    ).exists()
+
+
+def test_admin_cannot_disable_own_mfa(admin_client, admin_user):
+    _enable_mfa(admin_user)
+
+    res = admin_client.post(f"/api/admin/users/{admin_user.id}/disable_mfa/")
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "use_personal_mfa_settings"
+
+
+def test_disable_mfa_when_not_enabled_returns_400(admin_client, approved_user):
+    res = admin_client.post(f"/api/admin/users/{approved_user.id}/disable_mfa/")
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "mfa_not_enabled"
+
+
+def test_disable_mfa_blacklists_outstanding_refresh_token(admin_client, approved_user):
+    from fininzen.jwt_cookies import CSRF_COOKIE_NAME
+
+    login_client = Client()
+    login_res = login_client.post(
+        "/api/auth/token/",
+        data={"username": "approved@test.com", "password": "Pass!123abc"},
+        content_type="application/json",
+    )
+    assert login_res.status_code == 200
+    csrf = login_client.cookies[CSRF_COOKIE_NAME].value
+
+    # Enable MFA directly on the profile (bypassing the setup/enable flow) so
+    # the refresh token minted above is an "outstanding token issued before
+    # MFA was turned on" — exactly the case a lost-device recovery clears.
+    _enable_mfa(approved_user)
+
+    res = admin_client.post(f"/api/admin/users/{approved_user.id}/disable_mfa/")
+    assert res.status_code == 200
+
+    refresh_res = login_client.post(
+        "/api/auth/token/refresh/",
+        content_type="application/json",
+        HTTP_X_CSRF_TOKEN=csrf,
+    )
+    assert refresh_res.status_code == 401
+
+
+def test_non_admin_cannot_call_disable_mfa(client, test_user, approved_user):
+    res = client.post(f"/api/admin/users/{approved_user.id}/disable_mfa/")
+
+    assert res.status_code == 403
+
+
+def test_admin_can_clear_webauthn_credentials_for_user(admin_client, approved_user):
+    from fininzen.models import AdminActionLog, WebAuthnCredential
+
+    _add_webauthn_credential(approved_user, b"1")
+    _add_webauthn_credential(approved_user, b"2")
+
+    res = admin_client.post(f"/api/admin/users/{approved_user.id}/clear_webauthn/")
+
+    assert res.status_code == 200
+    assert not WebAuthnCredential.objects.filter(user=approved_user).exists()
+    log_entry = AdminActionLog.objects.get(
+        action="clear_webauthn", target_user=approved_user
+    )
+    assert log_entry.metadata["credentials_removed"] == 2
+
+
+def test_admin_cannot_clear_own_webauthn(admin_client, admin_user):
+    _add_webauthn_credential(admin_user)
+
+    res = admin_client.post(f"/api/admin/users/{admin_user.id}/clear_webauthn/")
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "use_personal_mfa_settings"
+
+
+def test_clear_webauthn_with_no_credentials_returns_400(admin_client, approved_user):
+    res = admin_client.post(f"/api/admin/users/{approved_user.id}/clear_webauthn/")
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "no_webauthn_credentials"
+
+
+def test_non_admin_cannot_call_clear_webauthn(client, test_user, approved_user):
+    res = client.post(f"/api/admin/users/{approved_user.id}/clear_webauthn/")
+
+    assert res.status_code == 403
+
+
+def test_admin_user_serializer_includes_mfa_and_webauthn_state(
+    admin_client, approved_user
+):
+    _enable_mfa(approved_user)
+    _add_webauthn_credential(approved_user)
+
+    res = admin_client.get("/api/admin/users/")
+
+    row = next(r for r in res.json()["results"] if r["email"] == "approved@test.com")
+    assert row["mfa_enabled"] is True
+    assert row["webauthn_credential_count"] == 1
+
+
 # ── Demo account is never manageable via the admin portal ───────────────────
 
 

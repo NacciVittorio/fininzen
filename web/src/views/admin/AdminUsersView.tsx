@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/useApp";
 import {
     approveAdminUser,
+    clearAdminUserWebauthn,
+    disableAdminUserMfa,
     fetchAdminUsers,
     rejectAdminUser,
     setAdminUserActive,
@@ -45,6 +47,11 @@ export default function AdminUsersView() {
     const [statusFilter, setStatusFilter] = useState<AdminUserStatus | "">("");
     const [rejectTarget, setRejectTarget] = useState<AdminUserRow | null>(null);
     const [deactivateTarget, setDeactivateTarget] =
+        useState<AdminUserRow | null>(null);
+    const [mfaResetTarget, setMfaResetTarget] = useState<AdminUserRow | null>(
+        null,
+    );
+    const [webauthnResetTarget, setWebauthnResetTarget] =
         useState<AdminUserRow | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
@@ -96,6 +103,30 @@ export default function AdminUsersView() {
         onError: () => {
             setActionError(T("admin_action_error"));
             setDeactivateTarget(null);
+        },
+    });
+
+    const disableMfaMutation = useMutation({
+        mutationFn: (id: number) => disableAdminUserMfa(apiFetch, id),
+        onSuccess: () => {
+            invalidateAdmin();
+            setMfaResetTarget(null);
+        },
+        onError: () => {
+            setActionError(T("admin_action_error"));
+            setMfaResetTarget(null);
+        },
+    });
+
+    const clearWebauthnMutation = useMutation({
+        mutationFn: (id: number) => clearAdminUserWebauthn(apiFetch, id),
+        onSuccess: () => {
+            invalidateAdmin();
+            setWebauthnResetTarget(null);
+        },
+        onError: () => {
+            setActionError(T("admin_action_error"));
+            setWebauthnResetTarget(null);
         },
     });
 
@@ -262,6 +293,40 @@ export default function AdminUsersView() {
                                                 {T("admin_enable_button")}
                                             </button>
                                         ))}
+                                    {row.email !== currentUserEmail &&
+                                        row.mfa_enabled && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-ghost"
+                                                style={{
+                                                    fontSize: 11,
+                                                    padding: "4px 10px",
+                                                }}
+                                                onClick={() =>
+                                                    setMfaResetTarget(row)
+                                                }
+                                            >
+                                                {T("admin_mfa_disable_button")}
+                                            </button>
+                                        )}
+                                    {row.email !== currentUserEmail &&
+                                        row.webauthn_credential_count > 0 && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-ghost"
+                                                style={{
+                                                    fontSize: 11,
+                                                    padding: "4px 10px",
+                                                }}
+                                                onClick={() =>
+                                                    setWebauthnResetTarget(row)
+                                                }
+                                            >
+                                                {T(
+                                                    "admin_webauthn_clear_button",
+                                                )}
+                                            </button>
+                                        )}
                                 </div>
                             }
                         />
@@ -364,6 +429,104 @@ export default function AdminUsersView() {
                                 }
                             >
                                 {T("admin_disable_button")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {mfaResetTarget && (
+                <Modal
+                    title={T("admin_mfa_disable_confirm_title")}
+                    onClose={() => setMfaResetTarget(null)}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                            {T("admin_mfa_disable_confirm_body").replace(
+                                "{email}",
+                                mfaResetTarget.email,
+                            )}
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                justifyContent: "flex-end",
+                            }}
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-ghost"
+                                onClick={() => setMfaResetTarget(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-r"
+                                disabled={disableMfaMutation.isPending}
+                                onClick={() =>
+                                    disableMfaMutation.mutate(
+                                        mfaResetTarget.user_id,
+                                    )
+                                }
+                            >
+                                {T("admin_mfa_disable_button")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {webauthnResetTarget && (
+                <Modal
+                    title={T("admin_webauthn_clear_confirm_title")}
+                    onClose={() => setWebauthnResetTarget(null)}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                            {T("admin_webauthn_clear_confirm_body").replace(
+                                "{email}",
+                                webauthnResetTarget.email,
+                            )}
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                justifyContent: "flex-end",
+                            }}
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-ghost"
+                                onClick={() => setWebauthnResetTarget(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-r"
+                                disabled={clearWebauthnMutation.isPending}
+                                onClick={() =>
+                                    clearWebauthnMutation.mutate(
+                                        webauthnResetTarget.user_id,
+                                    )
+                                }
+                            >
+                                {T("admin_webauthn_clear_button")}
                             </button>
                         </div>
                     </div>

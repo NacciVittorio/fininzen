@@ -129,6 +129,8 @@ export interface paths {
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
          *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
          */
         get: operations["admin_users_list"];
         put?: never;
@@ -153,6 +155,8 @@ export interface paths {
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
          *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
          */
         get: operations["admin_users_retrieve"];
         put?: never;
@@ -179,8 +183,62 @@ export interface paths {
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
          *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
          */
         post: operations["admin_users_approve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/clear_webauthn/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin
+         *     GET  /api/admin/users/{id}/          — detail
+         *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
+         *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
+         *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
+         */
+        post: operations["admin_users_clear_webauthn_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/disable_mfa/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin
+         *     GET  /api/admin/users/{id}/          — detail
+         *     POST /api/admin/users/{id}/approve/  — approve a pending/rejected user
+         *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
+         *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
+         *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
+         */
+        post: operations["admin_users_disable_mfa_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -203,6 +261,8 @@ export interface paths {
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
          *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
          */
         post: operations["admin_users_reject_create"];
         delete?: never;
@@ -227,6 +287,8 @@ export interface paths {
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
          *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
          */
         post: operations["admin_users_set_active_create"];
         delete?: never;
@@ -251,6 +313,8 @@ export interface paths {
          *     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
          *     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
          *     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+         *     POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+         *     POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
          */
         post: operations["admin_users_set_role_create"];
         delete?: never;
@@ -1987,6 +2051,8 @@ export interface components {
             readonly last_login: string;
             /** Format: date-time */
             readonly last_activity_at: string | null;
+            readonly mfa_enabled: boolean;
+            readonly webauthn_credential_count: string;
         };
         /**
          * @description * `pending` - Pending
@@ -2776,6 +2842,50 @@ export interface operations {
         };
     };
     admin_users_approve_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this user profile. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"];
+                };
+            };
+        };
+    };
+    admin_users_clear_webauthn_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this user profile. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"];
+                };
+            };
+        };
+    };
+    admin_users_disable_mfa_create: {
         parameters: {
             query?: never;
             header?: never;

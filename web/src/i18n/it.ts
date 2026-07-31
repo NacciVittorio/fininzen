@@ -1065,6 +1065,15 @@ const it: Record<string, string> = {
     admin_disable_confirm_title: "Disabilitare questo account?",
     admin_disable_confirm_body:
         "{email} non potrà più accedere finché non verrà riabilitato.",
+    admin_mfa_disable_button: "Disabilita MFA",
+    admin_mfa_disable_confirm_title:
+        "Disabilitare l'autenticazione a due fattori?",
+    admin_mfa_disable_confirm_body:
+        "{email} potrà accedere con la sola password, senza il codice TOTP. Usa questa azione per il recovery dell'account quando l'utente ha perso il dispositivo con l'authenticator.",
+    admin_webauthn_clear_button: "Rimuovi passkey",
+    admin_webauthn_clear_confirm_title: "Rimuovere tutti i passkey?",
+    admin_webauthn_clear_confirm_body:
+        "Tutti i passkey Face ID/Touch ID registrati da {email} verranno rimossi. Potrà comunque accedere con la password.",
     admin_records_title: "Record",
     admin_records_subtitle: "Conteggio righe di tutte le tabelle applicative",
     admin_audit_log_title: "Registro azioni",
@@ -1074,6 +1083,8 @@ const it: Record<string, string> = {
     admin_audit_action_reject_user: "Utente rifiutato",
     admin_audit_action_set_role: "Ruolo modificato",
     admin_audit_action_set_active: "Stato attivo modificato",
+    admin_audit_action_disable_mfa: "MFA disabilitata",
+    admin_audit_action_clear_webauthn: "Passkey rimossi",
     admin_health_title: "Salute sistema",
     admin_health_subtitle: "Freschezza operativa e integrità dei dati",
     admin_health_prices_label: "Ultimo refresh prezzi",

@@ -20,7 +20,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from fininzen.models import AdminActionLog, UserProfile
+from fininzen.models import (
+    AdminActionLog,
+    MfaBackupCode,
+    UserProfile,
+    WebAuthnCredential,
+)
 from fininzen.permissions import DEMO_USERNAME, IsAdmin
 from portfolio.integrity import collect_integrity_issues
 from portfolio.models import Asset, FXRateHistory
@@ -82,6 +87,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     date_joined = serializers.DateTimeField(source="user.date_joined", read_only=True)
     is_active = serializers.BooleanField(source="user.is_active", read_only=True)
     last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
+    webauthn_credential_count = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
@@ -96,8 +102,13 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "is_active",
             "last_login",
             "last_activity_at",
+            "mfa_enabled",
+            "webauthn_credential_count",
         ]
         read_only_fields = fields
+
+    def get_webauthn_credential_count(self, obj):
+        return WebAuthnCredential.objects.filter(user_id=obj.user_id).count()
 
 
 class AdminUserViewSet(
@@ -110,6 +121,8 @@ class AdminUserViewSet(
     POST /api/admin/users/{id}/reject/   — reject a pending/approved user
     POST /api/admin/users/{id}/set_role/ — { "role": "admin" | "user" }
     POST /api/admin/users/{id}/set_active/ — { "is_active": bool }
+    POST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)
+    POST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials
     """
 
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -211,6 +224,46 @@ class AdminUserViewSet(
             "set_active",
             user,
             is_active=new_active,
+        )
+        return Response(AdminUserSerializer(profile).data)
+
+    @action(detail=True, methods=["post"])
+    def disable_mfa(self, request, pk=None):
+        profile = self.get_object()
+        if profile.user_id == request.user.id:
+            return Response(
+                {"error": "use_personal_mfa_settings"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not profile.mfa_enabled:
+            return Response(
+                {"error": "mfa_not_enabled"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        profile.mfa_enabled = False
+        profile.mfa_secret = ""
+        profile.save(update_fields=["mfa_enabled", "mfa_secret"])
+        MfaBackupCode.objects.filter(user=profile.user).delete()
+        _blacklist_outstanding_tokens(profile.user)
+        _log_admin_action(request.user, "disable_mfa", profile.user)
+        return Response(AdminUserSerializer(profile).data)
+
+    @action(detail=True, methods=["post"])
+    def clear_webauthn(self, request, pk=None):
+        profile = self.get_object()
+        if profile.user_id == request.user.id:
+            return Response(
+                {"error": "use_personal_mfa_settings"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        deleted, _ = WebAuthnCredential.objects.filter(user=profile.user).delete()
+        if not deleted:
+            return Response(
+                {"error": "no_webauthn_credentials"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        _blacklist_outstanding_tokens(profile.user)
+        _log_admin_action(
+            request.user, "clear_webauthn", profile.user, credentials_removed=deleted
         )
         return Response(AdminUserSerializer(profile).data)
 

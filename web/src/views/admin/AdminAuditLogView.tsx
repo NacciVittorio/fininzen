@@ -12,6 +12,8 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
     reject_user: "admin_audit_action_reject_user",
     set_role: "admin_audit_action_set_role",
     set_active: "admin_audit_action_set_active",
+    disable_mfa: "admin_audit_action_disable_mfa",
+    clear_webauthn: "admin_audit_action_clear_webauthn",
 };
 
 function formatMetadata(metadata: Record<string, unknown>): string {
