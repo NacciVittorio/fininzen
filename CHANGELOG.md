@@ -6,6 +6,16 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.13.0 (2026-07-31)
+
+### Feat
+
+- **auth**: add email change and MFA, fix Face ID passkey prompt on iOS
+
+### Fix
+
+- **e2e**: retry flaky Playwright runs in CI
+
 ## v0.12.0 (2026-07-30)
 
 ### Feat
