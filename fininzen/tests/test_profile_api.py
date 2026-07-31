@@ -558,10 +558,81 @@ def test_delete_account_removes_user_and_owned_data(client, test_user):
     assert not DataAccessGrant.objects.filter(grantee=test_user).exists()
 
 
+def test_change_email_rejects_wrong_password(client, test_user):
+    res = client.post(
+        "/api/auth/change-email/",
+        data={"current_password": "wrongpassword", "new_email": "new@example.com"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 400
+    assert "current_password" in res.json()
+    test_user.refresh_from_db()
+    assert test_user.email != "new@example.com"
+
+
+def test_change_email_rejects_duplicate_email(client, test_user):
+    User.objects.create_user(
+        username="taken@example.com",
+        email="taken@example.com",
+        password="testpass123",
+    )
+
+    res = client.post(
+        "/api/auth/change-email/",
+        data={"current_password": "testpass123", "new_email": "Taken@Example.com"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 400
+    assert "new_email" in res.json()
+
+
+def test_change_email_updates_user(client, test_user):
+    res = client.post(
+        "/api/auth/change-email/",
+        data={"current_password": "testpass123", "new_email": "new@example.com"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    test_user.refresh_from_db()
+    assert test_user.email == "new@example.com"
+    assert test_user.username == "new@example.com"
+
+
+def test_change_email_requires_authentication():
+    anon = APIClient()
+    res = anon.post(
+        "/api/auth/change-email/",
+        data={"current_password": "x", "new_email": "y@example.com"},
+        format="json",
+    )
+    assert res.status_code == 401
+
+
+def test_change_email_blocked_for_demo(db):
+    demo = User.objects.create_user(username="demo@demo.com", password="pw")
+    c = APIClient()
+    c.force_login(demo)
+
+    res = c.post(
+        "/api/auth/change-email/",
+        data={"current_password": "pw", "new_email": "new@example.com"},
+        format="json",
+    )
+
+    assert res.status_code == 403
+    demo.refresh_from_db()
+    assert demo.email != "new@example.com"
+
+
 # ── HIGH-04: throttling of sensitive account endpoints ──────────────────────────
 
 
-@pytest.mark.parametrize("view_name", ["AccountView", "ChangePasswordView"])
+@pytest.mark.parametrize(
+    "view_name", ["AccountView", "ChangePasswordView", "ChangeEmailView"]
+)
 def test_account_endpoints_define_throttle_scope(view_name):
     import fininzen.views as views
 

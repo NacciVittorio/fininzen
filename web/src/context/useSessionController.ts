@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
-import type { TokenResponse } from "../api/auth";
+import type { LoginResponse, TokenResponse } from "../api/auth";
 import type { GrantsResponse } from "../api/sharing";
 import type { ProfileResponse } from "../api/profile";
 import { clearAccessToken, setAccessToken } from "../utils/api";
@@ -17,6 +17,7 @@ import {
     requestDemoLogin,
     requestLogin,
     requestLogout,
+    requestMfaVerify,
     requestRegister,
 } from "../api/auth";
 import { useSharing } from "./useSharing";
@@ -83,6 +84,7 @@ type UserProfile = {
     last_seen_release: string;
     status: "pending" | "approved" | "rejected";
     role: "user" | "admin";
+    mfa_enabled: boolean;
 };
 
 type ProfileApplyResult = {
@@ -194,7 +196,12 @@ export function useSessionController(providerState: AppProviderState) {
         async (
             email: string,
             password: string,
-        ): Promise<{ ok: boolean; code?: string }> => {
+        ): Promise<{
+            ok: boolean;
+            code?: string;
+            mfaRequired?: boolean;
+            mfaToken?: string;
+        }> => {
             try {
                 const res = await requestLogin(email, password);
                 if (!res.ok) {
@@ -203,7 +210,14 @@ export function useSessionController(providerState: AppProviderState) {
                     } | null;
                     return { ok: false, code: errBody?.code };
                 }
-                const data = (await res.json()) as TokenResponse;
+                const data = (await res.json()) as LoginResponse;
+                if ("mfa_required" in data) {
+                    return {
+                        ok: false,
+                        mfaRequired: true,
+                        mfaToken: data.mfa_token,
+                    };
+                }
                 resetClientState();
                 setAccessToken(data.access);
                 localStorage.setItem("fn_session", "1");
@@ -223,6 +237,45 @@ export function useSessionController(providerState: AppProviderState) {
                 return { ok: true };
             } catch {
                 return { ok: false };
+            }
+        },
+        [resetClientState, setDemoConfirm, setDemoUnderstood, setTab],
+    );
+
+    // Second step of a login that returned mfa_required: exchanges the
+    // opaque mfa_token + a TOTP/backup code for real session tokens, then
+    // runs the same session setup as a normal password login. `email` comes
+    // from the caller's login form state — localStorage's auth_email may
+    // still hold a *different* previous session's address at this point,
+    // since login() returns before writing it when MFA is required.
+    const verifyMfa = useCallback(
+        async (
+            email: string,
+            mfaToken: string,
+            code: string,
+        ): Promise<boolean> => {
+            try {
+                const res = await requestMfaVerify(mfaToken, code);
+                if (!res.ok) return false;
+                const data = (await res.json()) as TokenResponse;
+                resetClientState();
+                setAccessToken(data.access);
+                localStorage.setItem("fn_session", "1");
+                localStorage.setItem("auth_email", email);
+                localStorage.removeItem("is_demo");
+                setShowDemoModal(false);
+                setDemoConfirm(false);
+                setDemoUnderstood(false);
+                setIsAuthenticated(true);
+                setIsDemo(false);
+                setUser(email);
+                setTab("dashboard");
+                scrollToTop();
+                setAuthSessionNonce((n) => n + 1);
+                setIsLocked(false);
+                return true;
+            } catch {
+                return false;
             }
         },
         [resetClientState, setDemoConfirm, setDemoUnderstood, setTab],
@@ -301,6 +354,7 @@ export function useSessionController(providerState: AppProviderState) {
         last_seen_release: "",
         status: "approved",
         role: "user",
+        mfa_enabled: false,
     });
     const [privacyPreferences, setPrivacyPreferences] =
         useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
@@ -346,6 +400,7 @@ export function useSessionController(providerState: AppProviderState) {
                         ? data.status
                         : "approved",
                 role: data.role === "admin" ? "admin" : "user",
+                mfa_enabled: !!data.mfa_enabled,
             });
             setPrivacyPreferences(
                 normalizePrivacyPreferences(data.privacy_preferences),
@@ -458,6 +513,7 @@ export function useSessionController(providerState: AppProviderState) {
             last_seen_release: "",
             status: "approved",
             role: "user",
+            mfa_enabled: false,
         });
         setPrivacyPreferences(DEFAULT_PRIVACY_PREFERENCES);
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);
@@ -563,6 +619,7 @@ export function useSessionController(providerState: AppProviderState) {
         setShowDemoModal,
         user,
         login,
+        verifyMfa,
         logout,
         register,
         demoLogin,

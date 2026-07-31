@@ -317,6 +317,7 @@ _THROTTLE_RATES = {
     "webauthn": "20/minute",
     "account": "10/minute",
     "reset": "5/minute",
+    "mfa": "20/minute",
 }
 if os.environ.get("E2E_RELAX_THROTTLES"):
     _THROTTLE_RATES = {scope: "100000/minute" for scope in _THROTTLE_RATES}

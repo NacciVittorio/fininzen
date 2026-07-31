@@ -29,8 +29,15 @@ from fininzen.views import (
     GrantDetailView,
     ProfileView,
     ChangePasswordView,
+    ChangeEmailView,
     AccountView,
     HealthView,
+)
+from fininzen.mfa_views import (
+    MfaSetupView,
+    MfaEnableView,
+    MfaDisableView,
+    MfaVerifyView,
 )
 from fininzen.webauthn_views import (
     WebAuthnRegisterChallengeView,
@@ -57,6 +64,7 @@ urlpatterns = [
     path("api/auth/demo/", DemoLoginView.as_view()),
     path("api/auth/profile/", ProfileView.as_view()),
     path("api/auth/change-password/", ChangePasswordView.as_view()),
+    path("api/auth/change-email/", ChangeEmailView.as_view()),
     path("api/auth/account/", AccountView.as_view()),
     path("api/health/", HealthView.as_view()),
     # Grant endpoints
@@ -70,6 +78,11 @@ urlpatterns = [
     path("api/auth/webauthn/auth/challenge/", WebAuthnAuthChallengeView.as_view()),
     path("api/auth/webauthn/auth/verify/", WebAuthnAuthVerifyView.as_view()),
     path("api/auth/webauthn/credentials/", WebAuthnCredentialsView.as_view()),
+    # MFA (TOTP)
+    path("api/auth/mfa/setup/", MfaSetupView.as_view()),
+    path("api/auth/mfa/enable/", MfaEnableView.as_view()),
+    path("api/auth/mfa/disable/", MfaDisableView.as_view()),
+    path("api/auth/mfa/verify/", MfaVerifyView.as_view()),
     # Admin portal: user approval/roles/overview/stats, all IsAdmin-gated.
     path("api/", include(admin_router.urls)),
     path("api/admin/overview/", AdminOverviewView.as_view()),

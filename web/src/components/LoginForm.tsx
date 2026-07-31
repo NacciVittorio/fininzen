@@ -14,7 +14,8 @@ type AuthMode = "login" | "register";
 const releaseDate = process.env.NEXT_PUBLIC_RELEASE_DATE ?? "";
 
 export default function LoginForm() {
-    const { T, login, register, demoLogin, biometricLogin } = useApp();
+    const { T, login, verifyMfa, register, demoLogin, biometricLogin } =
+        useApp();
     const appVersion = useAppVersion();
     const [mode, setMode] = useState<AuthMode>("login");
     const [email, setEmail] = useState("");
@@ -24,6 +25,8 @@ export default function LoginForm() {
     const [success, setSuccess] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [biometricAvailable, setBiometricAvailable] = useState(false);
+    const [mfaToken, setMfaToken] = useState<string | null>(null);
+    const [mfaCode, setMfaCode] = useState("");
 
     // Offer passwordless sign-in only when this device has a registered passkey
     // (stored when app-lock was enabled), a remembered email to identify the
@@ -88,13 +91,17 @@ export default function LoginForm() {
         if (mode === "login") {
             const result = await login(email, password);
             if (!result.ok) {
-                setError(
-                    result.code === "account_pending"
-                        ? T("login_error_pending")
-                        : result.code === "account_rejected"
-                          ? T("login_error_rejected")
-                          : T("login_error"),
-                );
+                if (result.mfaRequired && result.mfaToken) {
+                    setMfaToken(result.mfaToken);
+                } else {
+                    setError(
+                        result.code === "account_pending"
+                            ? T("login_error_pending")
+                            : result.code === "account_rejected"
+                              ? T("login_error_rejected")
+                              : T("login_error"),
+                    );
+                }
             }
         } else {
             const result = await register(email, password, password2);
@@ -112,6 +119,22 @@ export default function LoginForm() {
             }
         }
         setLoading(false);
+    }
+
+    async function handleMfaSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setError(null);
+        if (!mfaToken) return;
+        setLoading(true);
+        const ok = await verifyMfa(email, mfaToken, mfaCode);
+        setLoading(false);
+        if (!ok) setError(T("mfa_error_invalid_code"));
+    }
+
+    function cancelMfa() {
+        setMfaToken(null);
+        setMfaCode("");
+        setError(null);
     }
 
     const labelStyle = {
@@ -183,214 +206,298 @@ export default function LoginForm() {
                             marginTop: 4,
                         }}
                     >
-                        {mode === "login"
-                            ? T("login_title")
-                            : T("register_title")}
+                        {mfaToken
+                            ? T("mfa_login_prompt")
+                            : mode === "login"
+                              ? T("login_title")
+                              : T("register_title")}
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: 16 }}>
-                        <label style={labelStyle}>{T("email_label")}</label>
-                        <input
-                            type="email"
-                            className="inp"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                        />
-                    </div>
-                    <div
-                        style={{ marginBottom: mode === "register" ? 12 : 24 }}
-                    >
-                        <label style={labelStyle}>{T("password_label")}</label>
-                        <input
-                            type="password"
-                            className="inp"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            autoComplete={
-                                mode === "login"
-                                    ? "current-password"
-                                    : "new-password"
-                            }
-                        />
-                    </div>
+                {mfaToken ? (
+                    <form onSubmit={handleMfaSubmit}>
+                        <div style={{ marginBottom: 24 }}>
+                            <label style={labelStyle}>
+                                {T("mfa_login_code_label")}
+                            </label>
+                            <input
+                                type="text"
+                                className="inp"
+                                value={mfaCode}
+                                onChange={(e) => setMfaCode(e.target.value)}
+                                required
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                autoFocus
+                            />
+                        </div>
 
-                    {mode === "register" && (
-                        <>
-                            <div style={{ marginBottom: 8 }}>
+                        {error && (
+                            <div
+                                style={{
+                                    color: "var(--danger)",
+                                    fontSize: 13,
+                                    marginBottom: 16,
+                                    textAlign: "center",
+                                }}
+                            >
+                                {Array.isArray(error) ? error.join(" ") : error}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="btn btn-p"
+                            disabled={loading}
+                            style={{
+                                width: "100%",
+                                padding: "12px 0",
+                                fontSize: 14,
+                                fontWeight: 600,
+                            }}
+                        >
+                            {loading ? "…" : T("mfa_login_verify")}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={cancelMfa}
+                            style={{
+                                width: "100%",
+                                marginTop: 12,
+                                background: "none",
+                                border: "none",
+                                color: "var(--accent)",
+                                fontSize: 13,
+                                cursor: "pointer",
+                                padding: 0,
+                                fontWeight: 600,
+                            }}
+                        >
+                            {T("btn_cancel")}
+                        </button>
+                    </form>
+                ) : (
+                    <>
+                        <form onSubmit={handleSubmit}>
+                            <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>
-                                    {T("password_confirm")}
+                                    {T("email_label")}
                                 </label>
                                 <input
-                                    type="password"
+                                    type="email"
                                     className="inp"
-                                    value={password2}
-                                    onChange={(e) =>
-                                        setPassword2(e.target.value)
-                                    }
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    autoComplete="new-password"
+                                    autoComplete="email"
                                 />
                             </div>
                             <div
                                 style={{
-                                    fontSize: 11,
-                                    color: "var(--fg-soft)",
-                                    marginBottom: 20,
-                                    lineHeight: 1.5,
+                                    marginBottom: mode === "register" ? 12 : 24,
                                 }}
                             >
-                                {T("password_requirements")}
+                                <label style={labelStyle}>
+                                    {T("password_label")}
+                                </label>
+                                <input
+                                    type="password"
+                                    className="inp"
+                                    value={password}
+                                    onChange={(e) =>
+                                        setPassword(e.target.value)
+                                    }
+                                    required
+                                    autoComplete={
+                                        mode === "login"
+                                            ? "current-password"
+                                            : "new-password"
+                                    }
+                                />
                             </div>
-                        </>
-                    )}
 
-                    {error && (
-                        <div
-                            style={{
-                                color: "var(--danger)",
-                                fontSize: 13,
-                                marginBottom: 16,
-                                textAlign: "center",
-                            }}
-                        >
-                            {Array.isArray(error) ? error.join(" ") : error}
-                        </div>
-                    )}
-                    {success && (
-                        <div
-                            style={{
-                                color: "var(--success)",
-                                fontSize: 13,
-                                marginBottom: 16,
-                                textAlign: "center",
-                            }}
-                        >
-                            {success}
-                        </div>
-                    )}
+                            {mode === "register" && (
+                                <>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <label style={labelStyle}>
+                                            {T("password_confirm")}
+                                        </label>
+                                        <input
+                                            type="password"
+                                            className="inp"
+                                            value={password2}
+                                            onChange={(e) =>
+                                                setPassword2(e.target.value)
+                                            }
+                                            required
+                                            autoComplete="new-password"
+                                        />
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontSize: 11,
+                                            color: "var(--fg-soft)",
+                                            marginBottom: 20,
+                                            lineHeight: 1.5,
+                                        }}
+                                    >
+                                        {T("password_requirements")}
+                                    </div>
+                                </>
+                            )}
 
-                    <button
-                        type="submit"
-                        className="btn btn-p"
-                        disabled={loading}
-                        style={{
-                            width: "100%",
-                            padding: "12px 0",
-                            fontSize: 14,
-                            fontWeight: 600,
-                        }}
-                    >
-                        {loading
-                            ? "…"
-                            : mode === "login"
-                              ? T("login_button")
-                              : T("register_button")}
-                    </button>
-                </form>
+                            {error && (
+                                <div
+                                    style={{
+                                        color: "var(--danger)",
+                                        fontSize: 13,
+                                        marginBottom: 16,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {Array.isArray(error)
+                                        ? error.join(" ")
+                                        : error}
+                                </div>
+                            )}
+                            {success && (
+                                <div
+                                    style={{
+                                        color: "var(--success)",
+                                        fontSize: 13,
+                                        marginBottom: 16,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {success}
+                                </div>
+                            )}
 
-                <div style={{ marginTop: 20, textAlign: "center" }}>
-                    <button
-                        onClick={() =>
-                            switchMode(mode === "login" ? "register" : "login")
-                        }
-                        style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--accent)",
-                            fontSize: 13,
-                            cursor: "pointer",
-                            padding: 0,
-                            fontWeight: 600,
-                        }}
-                    >
-                        {mode === "login"
-                            ? T("no_account_yet")
-                            : T("already_have_account")}
-                    </button>
-                </div>
-
-                {mode === "login" && (
-                    <>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                margin: "20px 0 0",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    flex: 1,
-                                    height: 1,
-                                    background: "var(--rule)",
-                                }}
-                            />
-                            <span
-                                style={{
-                                    color: "var(--fg-soft)",
-                                    fontSize: 11,
-                                }}
-                            >
-                                {T("or_separator")}
-                            </span>
-                            <div
-                                style={{
-                                    flex: 1,
-                                    height: 1,
-                                    background: "var(--rule)",
-                                }}
-                            />
-                        </div>
-
-                        {biometricAvailable && (
                             <button
-                                type="button"
-                                onClick={handleBiometricLogin}
+                                type="submit"
+                                className="btn btn-p"
                                 disabled={loading}
                                 style={{
                                     width: "100%",
-                                    marginTop: 14,
-                                    padding: "10px 0",
-                                    background: "transparent",
-                                    border: "1px solid var(--accent)",
-                                    borderRadius: "var(--r-pill)",
-                                    color: "var(--accent)",
-                                    fontSize: 13,
-                                    cursor: loading ? "not-allowed" : "pointer",
+                                    padding: "12px 0",
+                                    fontSize: 14,
                                     fontWeight: 600,
-                                    opacity: loading ? 0.6 : 1,
                                 }}
                             >
-                                {loading ? "…" : T("login_biometric")}
+                                {loading
+                                    ? "…"
+                                    : mode === "login"
+                                      ? T("login_button")
+                                      : T("register_button")}
                             </button>
-                        )}
+                        </form>
 
-                        <button
-                            type="button"
-                            onClick={handleDemoLogin}
-                            disabled={loading}
-                            style={{
-                                width: "100%",
-                                marginTop: 14,
-                                padding: "10px 0",
-                                background: "var(--accent-soft)",
-                                border: 0,
-                                borderRadius: "var(--r-pill)",
-                                color: "var(--accent)",
-                                fontSize: 13,
-                                cursor: loading ? "not-allowed" : "pointer",
-                                fontWeight: 600,
-                                opacity: loading ? 0.6 : 1,
-                            }}
-                        >
-                            {loading ? "…" : T("try_demo")}
-                        </button>
+                        <div style={{ marginTop: 20, textAlign: "center" }}>
+                            <button
+                                onClick={() =>
+                                    switchMode(
+                                        mode === "login" ? "register" : "login",
+                                    )
+                                }
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    color: "var(--accent)",
+                                    fontSize: 13,
+                                    cursor: "pointer",
+                                    padding: 0,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {mode === "login"
+                                    ? T("no_account_yet")
+                                    : T("already_have_account")}
+                            </button>
+                        </div>
+
+                        {mode === "login" && (
+                            <>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 10,
+                                        margin: "20px 0 0",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            flex: 1,
+                                            height: 1,
+                                            background: "var(--rule)",
+                                        }}
+                                    />
+                                    <span
+                                        style={{
+                                            color: "var(--fg-soft)",
+                                            fontSize: 11,
+                                        }}
+                                    >
+                                        {T("or_separator")}
+                                    </span>
+                                    <div
+                                        style={{
+                                            flex: 1,
+                                            height: 1,
+                                            background: "var(--rule)",
+                                        }}
+                                    />
+                                </div>
+
+                                {biometricAvailable && (
+                                    <button
+                                        type="button"
+                                        onClick={handleBiometricLogin}
+                                        disabled={loading}
+                                        style={{
+                                            width: "100%",
+                                            marginTop: 14,
+                                            padding: "10px 0",
+                                            background: "transparent",
+                                            border: "1px solid var(--accent)",
+                                            borderRadius: "var(--r-pill)",
+                                            color: "var(--accent)",
+                                            fontSize: 13,
+                                            cursor: loading
+                                                ? "not-allowed"
+                                                : "pointer",
+                                            fontWeight: 600,
+                                            opacity: loading ? 0.6 : 1,
+                                        }}
+                                    >
+                                        {loading ? "…" : T("login_biometric")}
+                                    </button>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={handleDemoLogin}
+                                    disabled={loading}
+                                    style={{
+                                        width: "100%",
+                                        marginTop: 14,
+                                        padding: "10px 0",
+                                        background: "var(--accent-soft)",
+                                        border: 0,
+                                        borderRadius: "var(--r-pill)",
+                                        color: "var(--accent)",
+                                        fontSize: 13,
+                                        cursor: loading
+                                            ? "not-allowed"
+                                            : "pointer",
+                                        fontWeight: 600,
+                                        opacity: loading ? 0.6 : 1,
+                                    }}
+                                >
+                                    {loading ? "…" : T("try_demo")}
+                                </button>
+                            </>
+                        )}
                     </>
                 )}
             </div>

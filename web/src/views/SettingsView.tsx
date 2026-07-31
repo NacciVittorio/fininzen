@@ -124,6 +124,10 @@ export default function SettingsView() {
         transactionPrefs,
         updateTransactionPreference,
         changePassword,
+        changeEmail,
+        mfaSetup,
+        mfaEnable,
+        mfaDisable,
         deleteAccount,
         logout,
         isDemo,
@@ -378,6 +382,10 @@ export default function SettingsView() {
                         profile={profile}
                         updateProfile={updateProfile}
                         changePassword={changePassword}
+                        changeEmail={changeEmail}
+                        mfaSetup={mfaSetup}
+                        mfaEnable={mfaEnable}
+                        mfaDisable={mfaDisable}
                         deleteAccount={deleteAccount}
                         isDemo={isDemo}
                         viewAs={viewAs}

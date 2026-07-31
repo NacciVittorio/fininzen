@@ -9,6 +9,11 @@ export default defineConfig({
     testDir: "./e2e",
     timeout: 15_000,
     workers: 1,
+    // GitHub-hosted runners are noisy enough that a lone assertion in the ~130-test
+    // suite occasionally misses its window under load — confirmed by two CI runs of
+    // the identical commit SHA, one green and one red on an unrelated spec. Retry
+    // only in CI so a genuinely broken assertion still fails locally on the first try.
+    retries: process.env.CI ? 2 : 0,
     use: {
         baseURL: "http://localhost:3000",
     },
@@ -34,7 +39,9 @@ export default defineConfig({
         // CI runs a production build of the commit under test (no HMR/dev
         // traffic), which is what lets networkidle waits settle at all — the
         // dev server never quiets down. Local runs keep `next dev` as-is.
-        command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
+        command: process.env.CI
+            ? "npm run build && npm run start"
+            : "npm run dev",
         url: "http://localhost:3000/login",
         reuseExistingServer: true,
         timeout: 180_000,

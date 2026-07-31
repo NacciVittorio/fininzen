@@ -137,7 +137,7 @@
         "/api/admin/users/": {
             "get": {
                 "operationId": "admin_users_list",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
                 "parameters": [
                     {
                         "name": "page",
@@ -177,7 +177,7 @@
         "/api/admin/users/{id}/": {
             "get": {
                 "operationId": "admin_users_retrieve",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
                 "parameters": [
                     {
                         "in": "path",
@@ -217,7 +217,87 @@
         "/api/admin/users/{id}/approve/": {
             "post": {
                 "operationId": "admin_users_approve_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this user profile.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminUser"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{id}/clear_webauthn/": {
+            "post": {
+                "operationId": "admin_users_clear_webauthn_create",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this user profile.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminUser"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{id}/disable_mfa/": {
+            "post": {
+                "operationId": "admin_users_disable_mfa_create",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
                 "parameters": [
                     {
                         "in": "path",
@@ -257,7 +337,7 @@
         "/api/admin/users/{id}/reject/": {
             "post": {
                 "operationId": "admin_users_reject_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
                 "parameters": [
                     {
                         "in": "path",
@@ -297,7 +377,7 @@
         "/api/admin/users/{id}/set_active/": {
             "post": {
                 "operationId": "admin_users_set_active_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
                 "parameters": [
                     {
                         "in": "path",
@@ -337,7 +417,7 @@
         "/api/admin/users/{id}/set_role/": {
             "post": {
                 "operationId": "admin_users_set_role_create",
-                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }",
+                "description": "GET  /api/admin/users/               — list, ?status=pending|approved|rejected, ?role=user|admin\nGET  /api/admin/users/{id}/          — detail\nPOST /api/admin/users/{id}/approve/  — approve a pending/rejected user\nPOST /api/admin/users/{id}/reject/   — reject a pending/approved user\nPOST /api/admin/users/{id}/set_role/ — { \"role\": \"admin\" | \"user\" }\nPOST /api/admin/users/{id}/set_active/ — { \"is_active\": bool }\nPOST /api/admin/users/{id}/disable_mfa/ — force-disable TOTP MFA (account recovery)\nPOST /api/admin/users/{id}/clear_webauthn/ — remove all WebAuthn/passkey credentials",
                 "parameters": [
                     {
                         "in": "path",
@@ -391,6 +471,28 @@
                 ],
                 "responses": {
                     "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/auth/change-email/": {
+            "post": {
+                "operationId": "auth_change_email_create",
+                "description": "POST /api/auth/change-email/ — cambia l'email dell'utente autenticato.",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
                         "description": "No response body"
                     }
                 }
@@ -548,6 +650,93 @@
             "post": {
                 "operationId": "auth_logout_create",
                 "description": "Clear the refresh cookie and blacklist the token (CSRF-protected).",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/auth/mfa/disable/": {
+            "post": {
+                "operationId": "auth_mfa_disable_create",
+                "description": "Password-confirmed, like ChangePasswordView — shares its throttle scope.",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/auth/mfa/enable/": {
+            "post": {
+                "operationId": "auth_mfa_enable_create",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/auth/mfa/setup/": {
+            "post": {
+                "operationId": "auth_mfa_setup_create",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/auth/mfa/verify/": {
+            "post": {
+                "operationId": "auth_mfa_verify_create",
+                "description": "Mid-login: exchange a password-verified MfaChallenge + TOTP/backup code for JWTs.",
                 "tags": [
                     "auth"
                 ],
@@ -5205,6 +5394,14 @@
                         "format": "date-time",
                         "readOnly": true,
                         "nullable": true
+                    },
+                    "mfa_enabled": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "webauthn_credential_count": {
+                        "type": "string",
+                        "readOnly": true
                     }
                 },
                 "required": [
@@ -5214,10 +5411,12 @@
                     "is_active",
                     "last_activity_at",
                     "last_login",
+                    "mfa_enabled",
                     "name",
                     "role",
                     "status",
-                    "user_id"
+                    "user_id",
+                    "webauthn_credential_count"
                 ]
             },
             "AdminUserStatusEnum": {
@@ -5239,10 +5438,20 @@
                     "refresh": {
                         "type": "string",
                         "readOnly": true
+                    },
+                    "mfa_required": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "mfa_token": {
+                        "type": "string",
+                        "readOnly": true
                     }
                 },
                 "required": [
                     "access",
+                    "mfa_required",
+                    "mfa_token",
                     "refresh"
                 ]
             },

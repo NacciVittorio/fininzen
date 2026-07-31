@@ -25,8 +25,10 @@ psycopg[binary]==3.3.4
 pycparser==3.0
 Pygments==2.20.0
 python-dateutil==2.9.0.post0
+pyotp==2.10.0
 pytokens==0.4.1
 pytz==2026.3.post1
+qrcode==8.2
 requests==2.34.2
 redis==8.0.1
 rich==15.0.0

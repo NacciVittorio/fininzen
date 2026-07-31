@@ -36,3 +36,13 @@ class ResetRateThrottle(UserRateThrottle):
 
 class ViewAsAttemptRateThrottle(UserRateThrottle):
     scope = "view_as_attempt"
+
+
+class MfaRateThrottle(AnonRateThrottle):
+    """Throttle TOTP setup/enable/verify — verify in particular is a 6-digit
+    brute-force surface and needs the same care as WebAuthnRateThrottle.
+    Keyed by IP (AnonRateThrottle) so it also guards the AllowAny verify
+    endpoint used mid-login, before a token exists.
+    """
+
+    scope = "mfa"
