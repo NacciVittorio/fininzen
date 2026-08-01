@@ -254,6 +254,8 @@ const it: Record<string, string> = {
     settings_about: "About",
     settings_data: "Dati",
     settings_preferences: "Preferenze",
+    settings_planning: "Pianificazione",
+    settings_transaction_defaults: "Predefiniti transazioni",
     settings_cashflow: "Cash Flow",
     settings_investments: "Investimenti",
     settings_cf_default_verified: "Crea le transazioni come verificate",
@@ -352,6 +354,7 @@ const it: Record<string, string> = {
     api_tokens_never_used: "Mai utilizzato",
     api_tokens_revoked: "Revocato",
     mfa_login_verify: "Verifica",
+    account_security_title: "Sicurezza",
     account_delete_title: "Cancella account",
     account_delete_desc:
         "Cancella definitivamente il tuo account e tutti i dati associati.",
