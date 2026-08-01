@@ -372,6 +372,23 @@ def _seed_default_categories(user):
         )
 
 
+FALLBACK_CATEGORY_NAME = "Da categorizzare"
+
+
+def get_or_create_fallback_category(user):
+    """Reserved-name category used by expenses/api_token_serializers.py's
+    quick-add when the caller's category name doesn't match one of the
+    user's existing categories. Same get_or_create-by-name convention as
+    _seed_default_categories above."""
+    category, _ = Category.objects.get_or_create(
+        name=FALLBACK_CATEGORY_NAME,
+        owner=user,
+        parent=None,
+        defaults={"color": "#8e8e8e", "icon": "❓", "category_type": Category.EXPENSE},
+    )
+    return category
+
+
 def _seed_default_investment_types(user, InvestmentType):
     """Create the demo user's default investment types (idempotent)."""
     # (name, color, icon, supports_ticker, is_liquid_default, is_bank_account)

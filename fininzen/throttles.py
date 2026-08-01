@@ -46,3 +46,19 @@ class MfaRateThrottle(AnonRateThrottle):
     """
 
     scope = "mfa"
+
+
+class ApiTokenManageRateThrottle(UserRateThrottle):
+    """Throttle API token create/list/revoke (JWT/session-authenticated)."""
+
+    scope = "api_token_manage"
+
+
+class ApiTokenQuickAddRateThrottle(UserRateThrottle):
+    """Throttle quick-add POSTs. Keyed by request.user.pk, which
+    ApiTokenAuthentication populates with the token's owner — a leaked static
+    bearer token has no expiry like a JWT does, so this per-request cap is
+    the only brake against its abuse.
+    """
+
+    scope = "api_token_quickadd"

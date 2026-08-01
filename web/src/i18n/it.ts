@@ -337,6 +337,20 @@ const it: Record<string, string> = {
     mfa_disable_button: "Disattiva l'autenticazione a due fattori",
     mfa_login_prompt: "Inserisci il codice dalla tua app authenticator",
     mfa_login_code_label: "Codice di verifica",
+    api_tokens_title: "Token API",
+    api_tokens_desc:
+        "Token a lunga durata per client di automazione (es. uno Shortcut iOS) che possono aggiungere spese senza fare login. Utilizzabili solo per aggiungere spese, mai per accedere all'app.",
+    api_tokens_label_placeholder: "Etichetta (es. iPhone Shortcuts)",
+    api_tokens_create_button: "Crea token",
+    api_tokens_create_error: "Impossibile creare il token. Riprova.",
+    api_tokens_reveal_title: "Salva il tuo token",
+    api_tokens_reveal_desc:
+        "Questa è l'unica volta in cui il token viene mostrato. Salvalo in un posto sicuro: se lo perdi dovrai crearne uno nuovo.",
+    api_tokens_reveal_saved: "Ho salvato questo token",
+    api_tokens_empty: "Nessun token API ancora creato.",
+    api_tokens_last_used: "Ultimo utilizzo",
+    api_tokens_never_used: "Mai utilizzato",
+    api_tokens_revoked: "Revocato",
     mfa_login_verify: "Verifica",
     account_delete_title: "Cancella account",
     account_delete_desc:

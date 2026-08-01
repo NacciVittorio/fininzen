@@ -18,6 +18,7 @@ from fininzen.admin_views import (
     AdminRecordStatsView,
     AdminUserViewSet,
 )
+from fininzen.api_token_views import ApiTokenListCreateView, ApiTokenDetailView
 from fininzen.export_views import ExportView
 from fininzen.views import (
     TokenObtainPairView,
@@ -83,6 +84,9 @@ urlpatterns = [
     path("api/auth/mfa/enable/", MfaEnableView.as_view()),
     path("api/auth/mfa/disable/", MfaDisableView.as_view()),
     path("api/auth/mfa/verify/", MfaVerifyView.as_view()),
+    # API tokens (long-lived bearer tokens for automation clients, e.g. iOS Shortcuts)
+    path("api/auth/api-tokens/", ApiTokenListCreateView.as_view()),
+    path("api/auth/api-tokens/<int:pk>/", ApiTokenDetailView.as_view()),
     # Admin portal: user approval/roles/overview/stats, all IsAdmin-gated.
     path("api/", include(admin_router.urls)),
     path("api/admin/overview/", AdminOverviewView.as_view()),

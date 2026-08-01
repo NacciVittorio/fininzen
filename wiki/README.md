@@ -16,6 +16,12 @@ approfondite.
 - [HEAVY_DEPS.md](HEAVY_DEPS.md) — perché le dipendenze pesanti del backend (yfinance,
   pandas, numpy, …) restano e come il loro raggio d'azione è confinato da un test guardia.
 
+## Automazioni
+
+- [APPLE_PAY_SHORTCUT.md](APPLE_PAY_SHORTCUT.md) — guida per registrare automaticamente
+  una spesa a ogni pagamento Apple Pay NFC, via trigger Wallet dell'app Comandi (iOS) e
+  token API (`ApiToken` / endpoint `quick-add`).
+
 ## Processo
 
 - [VERSIONING.md](VERSIONING.md) — schema SemVer unico backend/frontend, fonte di verità
