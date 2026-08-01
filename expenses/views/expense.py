@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import (
@@ -19,13 +20,17 @@ from ..models import (
 from ..serializers import (
     ExpenseSerializer,
 )
+from fininzen.authentication import ApiTokenAuthentication
 from fininzen.mixins import (
     ViewAsMixin,
     _effective_user,
     require_view_as_full,
 )
 from fininzen.accounting import accounting_month_range, get_user_accounting_start_day
-from fininzen.throttles import ResetRateThrottle
+from fininzen.models import ApiToken
+from fininzen.permissions import IsNotDemoUser, requires_api_token_scope
+from fininzen.throttles import ApiTokenQuickAddRateThrottle, ResetRateThrottle
+from ..api_token_serializers import QuickAddExpenseSerializer
 from ..services import (
     seed_demo_for_user,
     track_description_suggestion,
@@ -165,6 +170,38 @@ class ExpenseViewSet(ViewAsMixin, viewsets.ModelViewSet):
         user = _effective_user(request)
         result = run_csv_import(rows, user, request_user=request.user)
         return Response(result)
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="quick-add",
+        authentication_classes=[ApiTokenAuthentication],
+        permission_classes=[
+            IsAuthenticated,
+            IsNotDemoUser,
+            requires_api_token_scope(ApiToken.SCOPE_EXPENSES_WRITE),
+        ],
+        throttle_classes=[ApiTokenQuickAddRateThrottle],
+    )
+    def quick_add(self, request):
+        """POST /api/expenses/quick-add/ — Automation-only expense creation
+        (iOS Shortcuts / Apple Pay NFC). Requires an API token with
+        expenses:write scope; JWT/session auth is never even considered for
+        this action (authentication_classes is overridden above), so a
+        browser session cannot reach it. Category is resolved by name
+        (case-insensitive); an unmatched or omitted name falls back to a
+        per-user "Da categorizzare" category rather than failing the request.
+        """
+        serializer = QuickAddExpenseSerializer(
+            data=request.data, context={"user": request.user}
+        )
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            expense = serializer.save(owner=request.user)
+            track_description_suggestion(expense)
+        return Response(
+            self.get_serializer(expense).data, status=status.HTTP_201_CREATED
+        )
 
     @action(detail=False, methods=["get"], url_path="description-suggestions")
     def description_suggestions(self, request):

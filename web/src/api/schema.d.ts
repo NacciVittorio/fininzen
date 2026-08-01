@@ -340,6 +340,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/api-tokens/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_api_tokens_retrieve"];
+        put?: never;
+        post: operations["auth_api_tokens_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/api-tokens/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["auth_api_tokens_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/change-email/": {
         parameters: {
             query?: never;
@@ -934,6 +966,31 @@ export interface paths {
         get: operations["expenses_monthly_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/quick-add/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/expenses/quick-add/ — Automation-only expense creation
+         *     (iOS Shortcuts / Apple Pay NFC). Requires an API token with
+         *     expenses:write scope; JWT/session auth is never even considered for
+         *     this action (authentication_classes is overridden above), so a
+         *     browser session cannot reach it. Category is resolved by name
+         *     (case-insensitive); an unmatched or omitted name falls back to a
+         *     per-user "Da categorizzare" category rather than failing the request.
+         */
+        post: operations["expenses_quick_add_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2991,6 +3048,62 @@ export interface operations {
             };
         };
     };
+    auth_api_tokens_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_tokens_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_tokens_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     auth_change_email_create: {
         parameters: {
             query?: never;
@@ -3963,6 +4076,31 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+        };
+    };
+    expenses_quick_add_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseRequest"];
+                "multipart/form-data": components["schemas"]["ExpenseRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {

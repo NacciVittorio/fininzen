@@ -476,6 +476,77 @@
                 }
             }
         },
+        "/api/auth/api-tokens/": {
+            "get": {
+                "operationId": "auth_api_tokens_retrieve",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "auth_api_tokens_create",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/auth/api-tokens/{id}/": {
+            "delete": {
+                "operationId": "auth_api_tokens_destroy",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/auth/change-email/": {
             "post": {
                 "operationId": "auth_change_email_create",
@@ -2031,6 +2102,52 @@
                     },
                     {
                         "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Expense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/expenses/quick-add/": {
+            "post": {
+                "operationId": "expenses_quick_add_create",
+                "description": "POST /api/expenses/quick-add/ — Automation-only expense creation\n(iOS Shortcuts / Apple Pay NFC). Requires an API token with\nexpenses:write scope; JWT/session auth is never even considered for\nthis action (authentication_classes is overridden above), so a\nbrowser session cannot reach it. Category is resolved by name\n(case-insensitive); an unmatched or omitted name falls back to a\nper-user \"Da categorizzare\" category rather than failing the request.",
+                "tags": [
+                    "expenses"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "apiTokenAuth": []
                     }
                 ],
                 "responses": {
@@ -7362,6 +7479,11 @@
             }
         },
         "securitySchemes": {
+            "apiTokenAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "Opaque"
+            },
             "cookieAuth": {
                 "type": "apiKey",
                 "in": "cookie",

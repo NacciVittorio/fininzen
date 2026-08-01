@@ -5,6 +5,13 @@ import type { FormEvent } from "react";
 import { ToggleSwitch } from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
 import { isWebAuthnAvailable } from "../../utils/webauthn";
+import {
+    createApiToken,
+    listApiTokens,
+    revokeApiToken,
+} from "../../api/apiTokens";
+import type { ApiToken } from "../../api/apiTokens";
+import { formatDateTime } from "../../utils/formatters";
 import type { Translator } from "../../types";
 
 export function BiometricLockCard() {
@@ -371,6 +378,213 @@ export function MfaCard({
             <button className="btn btn-p" onClick={startSetup} disabled={busy}>
                 {busy ? "…" : T("mfa_setup_start")}
             </button>
+        </div>
+    );
+}
+
+export function ApiTokensCard({ T }: { T: Translator }) {
+    const { apiFetch } = useAuth();
+    const [tokens, setTokens] = useState<ApiToken[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [label, setLabel] = useState("");
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [revealedToken, setRevealedToken] = useState<string | null>(null);
+    const [revokingId, setRevokingId] = useState<number | null>(null);
+
+    const load = async () => {
+        setLoading(true);
+        try {
+            setTokens(await listApiTokens(apiFetch));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError(null);
+        setCreating(true);
+        try {
+            const created = await createApiToken(apiFetch, label.trim());
+            setRevealedToken(created.token);
+            setLabel("");
+            await load();
+        } catch {
+            setError(T("api_tokens_create_error"));
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const handleRevoke = async (id: number) => {
+        setRevokingId(id);
+        try {
+            await revokeApiToken(apiFetch, id);
+            await load();
+        } finally {
+            setRevokingId(null);
+        }
+    };
+
+    if (revealedToken) {
+        return (
+            <div className="card" style={{ padding: 16 }}>
+                <div
+                    style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}
+                >
+                    {T("api_tokens_reveal_title")}
+                </div>
+                <div
+                    style={{
+                        fontSize: 13,
+                        color: "var(--fg-soft)",
+                        marginBottom: 10,
+                    }}
+                >
+                    {T("api_tokens_reveal_desc")}
+                </div>
+                <div
+                    style={{
+                        fontFamily: "monospace",
+                        fontSize: 13,
+                        background: "var(--bg-soft)",
+                        padding: 10,
+                        borderRadius: 8,
+                        marginBottom: 12,
+                        wordBreak: "break-all",
+                    }}
+                >
+                    {revealedToken}
+                </div>
+                <button
+                    className="btn btn-p"
+                    onClick={() => setRevealedToken(null)}
+                >
+                    {T("api_tokens_reveal_saved")}
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>
+                {T("api_tokens_title")}
+            </div>
+            <div
+                style={{
+                    fontSize: 13,
+                    color: "var(--fg-soft)",
+                    marginBottom: 12,
+                }}
+            >
+                {T("api_tokens_desc")}
+            </div>
+            <form
+                onSubmit={handleCreate}
+                style={{ display: "flex", gap: 8, marginBottom: 12 }}
+            >
+                <input
+                    className="inp"
+                    placeholder={T("api_tokens_label_placeholder")}
+                    value={label}
+                    onChange={(event) => setLabel(event.target.value)}
+                    maxLength={64}
+                    required
+                    style={{ flex: 1 }}
+                />
+                <button
+                    type="submit"
+                    className="btn btn-p"
+                    disabled={creating || !label.trim()}
+                >
+                    {creating ? "…" : T("api_tokens_create_button")}
+                </button>
+            </form>
+            {error && (
+                <div
+                    style={{
+                        fontSize: 13,
+                        color: "var(--danger)",
+                        marginBottom: 10,
+                    }}
+                >
+                    {error}
+                </div>
+            )}
+            {!loading && tokens.length === 0 && (
+                <div
+                    style={{
+                        fontSize: 12,
+                        color: "var(--fg-soft)",
+                        marginBottom: 4,
+                    }}
+                >
+                    {T("api_tokens_empty")}
+                </div>
+            )}
+            {tokens.length > 0 && (
+                <div className="grouped-list">
+                    {tokens.map((token) => (
+                        <div
+                            key={token.id}
+                            className="grouped-list__item"
+                            style={{ alignItems: "center", gap: 12 }}
+                        >
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13 }}>
+                                    {token.label}
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: 11,
+                                        color: "var(--fg-soft)",
+                                        fontFamily: "monospace",
+                                    }}
+                                >
+                                    {token.prefix}…{" · "}
+                                    {token.last_used_at ? (
+                                        <>
+                                            {T("api_tokens_last_used")}:{" "}
+                                            {formatDateTime(token.last_used_at)}
+                                        </>
+                                    ) : (
+                                        T("api_tokens_never_used")
+                                    )}
+                                </div>
+                            </div>
+                            {token.revoked_at ? (
+                                <span
+                                    style={{
+                                        fontSize: 11,
+                                        color: "var(--fg-soft)",
+                                    }}
+                                >
+                                    {T("api_tokens_revoked")}
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={() => handleRevoke(token.id)}
+                                    className="btn btn-r"
+                                    disabled={revokingId === token.id}
+                                    style={{
+                                        fontSize: 11,
+                                        padding: "2px 10px",
+                                    }}
+                                >
+                                    {T("revoke_access")}
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

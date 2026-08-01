@@ -337,6 +337,20 @@ const en: Record<string, string> = {
     mfa_disable_button: "Disable two-factor authentication",
     mfa_login_prompt: "Enter the code from your authenticator app",
     mfa_login_code_label: "Verification code",
+    api_tokens_title: "API tokens",
+    api_tokens_desc:
+        "Long-lived tokens for automation clients (e.g. an iOS Shortcut) that can add expenses without logging in. Only usable for adding expenses — never for signing into the app.",
+    api_tokens_label_placeholder: "Label (e.g. iPhone Shortcuts)",
+    api_tokens_create_button: "Create token",
+    api_tokens_create_error: "Couldn't create the token. Try again.",
+    api_tokens_reveal_title: "Save your token",
+    api_tokens_reveal_desc:
+        "This is the only time the token is shown. Save it somewhere safe — you'll need to create a new one if you lose it.",
+    api_tokens_reveal_saved: "I've saved this token",
+    api_tokens_empty: "No API tokens yet.",
+    api_tokens_last_used: "Last used",
+    api_tokens_never_used: "Never used",
+    api_tokens_revoked: "Revoked",
     mfa_login_verify: "Verify",
     account_delete_title: "Delete account",
     account_delete_desc:

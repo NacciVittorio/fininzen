@@ -318,6 +318,8 @@ _THROTTLE_RATES = {
     "account": "10/minute",
     "reset": "5/minute",
     "mfa": "20/minute",
+    "api_token_manage": "10/minute",
+    "api_token_quickadd": "30/minute",
 }
 if os.environ.get("E2E_RELAX_THROTTLES"):
     _THROTTLE_RATES = {scope: "100000/minute" for scope in _THROTTLE_RATES}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from "react";
 import {
+    ApiTokensCard,
     BiometricLockCard,
     MfaCard,
     TabSwipeCard,
@@ -182,6 +183,7 @@ export function UserSection({
                 />
             )}
             <TabSwipeCard />
+            {!isDemo && !viewAs && <ApiTokensCard T={T} />}
             {!isDemo && !viewAs && (
                 <DeleteAccountCard
                     T={T}
