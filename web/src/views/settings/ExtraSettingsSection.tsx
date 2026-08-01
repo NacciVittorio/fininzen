@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { useAuth } from "../../context/useAuth";
+import { SettingsCard } from "./SettingsRow";
 import type {
     ResetResult,
     ResetTarget,
@@ -25,25 +26,11 @@ export function ExtraSettingsSection({
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {isFeatureEnabled("cashflow") && (
-                <div className="card">
-                    <div
-                        style={{
-                            fontSize: 15,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                        }}
-                    >
-                        {T("reset_transactions")}
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 13,
-                            color: "var(--fg-soft)",
-                            marginBottom: 14,
-                        }}
-                    >
-                        {T("reset_transactions_desc")}
-                    </div>
+                <SettingsCard
+                    title={T("reset_transactions")}
+                    description={T("reset_transactions_desc")}
+                    danger
+                >
                     <button
                         className="btn btn-r"
                         style={{ width: "100%", padding: "10px" }}
@@ -54,30 +41,16 @@ export function ExtraSettingsSection({
                     >
                         {T("reset_transactions")}
                     </button>
-                </div>
+                </SettingsCard>
             )}
 
             {(isFeatureEnabled("accounts") ||
                 isFeatureEnabled("investments")) && (
-                <div className="card">
-                    <div
-                        style={{
-                            fontSize: 15,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                        }}
-                    >
-                        {T("reset_portfolio")}
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 13,
-                            color: "var(--fg-soft)",
-                            marginBottom: 14,
-                        }}
-                    >
-                        {T("reset_portfolio_desc")}
-                    </div>
+                <SettingsCard
+                    title={T("reset_portfolio")}
+                    description={T("reset_portfolio_desc")}
+                    danger
+                >
                     <button
                         className="btn btn-r"
                         style={{ width: "100%", padding: "10px" }}
@@ -88,7 +61,7 @@ export function ExtraSettingsSection({
                     >
                         {T("reset_portfolio")}
                     </button>
-                </div>
+                </SettingsCard>
             )}
 
             {resetMsg && (
@@ -118,19 +91,10 @@ export function ExtraSettingsSection({
                 </div>
             )}
 
-            <div className="card">
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
-                    {T("load_demo")}
-                </div>
-                <div
-                    style={{
-                        fontSize: 13,
-                        color: "var(--fg-soft)",
-                        marginBottom: 14,
-                    }}
-                >
-                    {T("load_demo_desc")}
-                </div>
+            <SettingsCard
+                title={T("load_demo")}
+                description={T("load_demo_desc")}
+            >
                 <button
                     className="btn"
                     style={{
@@ -152,7 +116,7 @@ export function ExtraSettingsSection({
                 >
                     {T("load_demo")}
                 </button>
-            </div>
+            </SettingsCard>
         </div>
     );
 }

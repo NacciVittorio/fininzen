@@ -13,6 +13,7 @@ import {
 import type { ApiToken } from "../../api/apiTokens";
 import { formatDateTime } from "../../utils/formatters";
 import type { Translator } from "../../types";
+import { SettingsCard } from "./SettingsRow";
 
 export function BiometricLockCard() {
     const { T, appLockEnabled, enableAppLock, disableAppLock } = useAuth();
@@ -44,19 +45,15 @@ export function BiometricLockCard() {
 
     if (available === false) {
         return (
-            <div className="card" style={{ padding: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
-                    {T("applock_toggle")}
-                </div>
-                <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
-                    {T("faceid_unavailable")}
-                </div>
-            </div>
+            <SettingsCard
+                title={T("applock_toggle")}
+                description={T("faceid_unavailable")}
+            />
         );
     }
 
     return (
-        <div className="card" style={{ padding: 16 }}>
+        <SettingsCard>
             <ToggleSwitch
                 id="applock-toggle"
                 checked={appLockEnabled}
@@ -85,7 +82,7 @@ export function BiometricLockCard() {
                     {error}
                 </div>
             )}
-        </div>
+        </SettingsCard>
     );
 }
 
@@ -169,21 +166,10 @@ export function MfaCard({
 
     if (step === "setup") {
         return (
-            <div className="card" style={{ padding: 16 }}>
-                <div
-                    style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}
-                >
-                    {T("mfa_setup_title")}
-                </div>
-                <div
-                    style={{
-                        fontSize: 13,
-                        color: "var(--fg-soft)",
-                        marginBottom: 10,
-                    }}
-                >
-                    {T("mfa_scan_qr")}
-                </div>
+            <SettingsCard
+                title={T("mfa_setup_title")}
+                description={T("mfa_scan_qr")}
+            >
                 {qrSvgBase64 && (
                     // next/image doesn't optimize inline data: URIs — this is a
                     // locally generated SVG, not a remote image to optimize.
@@ -252,27 +238,16 @@ export function MfaCard({
                         </button>
                     </div>
                 </form>
-            </div>
+            </SettingsCard>
         );
     }
 
     if (step === "backup-codes") {
         return (
-            <div className="card" style={{ padding: 16 }}>
-                <div
-                    style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}
-                >
-                    {T("mfa_backup_codes_title")}
-                </div>
-                <div
-                    style={{
-                        fontSize: 13,
-                        color: "var(--fg-soft)",
-                        marginBottom: 10,
-                    }}
-                >
-                    {T("mfa_backup_codes_desc")}
-                </div>
+            <SettingsCard
+                title={T("mfa_backup_codes_title")}
+                description={T("mfa_backup_codes_desc")}
+            >
                 <div
                     style={{
                         display: "grid",
@@ -293,18 +268,13 @@ export function MfaCard({
                 <button className="btn btn-p" onClick={finishBackupCodes}>
                     {T("mfa_backup_codes_saved")}
                 </button>
-            </div>
+            </SettingsCard>
         );
     }
 
     if (mfaEnabled) {
         return (
-            <div className="card" style={{ padding: 16 }}>
-                <div
-                    style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}
-                >
-                    {T("mfa_enable_toggle")}
-                </div>
+            <SettingsCard title={T("mfa_enable_toggle")}>
                 <div
                     style={{
                         fontSize: 13,
@@ -346,24 +316,15 @@ export function MfaCard({
                         {busy ? "…" : T("mfa_disable_button")}
                     </button>
                 </form>
-            </div>
+            </SettingsCard>
         );
     }
 
     return (
-        <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>
-                {T("mfa_enable_toggle")}
-            </div>
-            <div
-                style={{
-                    fontSize: 13,
-                    color: "var(--fg-soft)",
-                    marginBottom: 10,
-                }}
-            >
-                {T("mfa_setup_desc")}
-            </div>
+        <SettingsCard
+            title={T("mfa_enable_toggle")}
+            description={T("mfa_setup_desc")}
+        >
             {error && (
                 <div
                     style={{
@@ -378,7 +339,7 @@ export function MfaCard({
             <button className="btn btn-p" onClick={startSetup} disabled={busy}>
                 {busy ? "…" : T("mfa_setup_start")}
             </button>
-        </div>
+        </SettingsCard>
     );
 }
 
@@ -434,21 +395,10 @@ export function ApiTokensCard({ T }: { T: Translator }) {
 
     if (revealedToken) {
         return (
-            <div className="card" style={{ padding: 16 }}>
-                <div
-                    style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}
-                >
-                    {T("api_tokens_reveal_title")}
-                </div>
-                <div
-                    style={{
-                        fontSize: 13,
-                        color: "var(--fg-soft)",
-                        marginBottom: 10,
-                    }}
-                >
-                    {T("api_tokens_reveal_desc")}
-                </div>
+            <SettingsCard
+                title={T("api_tokens_reveal_title")}
+                description={T("api_tokens_reveal_desc")}
+            >
                 <div
                     style={{
                         fontFamily: "monospace",
@@ -468,24 +418,15 @@ export function ApiTokensCard({ T }: { T: Translator }) {
                 >
                     {T("api_tokens_reveal_saved")}
                 </button>
-            </div>
+            </SettingsCard>
         );
     }
 
     return (
-        <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>
-                {T("api_tokens_title")}
-            </div>
-            <div
-                style={{
-                    fontSize: 13,
-                    color: "var(--fg-soft)",
-                    marginBottom: 12,
-                }}
-            >
-                {T("api_tokens_desc")}
-            </div>
+        <SettingsCard
+            title={T("api_tokens_title")}
+            description={T("api_tokens_desc")}
+        >
             <form
                 onSubmit={handleCreate}
                 style={{ display: "flex", gap: 8, marginBottom: 12 }}
@@ -585,7 +526,7 @@ export function ApiTokensCard({ T }: { T: Translator }) {
                     ))}
                 </div>
             )}
-        </div>
+        </SettingsCard>
     );
 }
 
@@ -593,7 +534,7 @@ export function TabSwipeCard() {
     const { T, tabSwipeEnabled, setTabSwipeEnabled } = useAuth();
 
     return (
-        <div className="card" style={{ padding: 16 }}>
+        <SettingsCard>
             <ToggleSwitch
                 id="tab-swipe-toggle"
                 checked={tabSwipeEnabled}
@@ -610,6 +551,6 @@ export function TabSwipeCard() {
             >
                 {T("tab_swipe_desc")}
             </div>
-        </div>
+        </SettingsCard>
     );
 }

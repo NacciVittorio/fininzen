@@ -16,7 +16,10 @@ async function openRecurringSettings(page: Page): Promise<void> {
     await page.reload();
     await page.waitForSelector(".app-net-worth", { timeout: 15000 });
     await page.click('nav a[href="/settings"]');
-    const recurring = page.locator('[data-testid="settings-root-recurring"]');
+    const planning = page.locator('[data-testid="settings-root-planning"]');
+    await expect(planning).toBeVisible({ timeout: 5000 });
+    await planning.click();
+    const recurring = page.locator('[data-testid="planning-root-recurring"]');
     await expect(recurring).toBeVisible({ timeout: 5000 });
     await recurring.click();
 }

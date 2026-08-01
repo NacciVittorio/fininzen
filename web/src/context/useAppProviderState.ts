@@ -210,7 +210,6 @@ export function useAppProviderState() {
     // Settings state
     const [settingsCatType, setSettingsCatType] =
         useState<SettingsCatTab>("expense");
-    const [settingsMenu, setSettingsMenu] = useState<string | null>(null);
     const [showCatAddModal, setShowCatAddModal] = useState(false);
     const [catAddContext, setCatAddContext] = useState<CategoryAddContext>({
         type: "expense",
@@ -413,8 +412,6 @@ export function useAppProviderState() {
         setAllocChartType,
         settingsCatType,
         setSettingsCatType,
-        settingsMenu,
-        setSettingsMenu,
         showCatAddModal,
         setShowCatAddModal,
         catAddContext,

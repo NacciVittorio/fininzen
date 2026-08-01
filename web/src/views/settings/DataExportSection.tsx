@@ -7,14 +7,8 @@ import { useSettings } from "../../context/useSettings";
 import { LONG_FETCH_TIMEOUT_MS } from "../../utils/api";
 import { buildExportOptions } from "../../utils/exportOptions";
 import { logError } from "../../utils/logger";
-import { AccordionSection } from "./SettingsSections";
-import type { AccordionProps } from "./SettingsNavigation";
 
-export function DataExportSection({
-    accordionProps,
-}: {
-    accordionProps: AccordionProps;
-}) {
+export function DataExportSection() {
     const { T, apiFetch, isDemo, viewAs, isFeatureEnabled } = useSettings();
     const [exportingType, setExportingType] = useState<string | null>(null);
     const [exportError, setExportError] = useState<string | null>(null);
@@ -85,100 +79,94 @@ export function DataExportSection({
     if (exportOptions.length === 0) return null;
 
     return (
-        <AccordionSection sectionKey="export" {...accordionProps}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div>
-                    <div
-                        style={{
-                            fontSize: 16,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                        }}
-                    >
-                        {T("export_title")}
-                    </div>
-                    <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
-                        {T("export_desc")}
-                    </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+                <div
+                    style={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        marginBottom: 6,
+                    }}
+                >
+                    {T("export_title")}
                 </div>
+                <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                    {T("export_desc")}
+                </div>
+            </div>
 
-                <div className="card">
-                    {isFeatureEnabled("cashflow") &&
-                        isFeatureEnabled("accounts") &&
-                        isFeatureEnabled("investments") && (
+            <div className="card">
+                {isFeatureEnabled("cashflow") &&
+                    isFeatureEnabled("accounts") &&
+                    isFeatureEnabled("investments") && (
+                        <button
+                            type="button"
+                            onClick={() => downloadExport("all")}
+                            disabled={
+                                exportingType !== null || isDemo || !!viewAs
+                            }
+                            className="btn btn-p"
+                            style={{ width: "100%", marginBottom: 12 }}
+                            aria-label={T("export_all")}
+                        >
+                            {exportingType === "all"
+                                ? "..."
+                                : `📦 ${T("export_all")}`}
+                        </button>
+                    )}
+
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                    }}
+                >
+                    {exportOptions.map(({ type, label }) => (
+                        <div
+                            key={type}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                background: "var(--card-inset)",
+                            }}
+                        >
+                            <span style={{ fontSize: 14, color: "var(--fg)" }}>
+                                {label}
+                            </span>
                             <button
                                 type="button"
-                                onClick={() => downloadExport("all")}
+                                onClick={() => downloadExport(type)}
                                 disabled={
                                     exportingType !== null || isDemo || !!viewAs
                                 }
-                                className="btn btn-p"
-                                style={{ width: "100%", marginBottom: 12 }}
-                                aria-label={T("export_all")}
+                                className="btn btn-sm"
+                                aria-label={`${T("export_btn_download")} ${label}`}
                             >
-                                {exportingType === "all"
+                                {exportingType === type
                                     ? "..."
-                                    : `📦 ${T("export_all")}`}
+                                    : T("export_btn_download")}
                             </button>
-                        )}
+                        </div>
+                    ))}
+                </div>
 
+                {exportError && (
                     <div
                         style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 8,
+                            marginTop: 12,
+                            fontSize: 13,
+                            color: "var(--danger)",
                         }}
                     >
-                        {exportOptions.map(({ type, label }) => (
-                            <div
-                                key={type}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 12,
-                                    padding: "8px 12px",
-                                    borderRadius: 8,
-                                    background: "var(--card-inset)",
-                                }}
-                            >
-                                <span
-                                    style={{ fontSize: 14, color: "var(--fg)" }}
-                                >
-                                    {label}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => downloadExport(type)}
-                                    disabled={
-                                        exportingType !== null ||
-                                        isDemo ||
-                                        !!viewAs
-                                    }
-                                    className="btn btn-sm"
-                                    aria-label={`${T("export_btn_download")} ${label}`}
-                                >
-                                    {exportingType === type
-                                        ? "..."
-                                        : T("export_btn_download")}
-                                </button>
-                            </div>
-                        ))}
+                        {exportError}
                     </div>
-
-                    {exportError && (
-                        <div
-                            style={{
-                                marginTop: 12,
-                                fontSize: 13,
-                                color: "var(--danger)",
-                            }}
-                        >
-                            {exportError}
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
-        </AccordionSection>
+        </div>
     );
 }

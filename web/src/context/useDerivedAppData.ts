@@ -40,6 +40,7 @@ export type SettingsNavigationItem = {
     key: string;
     icon: string;
     label: string;
+    href: string;
 };
 
 export function useDerivedAppData({
@@ -142,49 +143,36 @@ export function useDerivedAppData({
         enabledFeatures.accounts ||
         enabledFeatures.investments;
     const settingsNavItems = [
-        hasConfigurableDataFeatures && {
-            key: "categories",
-            icon: "📂",
-            label: T("settings_categories"),
+        {
+            key: "account",
+            icon: "👤",
+            label: T("settings_user"),
+            href: "/settings/account",
         },
-        enabledFeatures.cashflow && {
-            key: "budget",
-            icon: "🎯",
-            label: T("settings_budget"),
+        (hasConfigurableDataFeatures || enabledFeatures.fire) && {
+            key: "planning",
+            icon: "🗂️",
+            label: T("settings_planning"),
+            href: "/settings/planning",
         },
-        enabledFeatures.cashflow && {
-            key: "recurring",
-            icon: "🔄",
-            label: T("settings_recurring"),
+        {
+            key: "preferences",
+            icon: "⚙️",
+            label: T("settings_preferences"),
+            href: "/settings/preferences",
         },
-        enabledFeatures.investments && {
-            key: "pac",
-            icon: "📆",
-            label: T("settings_pac"),
+        {
+            key: "data",
+            icon: "📥",
+            label: T("settings_data"),
+            href: "/settings/data",
         },
-        enabledFeatures.investments && {
-            key: "allocation",
-            icon: "📊",
-            label: T("settings_allocation"),
+        {
+            key: "about",
+            icon: "ℹ️",
+            label: T("settings_about"),
+            href: "/settings/about",
         },
-        enabledFeatures.fire && {
-            key: "fire",
-            icon: "🔥",
-            label: T("settings_fire"),
-        },
-        enabledFeatures.cashflow && {
-            key: "cashflow_settings",
-            icon: "💸",
-            label: T("settings_cashflow"),
-        },
-        enabledFeatures.investments && {
-            key: "investment_settings",
-            icon: "📈",
-            label: T("settings_investments"),
-        },
-        { key: "data", icon: "📥", label: T("settings_data") },
-        { key: "account", icon: "👤", label: T("settings_user") },
-        { key: "preferences", icon: "⚙️", label: T("settings_preferences") },
     ].filter((item): item is SettingsNavigationItem => Boolean(item));
 
     return {
