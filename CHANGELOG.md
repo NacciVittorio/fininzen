@@ -6,6 +6,18 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v1.0.0 (unreleased)
+
+### Feat
+
+- **auth,expenses**: add long-lived API tokens and quick-add expense endpoint
+
+### Refactor
+
+- **settings**: reorganize Settings into grouped routes (Account, Planning,
+  Preferenze, Dati, About) with real deep-linkable routes, shared
+  SettingsCard/SettingsRow helper, consolidated danger-zone
+
 ## v0.13.0 (2026-07-31)
 
 ### Feat
