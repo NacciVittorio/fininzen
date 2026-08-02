@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { Card } from "../../components/ui";
 import type { CsvImportType, CsvMapping } from "./csvImportConfig";
 import type { CsvImportResponse } from "../../context/useImportAndTicker";
 import type { Translator } from "../../types";
@@ -23,7 +24,7 @@ export function CsvImportTypeSelector({
     setCsvImportPreview: Dispatch<SetStateAction<CsvImportResponse | null>>;
 }) {
     return (
-        <div className="card">
+        <Card variant="settings">
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
                 {T("import_type_label")}
             </div>
@@ -69,6 +70,6 @@ export function CsvImportTypeSelector({
                     );
                 })}
             </div>
-        </div>
+        </Card>
     );
 }

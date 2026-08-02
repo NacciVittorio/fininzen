@@ -262,6 +262,9 @@ body {
 .card--deep {
     box-shadow: var(--shadow-deep);
 }
+.card--settings {
+    padding: 16px;
+}
 
 /* ── Inset surface (highlight box dentro a card) ───────────────── */
 .inset {

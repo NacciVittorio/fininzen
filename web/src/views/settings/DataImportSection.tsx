@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { Card } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
 import { CsvColumnMappingCard } from "./CsvColumnMappingCard";
 import { CsvImportResult } from "./CsvImportResult";
@@ -72,15 +73,7 @@ export function DataImportSection() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
-                <div
-                    style={{
-                        fontSize: 16,
-                        fontWeight: 600,
-                        marginBottom: 6,
-                    }}
-                >
-                    {T("import_title")}
-                </div>
+                <div className="grouped-list__title">{T("import_title")}</div>
                 <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
                     {T("import_desc")}
                 </div>
@@ -129,12 +122,12 @@ export function DataImportSection() {
                     <CsvImportResult T={T} csvImportResult={csvImportResult} />
                 </>
             ) : (
-                <div
-                    className="card"
+                <Card
+                    variant="settings"
                     style={{ fontSize: 13, color: "var(--fg-soft)" }}
                 >
                     {T("features_no_import")}
-                </div>
+                </Card>
             )}
         </div>
     );

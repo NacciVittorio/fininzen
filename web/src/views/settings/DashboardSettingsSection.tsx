@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ToggleSwitch } from "../../components/ui";
+import { GroupedList, ToggleSwitch } from "../../components/ui";
 import { useDragReorder } from "../../components/ui/useDragReorder";
 import { useAuth } from "../../context/useAuth";
 import { useSettings } from "../../context/useSettings";
@@ -64,9 +64,7 @@ export function DashboardSettingsSection() {
 
     return (
         <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                {T("dash_settings")}
-            </div>
+            <div className="grouped-list__title">{T("dash_settings")}</div>
             <div
                 style={{
                     fontSize: 13,
@@ -90,7 +88,7 @@ export function DashboardSettingsSection() {
                     ↺ {T("dash_reset")}
                 </button>
             </div>
-            <div className="grouped-list">
+            <GroupedList>
                 {visibleDashCards.map((card, index) => (
                     <DashboardCardSettingRow
                         key={card.id}
@@ -104,7 +102,7 @@ export function DashboardSettingsSection() {
                         toggleDashCard={toggleDashCard}
                     />
                 ))}
-            </div>
+            </GroupedList>
         </div>
     );
 }

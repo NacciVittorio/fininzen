@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
-import { SettingsCard } from "./SettingsRow";
+import { Card } from "../../components/ui";
 import type { Translator } from "../../types";
 
 type ProfileLike = {
@@ -145,7 +145,7 @@ function ProfileNameCard({
     saveName: () => void;
 }) {
     return (
-        <SettingsCard title={T("user_name")}>
+        <Card variant="settings" title={T("user_name")}>
             <div style={{ display: "flex", gap: 8 }}>
                 <input
                     className="inp"
@@ -163,7 +163,7 @@ function ProfileNameCard({
                     {nameSaved ? `✓ ${T("user_name_saved")}` : T("btn_save")}
                 </button>
             </div>
-        </SettingsCard>
+        </Card>
     );
 }
 
@@ -187,7 +187,11 @@ function EmailChangeCard({
     handleEmailSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
     return (
-        <SettingsCard title={T("change_email")} description={profile.email}>
+        <Card
+            variant="settings"
+            title={T("change_email")}
+            description={profile.email}
+        >
             <form
                 onSubmit={handleEmailSubmit}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -241,7 +245,7 @@ function EmailChangeCard({
                     {emailLoading ? "…" : T("change_email")}
                 </button>
             </form>
-        </SettingsCard>
+        </Card>
     );
 }
 
@@ -263,7 +267,7 @@ function PasswordChangeCard({
     handlePwSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
     return (
-        <SettingsCard title={T("change_password")}>
+        <Card variant="settings" title={T("change_password")}>
             <form
                 onSubmit={handlePwSubmit}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -331,7 +335,7 @@ function PasswordChangeCard({
                     {pwLoading ? "…" : T("change_password")}
                 </button>
             </form>
-        </SettingsCard>
+        </Card>
     );
 }
 
@@ -366,13 +370,14 @@ export function DeleteAccountCard({
     };
 
     return (
-        <SettingsCard
+        <Card
+            variant="settings"
+            tone="danger"
             title={T("account_delete_title", "Delete account")}
             description={T(
                 "account_delete_desc",
                 "This permanently deletes your account and all associated data.",
             )}
-            danger
         >
             <form
                 onSubmit={handleDeleteAccount}
@@ -425,6 +430,6 @@ export function DeleteAccountCard({
                         : T("account_delete_button", "Delete account")}
                 </button>
             </form>
-        </SettingsCard>
+        </Card>
     );
 }

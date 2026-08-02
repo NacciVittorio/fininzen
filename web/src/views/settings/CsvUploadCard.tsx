@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent, RefObject } from "react";
+import { Card } from "../../components/ui";
 import type { Translator } from "../../types";
 
 export function CsvUploadCard({
@@ -19,7 +20,7 @@ export function CsvUploadCard({
     handleCsvSepChange: (sep: string) => void;
 }) {
     return (
-        <div className="card">
+        <Card variant="settings">
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
                 {T("upload_file")}
             </div>
@@ -84,6 +85,6 @@ export function CsvUploadCard({
                     </button>
                 ))}
             </div>
-        </div>
+        </Card>
     );
 }

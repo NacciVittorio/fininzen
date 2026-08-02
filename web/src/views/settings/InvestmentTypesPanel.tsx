@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Card } from "../../components/ui";
 import type { InvestmentType } from "../../api/types";
 import type { ContributionSource } from "../../api/contributionSources";
 import type { Translator } from "../../types";
@@ -146,7 +147,7 @@ function InvestmentTypeRow({
     invType: InvestmentType;
 }) {
     return (
-        <div className="card" style={{ padding: 16 }}>
+        <Card variant="settings">
             <div className="between">
                 <div
                     className="row"
@@ -212,7 +213,7 @@ function InvestmentTypeRow({
                     ×
                 </button>
             </div>
-        </div>
+        </Card>
     );
 }
 
@@ -255,11 +256,7 @@ function ContributionSourcesPanel({
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {contributionSources.map((source) => (
-                    <div
-                        key={source.id}
-                        className="card"
-                        style={{ padding: 14 }}
-                    >
+                    <Card key={source.id} variant="settings">
                         <div className="between">
                             <div
                                 style={{
@@ -311,7 +308,7 @@ function ContributionSourcesPanel({
                                 ×
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 ))}
                 {contributionSources.length === 0 && (
                     <div

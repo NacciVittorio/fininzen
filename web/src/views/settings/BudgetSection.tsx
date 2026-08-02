@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { Card } from "../../components/ui";
 import { deleteBudget, saveBudget } from "../../api/planning";
 import { useSettings } from "../../context/useSettings";
 import { useFormatters } from "../../utils/useFormatters";
@@ -28,9 +29,7 @@ export function BudgetSection() {
 
     return (
         <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
-                {T("budget_title")}
-            </div>
+            <div className="grouped-list__title">{T("budget_title")}</div>
             <div
                 style={{
                     fontSize: 13,
@@ -108,7 +107,7 @@ function BudgetCategoryRow({
     };
 
     return (
-        <div className="card" style={{ padding: "12px 16px" }}>
+        <Card variant="settings">
             <div className="between">
                 <span style={{ fontSize: 14 }}>
                     {category.icon} {category.name}
@@ -185,6 +184,6 @@ function BudgetCategoryRow({
                     )}
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }

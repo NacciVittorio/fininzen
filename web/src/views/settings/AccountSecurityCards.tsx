@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ToggleSwitch } from "../../components/ui";
+import { Card, ToggleSwitch } from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
 import { isWebAuthnAvailable } from "../../utils/webauthn";
 import {
@@ -13,7 +13,6 @@ import {
 import type { ApiToken } from "../../api/apiTokens";
 import { formatDateTime } from "../../utils/formatters";
 import type { Translator } from "../../types";
-import { SettingsCard } from "./SettingsRow";
 
 export function BiometricLockCard() {
     const { T, appLockEnabled, enableAppLock, disableAppLock } = useAuth();
@@ -45,7 +44,8 @@ export function BiometricLockCard() {
 
     if (available === false) {
         return (
-            <SettingsCard
+            <Card
+                variant="settings"
                 title={T("applock_toggle")}
                 description={T("faceid_unavailable")}
             />
@@ -53,7 +53,7 @@ export function BiometricLockCard() {
     }
 
     return (
-        <SettingsCard>
+        <Card variant="settings">
             <ToggleSwitch
                 id="applock-toggle"
                 checked={appLockEnabled}
@@ -82,7 +82,7 @@ export function BiometricLockCard() {
                     {error}
                 </div>
             )}
-        </SettingsCard>
+        </Card>
     );
 }
 
@@ -166,7 +166,8 @@ export function MfaCard({
 
     if (step === "setup") {
         return (
-            <SettingsCard
+            <Card
+                variant="settings"
                 title={T("mfa_setup_title")}
                 description={T("mfa_scan_qr")}
             >
@@ -238,13 +239,14 @@ export function MfaCard({
                         </button>
                     </div>
                 </form>
-            </SettingsCard>
+            </Card>
         );
     }
 
     if (step === "backup-codes") {
         return (
-            <SettingsCard
+            <Card
+                variant="settings"
                 title={T("mfa_backup_codes_title")}
                 description={T("mfa_backup_codes_desc")}
             >
@@ -268,13 +270,13 @@ export function MfaCard({
                 <button className="btn btn-p" onClick={finishBackupCodes}>
                     {T("mfa_backup_codes_saved")}
                 </button>
-            </SettingsCard>
+            </Card>
         );
     }
 
     if (mfaEnabled) {
         return (
-            <SettingsCard title={T("mfa_enable_toggle")}>
+            <Card variant="settings" title={T("mfa_enable_toggle")}>
                 <div
                     style={{
                         fontSize: 13,
@@ -316,12 +318,13 @@ export function MfaCard({
                         {busy ? "…" : T("mfa_disable_button")}
                     </button>
                 </form>
-            </SettingsCard>
+            </Card>
         );
     }
 
     return (
-        <SettingsCard
+        <Card
+            variant="settings"
             title={T("mfa_enable_toggle")}
             description={T("mfa_setup_desc")}
         >
@@ -339,7 +342,7 @@ export function MfaCard({
             <button className="btn btn-p" onClick={startSetup} disabled={busy}>
                 {busy ? "…" : T("mfa_setup_start")}
             </button>
-        </SettingsCard>
+        </Card>
     );
 }
 
@@ -395,7 +398,8 @@ export function ApiTokensCard({ T }: { T: Translator }) {
 
     if (revealedToken) {
         return (
-            <SettingsCard
+            <Card
+                variant="settings"
                 title={T("api_tokens_reveal_title")}
                 description={T("api_tokens_reveal_desc")}
             >
@@ -418,12 +422,13 @@ export function ApiTokensCard({ T }: { T: Translator }) {
                 >
                     {T("api_tokens_reveal_saved")}
                 </button>
-            </SettingsCard>
+            </Card>
         );
     }
 
     return (
-        <SettingsCard
+        <Card
+            variant="settings"
             title={T("api_tokens_title")}
             description={T("api_tokens_desc")}
         >
@@ -526,7 +531,7 @@ export function ApiTokensCard({ T }: { T: Translator }) {
                     ))}
                 </div>
             )}
-        </SettingsCard>
+        </Card>
     );
 }
 
@@ -534,7 +539,7 @@ export function TabSwipeCard() {
     const { T, tabSwipeEnabled, setTabSwipeEnabled } = useAuth();
 
     return (
-        <SettingsCard>
+        <Card variant="settings">
             <ToggleSwitch
                 id="tab-swipe-toggle"
                 checked={tabSwipeEnabled}
@@ -551,6 +556,6 @@ export function TabSwipeCard() {
             >
                 {T("tab_swipe_desc")}
             </div>
-        </SettingsCard>
+        </Card>
     );
 }

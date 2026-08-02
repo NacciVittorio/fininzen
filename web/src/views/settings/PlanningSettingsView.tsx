@@ -6,6 +6,7 @@ import type {
     RecurringExpense,
     RecurringInvestmentPlan,
 } from "../../api/types";
+import { GroupedList } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
 import { useContributionSourceManagement } from "./useContributionSourceManagement";
 import { CategoryManagementSection } from "./CategoryManagementSection";
@@ -13,7 +14,6 @@ import { CategoryModals } from "./CategoryModals";
 import { ContributionSourceModals } from "./ContributionSourceModals";
 import { InvestmentTypeModals } from "./InvestmentTypeModals";
 import { SettingsSectionHeader } from "./SettingsNavigation";
-import { SettingsRow } from "./SettingsRow";
 import {
     AllocationTargetsSection,
     BudgetSection,
@@ -236,40 +236,18 @@ export default function PlanningSettingsView() {
                         backLabel={T("tab_settings")}
                         backHref="/settings"
                     />
-                    <div className="grouped-list">
+                    <GroupedList>
                         {items.map((item) => (
-                            <SettingsRow
+                            <GroupedList.Item
                                 key={item.key}
-                                label={
-                                    <span
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 12,
-                                        }}
-                                    >
-                                        <span style={{ fontSize: 17 }}>
-                                            {item.icon}
-                                        </span>
-                                        {item.label}
-                                    </span>
-                                }
-                                trailing={
-                                    <span
-                                        aria-hidden="true"
-                                        style={{
-                                            color: "var(--fg-faint)",
-                                            fontSize: 17,
-                                        }}
-                                    >
-                                        ›
-                                    </span>
-                                }
+                                icon={item.icon}
+                                label={item.label}
+                                chevron
                                 onClick={() => setPlanningMenu(item.key)}
                                 testId={`planning-root-${item.key}`}
                             />
                         ))}
-                    </div>
+                    </GroupedList>
                 </>
             ) : (
                 <>

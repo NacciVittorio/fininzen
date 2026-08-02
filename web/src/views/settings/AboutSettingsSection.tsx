@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { GroupedList } from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
 import { useAppVersion } from "../../hooks/useAppVersion";
 import { formatDate } from "../../utils/formatters";
@@ -17,65 +18,49 @@ export function AboutSettingsSection() {
 
     return (
         <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                {T("about_title")}
-            </div>
-            <div
-                className="card"
-                style={{
-                    padding: 16,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                }}
-            >
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                    }}
-                >
-                    <span style={{ color: "var(--fg-soft)", fontSize: 13 }}>
-                        {T("about_version")}
-                    </span>
-                    <span
-                        className="mono"
-                        style={{ fontSize: 14, fontWeight: 600 }}
-                    >
-                        {appVersion}
-                    </span>
-                </div>
+            <div className="grouped-list__title">{T("about_title")}</div>
+            <GroupedList>
+                <GroupedList.Item
+                    label={T("about_version")}
+                    value={
+                        <span
+                            className="mono"
+                            style={{ fontSize: 14, fontWeight: 600 }}
+                        >
+                            {appVersion}
+                        </span>
+                    }
+                />
                 {releaseDate && (
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: 12,
-                        }}
-                    >
-                        <span style={{ color: "var(--fg-soft)", fontSize: 13 }}>
-                            {T("about_released_on")}
-                        </span>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>
-                            {formatDate(releaseDate)}
-                        </span>
-                    </div>
+                    <GroupedList.Item
+                        label={T("about_released_on")}
+                        value={
+                            <span style={{ fontSize: 14, fontWeight: 600 }}>
+                                {formatDate(releaseDate)}
+                            </span>
+                        }
+                    />
                 )}
                 <Link
                     href="/changelog"
-                    style={{
-                        fontSize: 13,
-                        color: "var(--accent)",
-                        textDecoration: "none",
-                        fontWeight: 600,
-                    }}
+                    className="grouped-list__item pressable"
+                    style={{ color: "var(--accent)" }}
                 >
-                    {T("about_whats_new")}
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                        {T("about_whats_new")}
+                    </span>
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            color: "var(--fg-faint)",
+                            fontSize: 17,
+                            lineHeight: 1,
+                        }}
+                    >
+                        ›
+                    </span>
                 </Link>
-            </div>
+            </GroupedList>
         </div>
     );
 }

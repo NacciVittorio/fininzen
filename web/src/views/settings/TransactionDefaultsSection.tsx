@@ -1,8 +1,7 @@
 "use client";
 
-import { ToggleSwitch } from "../../components/ui";
+import { GroupedList, ToggleSwitch } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
-import { SettingsGroup, SettingsRow } from "./SettingsRow";
 
 export function TransactionDefaultsSection() {
     const {
@@ -17,13 +16,13 @@ export function TransactionDefaultsSection() {
     }
 
     return (
-        <SettingsGroup title={T("settings_transaction_defaults")}>
+        <GroupedList title={T("settings_transaction_defaults")}>
             {isFeatureEnabled("cashflow") && (
                 <>
-                    <SettingsRow
+                    <GroupedList.Item
                         label={T("settings_cf_default_verified")}
-                        description={T("settings_cf_default_verified_desc")}
-                        trailing={
+                        subtitle={T("settings_cf_default_verified_desc")}
+                        action={
                             <ToggleSwitch
                                 id="cf-default-verified-toggle"
                                 checked={
@@ -38,10 +37,10 @@ export function TransactionDefaultsSection() {
                             />
                         }
                     />
-                    <SettingsRow
+                    <GroupedList.Item
                         label={T("settings_cf_autofill_account")}
-                        description={T("settings_cf_autofill_account_desc")}
-                        trailing={
+                        subtitle={T("settings_cf_autofill_account_desc")}
+                        action={
                             <ToggleSwitch
                                 id="cf-autofill-account-toggle"
                                 checked={
@@ -59,10 +58,10 @@ export function TransactionDefaultsSection() {
                 </>
             )}
             {isFeatureEnabled("investments") && (
-                <SettingsRow
+                <GroupedList.Item
                     label={T("settings_inv_default_verified")}
-                    description={T("settings_inv_default_verified_desc")}
-                    trailing={
+                    subtitle={T("settings_inv_default_verified_desc")}
+                    action={
                         <ToggleSwitch
                             id="inv-default-verified-toggle"
                             checked={
@@ -78,6 +77,6 @@ export function TransactionDefaultsSection() {
                     }
                 />
             )}
-        </SettingsGroup>
+        </GroupedList>
     );
 }

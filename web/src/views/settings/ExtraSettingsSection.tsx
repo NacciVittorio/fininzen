@@ -1,8 +1,8 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { Card } from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
-import { SettingsCard } from "./SettingsRow";
 import type {
     ResetResult,
     ResetTarget,
@@ -26,10 +26,11 @@ export function ExtraSettingsSection({
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {isFeatureEnabled("cashflow") && (
-                <SettingsCard
+                <Card
+                    variant="settings"
+                    tone="danger"
                     title={T("reset_transactions")}
                     description={T("reset_transactions_desc")}
-                    danger
                 >
                     <button
                         className="btn btn-r"
@@ -41,15 +42,16 @@ export function ExtraSettingsSection({
                     >
                         {T("reset_transactions")}
                     </button>
-                </SettingsCard>
+                </Card>
             )}
 
             {(isFeatureEnabled("accounts") ||
                 isFeatureEnabled("investments")) && (
-                <SettingsCard
+                <Card
+                    variant="settings"
+                    tone="danger"
                     title={T("reset_portfolio")}
                     description={T("reset_portfolio_desc")}
-                    danger
                 >
                     <button
                         className="btn btn-r"
@@ -61,7 +63,7 @@ export function ExtraSettingsSection({
                     >
                         {T("reset_portfolio")}
                     </button>
-                </SettingsCard>
+                </Card>
             )}
 
             {resetMsg && (
@@ -91,7 +93,8 @@ export function ExtraSettingsSection({
                 </div>
             )}
 
-            <SettingsCard
+            <Card
+                variant="settings"
                 title={T("load_demo")}
                 description={T("load_demo_desc")}
             >
@@ -116,7 +119,7 @@ export function ExtraSettingsSection({
                 >
                     {T("load_demo")}
                 </button>
-            </SettingsCard>
+            </Card>
         </div>
     );
 }

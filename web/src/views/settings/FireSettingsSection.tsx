@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchFire, getPayloadError, saveFireSettings } from "../../api/fire";
 import type { FireSettings } from "../../api/fire";
+import { Card } from "../../components/ui";
 import { usePortfolio } from "../../context/usePortfolio";
 import type { Translator } from "../../types";
 
@@ -107,7 +108,7 @@ export function FireSettingsSection({
 
     return (
         <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
+            <div className="grouped-list__title">
                 {T("fire_settings_title")}
             </div>
             <div
@@ -119,44 +120,53 @@ export function FireSettingsSection({
             >
                 {T("fire_settings_scope_hint")}
             </div>
-            <FireFieldGrid
-                T={T}
-                fields={CORE_FIRE_FIELDS}
-                form={form}
-                set={set}
-            />
-            <button
-                className="btn"
-                onClick={() => setShowAdvanced((value) => !value)}
-                style={{ marginBottom: 12 }}
-            >
-                {showAdvanced
-                    ? T("fire_settings_advanced_hide")
-                    : T("fire_settings_advanced_show")}
-            </button>
-            {showAdvanced && (
+            <Card variant="settings">
                 <FireFieldGrid
                     T={T}
-                    fields={ADVANCED_FIRE_FIELDS}
+                    fields={CORE_FIRE_FIELDS}
                     form={form}
                     set={set}
                 />
-            )}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <button className="btn btn-p" onClick={save}>
-                    {T("fire_btn_save")}
+                <button
+                    className="btn"
+                    onClick={() => setShowAdvanced((value) => !value)}
+                    style={{ marginBottom: showAdvanced ? 12 : 0 }}
+                >
+                    {showAdvanced
+                        ? T("fire_settings_advanced_hide")
+                        : T("fire_settings_advanced_show")}
                 </button>
-                {saved && (
-                    <span style={{ fontSize: 13, color: "var(--success)" }}>
-                        ✓ {T("user_name_saved")}
-                    </span>
+                {showAdvanced && (
+                    <FireFieldGrid
+                        T={T}
+                        fields={ADVANCED_FIRE_FIELDS}
+                        form={form}
+                        set={set}
+                    />
                 )}
-                {saveError && (
-                    <span style={{ fontSize: 13, color: "var(--danger)" }}>
-                        {saveError}
-                    </span>
-                )}
-            </div>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        marginTop: 4,
+                    }}
+                >
+                    <button className="btn btn-p" onClick={save}>
+                        {T("fire_btn_save")}
+                    </button>
+                    {saved && (
+                        <span style={{ fontSize: 13, color: "var(--success)" }}>
+                            ✓ {T("user_name_saved")}
+                        </span>
+                    )}
+                    {saveError && (
+                        <span style={{ fontSize: 13, color: "var(--danger)" }}>
+                            {saveError}
+                        </span>
+                    )}
+                </div>
+            </Card>
         </div>
     );
 }

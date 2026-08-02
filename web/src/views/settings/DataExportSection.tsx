@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { fetchExportDataset } from "../../api/export";
 import type { ExportDatasetType } from "../../api/export";
+import { Card } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
 import { LONG_FETCH_TIMEOUT_MS } from "../../utils/api";
 import { buildExportOptions } from "../../utils/exportOptions";
@@ -81,21 +82,13 @@ export function DataExportSection() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
-                <div
-                    style={{
-                        fontSize: 16,
-                        fontWeight: 600,
-                        marginBottom: 6,
-                    }}
-                >
-                    {T("export_title")}
-                </div>
+                <div className="grouped-list__title">{T("export_title")}</div>
                 <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
                     {T("export_desc")}
                 </div>
             </div>
 
-            <div className="card">
+            <Card variant="settings">
                 {isFeatureEnabled("cashflow") &&
                     isFeatureEnabled("accounts") &&
                     isFeatureEnabled("investments") && (
@@ -166,7 +159,7 @@ export function DataExportSection() {
                         {exportError}
                     </div>
                 )}
-            </div>
+            </Card>
         </div>
     );
 }
