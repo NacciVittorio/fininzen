@@ -66,7 +66,12 @@ export async function loginAsTestUser(
     await page.goto("/login");
     // register — ignore 400 if already exists
     await page.request.post(`${API}/auth/register/`, {
-        data: { email, password, password2: password },
+        data: {
+            email,
+            password,
+            password2: password,
+            terms_accepted: true,
+        },
     });
     const res = await page.request.post(`${API}/auth/token/`, {
         data: { username: email, password },

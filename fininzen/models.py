@@ -125,6 +125,10 @@ class UserProfile(models.Model):
     # proves possession via /mfa/enable/ — see fininzen/mfa_views.py.
     mfa_enabled = models.BooleanField(default=False)
     mfa_secret = EncryptedTextField(blank=True, default="")
+    # Stamped once at registration when the user accepts the Privacy
+    # Policy/Terms of Service checkbox. Not re-stamped on later policy
+    # revisions (no versioning) — null means the account predates this field.
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Profile<{self.user_id}>"

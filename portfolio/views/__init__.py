@@ -115,7 +115,7 @@ def _reconcile_due_manual_assets_safe(user):
             raise
         logger.warning(
             "reconcile_due_manual_assets skipped: database is locked user=%s",
-            user,
+            user.id,
         )
         # Don't arm the TTL on a transient skip — retry on the next read.
         return

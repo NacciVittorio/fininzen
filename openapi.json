@@ -7470,11 +7470,16 @@
                         "type": "string",
                         "writeOnly": true,
                         "minLength": 1
+                    },
+                    "terms_accepted": {
+                        "type": "boolean",
+                        "writeOnly": true
                     }
                 },
                 "required": [
                     "password",
-                    "password2"
+                    "password2",
+                    "terms_accepted"
                 ]
             }
         },

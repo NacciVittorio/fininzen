@@ -79,7 +79,7 @@ class AssetViewSet(
     @action(detail=False, methods=["post"], url_path="refresh-prices")
     def refresh_prices(self, request):
         user = self.get_effective_user()
-        logger.info("refresh_prices: user=%s", user)
+        logger.info("refresh_prices: user=%s", user.id)
         risultato = refresh_prices_for_user(user)
         risultato.update(
             {
@@ -98,7 +98,7 @@ class AssetViewSet(
             "refresh_single_price: asset=%s ticker=%s user=%s",
             asset.name,
             asset.ticker,
-            request.user,
+            request.user.id,
         )
         ok = aggiorna_prezzo_singolo(asset)
         if ok:
@@ -149,7 +149,7 @@ class AssetViewSet(
             asset.pk if asset else None,
             asset.name if asset else None,
             asset.investment_type if asset else None,
-            self.request.user,
+            self.request.user.id,
         )
 
     def perform_update(self, serializer):

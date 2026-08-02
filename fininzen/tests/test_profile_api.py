@@ -410,15 +410,18 @@ def test_register_marks_current_release_as_seen(db):
             "email": "newcomer@test.com",
             "password": "SuperSecret123!",
             "password2": "SuperSecret123!",
+            "terms_accepted": True,
         },
         format="json",
     )
 
     assert res.status_code == 201
     user = User.objects.get(username="newcomer@test.com")
+    profile = UserProfile.objects.get(user=user)
     # A brand-new account starts caught up, so its first login doesn't announce
     # changes that predate the account.
-    assert UserProfile.objects.get(user=user).last_seen_release == settings.APP_VERSION
+    assert profile.last_seen_release == settings.APP_VERSION
+    assert profile.terms_accepted_at is not None
 
 
 def test_profile_patch_rejects_invalid_privacy_preferences(client, test_user):

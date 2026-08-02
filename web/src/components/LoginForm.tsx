@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import Link from "next/link";
 import { useApp } from "../context/useApp";
 import { useAppVersion } from "../hooks/useAppVersion";
 import { formatDate } from "../utils/formatters";
@@ -27,6 +28,7 @@ export default function LoginForm() {
     const [biometricAvailable, setBiometricAvailable] = useState(false);
     const [mfaToken, setMfaToken] = useState<string | null>(null);
     const [mfaCode, setMfaCode] = useState("");
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     // Offer passwordless sign-in only when this device has a registered passkey
     // (stored when app-lock was enabled), a remembered email to identify the
@@ -50,6 +52,7 @@ export default function LoginForm() {
         setError(null);
         setSuccess(null);
         setPassword2("");
+        setTermsAccepted(false);
     }
 
     async function handleDemoLogin() {
@@ -85,6 +88,9 @@ export default function LoginForm() {
             setError(T("password_mismatch"));
             return;
         }
+        if (mode === "register" && !termsAccepted) {
+            return;
+        }
 
         setLoading(true);
 
@@ -104,12 +110,18 @@ export default function LoginForm() {
                 }
             }
         } else {
-            const result = await register(email, password, password2);
+            const result = await register(
+                email,
+                password,
+                password2,
+                termsAccepted,
+            );
             if (result.ok) {
                 setSuccess(T("register_success"));
                 setMode("login");
                 setPassword("");
                 setPassword2("");
+                setTermsAccepted(false);
             } else if (result.errors) {
                 setError(result.errors);
             } else if (result.status === 400) {
@@ -337,12 +349,63 @@ export default function LoginForm() {
                                         style={{
                                             fontSize: 11,
                                             color: "var(--fg-soft)",
-                                            marginBottom: 20,
+                                            marginBottom: 16,
                                             lineHeight: 1.5,
                                         }}
                                     >
                                         {T("password_requirements")}
                                     </div>
+                                    <label
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 10,
+                                            cursor: "pointer",
+                                            background: "var(--card-inset)",
+                                            borderRadius: 10,
+                                            padding: "12px 14px",
+                                            border: "1px solid var(--rule)",
+                                            fontSize: 12,
+                                            color: "var(--fg)",
+                                            marginBottom: 20,
+                                            lineHeight: 1.5,
+                                        }}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={termsAccepted}
+                                            onChange={(e) =>
+                                                setTermsAccepted(
+                                                    e.target.checked,
+                                                )
+                                            }
+                                            style={{ marginTop: 2 }}
+                                        />
+                                        <span>
+                                            {T("legal_consent_prefix")}{" "}
+                                            <Link
+                                                href="/privacy"
+                                                target="_blank"
+                                                style={{
+                                                    color: "var(--accent)",
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {T("legal_link_privacy")}
+                                            </Link>{" "}
+                                            {T("legal_consent_and")}{" "}
+                                            <Link
+                                                href="/terms"
+                                                target="_blank"
+                                                style={{
+                                                    color: "var(--accent)",
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {T("legal_link_terms")}
+                                            </Link>
+                                        </span>
+                                    </label>
                                 </>
                             )}
 
@@ -376,7 +439,10 @@ export default function LoginForm() {
                             <button
                                 type="submit"
                                 className="btn btn-p"
-                                disabled={loading}
+                                disabled={
+                                    loading ||
+                                    (mode === "register" && !termsAccepted)
+                                }
                                 style={{
                                     width: "100%",
                                     padding: "12px 0",
@@ -513,6 +579,15 @@ export default function LoginForm() {
                 }}
             >
                 © 2026 Vittorio Nacci. All rights reserved.
+                <div style={{ marginTop: 6 }}>
+                    <Link href="/privacy" style={{ color: "var(--fg-soft)" }}>
+                        {T("legal_footer_privacy")}
+                    </Link>{" "}
+                    ·{" "}
+                    <Link href="/terms" style={{ color: "var(--fg-soft)" }}>
+                        {T("legal_footer_terms")}
+                    </Link>
+                </div>
                 <div className="mono" style={{ marginTop: 4, opacity: 0.8 }}>
                     {[
                         `v${appVersion}`,

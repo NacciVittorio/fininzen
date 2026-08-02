@@ -29,7 +29,10 @@ class _AssetLifecycleMixin:
     def destroy(self, request, *args, **kwargs):
         asset = self.get_object()
         logger.info(
-            "destroy asset: id=%s name=%s user=%s", asset.pk, asset.name, request.user
+            "destroy asset: id=%s name=%s user=%s",
+            asset.pk,
+            asset.name,
+            request.user.id,
         )
         delete_asset_cascade(asset)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -54,7 +57,7 @@ class _AssetLifecycleMixin:
         effective = self.get_effective_user()
         count, _ = Asset.objects.filter(owner=effective).delete()
         PortfolioSnapshot.objects.filter(owner=effective).delete()
-        logger.warning("reset: deleted %d assets for user=%s", count, effective)
+        logger.warning("reset: deleted %d assets for user=%s", count, effective.id)
         return Response({"deleted": count})
 
     @action(detail=True, methods=["post"], url_path="archive")
@@ -146,7 +149,7 @@ class _AssetLifecycleMixin:
         asset.archived_at = django_tz.now()
         asset.save(update_fields=["is_archived", "archived_at"])
         logger.info(
-            "archive: asset=%s id=%s user=%s", asset.name, asset.pk, request.user
+            "archive: asset=%s id=%s user=%s", asset.name, asset.pk, request.user.id
         )
         return Response(AssetSerializer(asset, context={"request": request}).data)
 
@@ -166,7 +169,7 @@ class _AssetLifecycleMixin:
         asset.archived_at = None
         asset.save(update_fields=["is_archived", "archived_at"])
         logger.info(
-            "unarchive: asset=%s id=%s user=%s", asset.name, asset.pk, request.user
+            "unarchive: asset=%s id=%s user=%s", asset.name, asset.pk, request.user.id
         )
         rollback_candidates = list(
             Asset.objects.filter(

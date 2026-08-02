@@ -101,7 +101,7 @@ def generate_recurring_expenses(user, year: int, month: int) -> dict:
     Salta le spese già esistenti per quel mese. Ritorna {"created", "skipped"}.
     """
     logger.info(
-        "generate_recurring_expenses: user=%s year=%s month=%s", user, year, month
+        "generate_recurring_expenses: user=%s year=%s month=%s", user.id, year, month
     )
     disable_expired_recurrings(user)
     recurrings = RecurringExpense.objects.filter(

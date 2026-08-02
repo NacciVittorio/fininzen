@@ -266,7 +266,7 @@ class _AssetImportMixin:
 
         logger.info(
             "import_assets_as_transactions: user=%s imported=%d skipped=%d errors=%d",
-            owner,
+            owner.id,
             imported,
             skipped,
             len(errors),
@@ -381,7 +381,7 @@ class _AssetImportMixin:
 
         logger.info(
             "import_transactions: user=%s imported=%d skipped=%d errors=%d",
-            owner,
+            owner.id,
             imported,
             skipped,
             len(errors),
@@ -491,7 +491,7 @@ class _AssetImportMixin:
 
         logger.info(
             "import_accounts: user=%s imported=%d skipped=%d errors=%d",
-            owner,
+            owner.id,
             imported,
             skipped,
             len(errors),

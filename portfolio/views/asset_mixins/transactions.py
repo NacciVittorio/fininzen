@@ -81,7 +81,7 @@ class _AssetTransactionsMixin:
             data.get("price_per_share"),
             source_account_id,
             dest_account_id,
-            self.request.user,
+            self.request.user.id,
         )
         try:
             tx, response_extra = create_transaction(
@@ -96,7 +96,7 @@ class _AssetTransactionsMixin:
                 "transactions POST: rejected — %s (asset=%s user=%s)",
                 exc,
                 asset.name,
-                self.request.user,
+                self.request.user.id,
             )
             return domain_error_response(exc)
 
@@ -121,7 +121,7 @@ class _AssetTransactionsMixin:
                 "modify_transaction DELETE: tx_id=%s asset=%s user=%s",
                 tx_id,
                 asset.name,
-                request.user,
+                request.user.id,
             )
             try:
                 delete_transaction(tx)
@@ -213,7 +213,7 @@ class _AssetTransactionsMixin:
             to_account.name,
             amount,
             tx_date,
-            request.user,
+            request.user.id,
         )
         try:
             result = transfer_between_accounts(
@@ -268,7 +268,7 @@ class _AssetTransactionsMixin:
             asset.current_value,
             new_balance,
             diff,
-            request.user,
+            request.user.id,
         )
         with transaction.atomic():
             AssetTransaction.objects.create(

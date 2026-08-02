@@ -343,7 +343,7 @@ class ExportView(APIView):
         today_str = date.today().isoformat()
 
         if export_type == "all":
-            logger.info("export: user=%s type=all", user)
+            logger.info("export: user=%s type=all", user.id)
             return _zip_response(user, today_str)
 
         producer = _ROW_PRODUCERS.get(export_type)
@@ -356,6 +356,6 @@ class ExportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        logger.info("export: user=%s type=%s", user, export_type)
+        logger.info("export: user=%s type=%s", user.id, export_type)
         filename = f"fininzen_{export_type}_{today_str}.csv"
         return _csv_response(producer, user, filename)

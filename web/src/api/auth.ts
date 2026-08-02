@@ -33,12 +33,18 @@ export async function requestRegister(
     email: string,
     password: string,
     password2: string,
+    termsAccepted: boolean,
 ): Promise<RegisterResult> {
     try {
         const response = await fetchWithTimeout(`${API}/auth/register/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password, password2 }),
+            body: JSON.stringify({
+                email,
+                password,
+                password2,
+                terms_accepted: termsAccepted,
+            }),
         });
         if (response.ok) return { ok: true };
         const data = await response.json().catch(() => ({}));

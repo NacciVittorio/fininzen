@@ -282,8 +282,13 @@ export function useSessionController(providerState: AppProviderState) {
     );
 
     const register = useCallback(
-        async (email: string, password: string, password2: string) => {
-            return requestRegister(email, password, password2);
+        async (
+            email: string,
+            password: string,
+            password2: string,
+            termsAccepted: boolean,
+        ) => {
+            return requestRegister(email, password, password2, termsAccepted);
         },
         [],
     );

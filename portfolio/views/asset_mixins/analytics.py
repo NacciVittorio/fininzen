@@ -61,7 +61,7 @@ class _AssetAnalyticsMixin:
         )
         end_date = _parse(request.query_params.get("end_date"), today)
         logger.debug(
-            "history: start=%s end=%s user=%s", start_date, end_date, request.user
+            "history: start=%s end=%s user=%s", start_date, end_date, request.user.id
         )
         include_breakdown = (
             request.query_params.get("include_breakdown", "").lower() == "true"
@@ -565,7 +565,7 @@ class _AssetAnalyticsMixin:
             return Response({"error": "Invalid year"}, status=400)
 
         user = self.get_effective_user()
-        logger.debug("monthly_overview: year=%s user=%s", year, user)
+        logger.debug("monthly_overview: year=%s user=%s", year, user.id)
 
         # --- Bulk load AssetPriceHistory fino a fine anno ---
         year_start = date_cls(year, 1, 1)

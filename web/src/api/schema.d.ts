@@ -2750,6 +2750,7 @@ export interface components {
             email?: string;
             password: string;
             password2: string;
+            terms_accepted: boolean;
         };
     };
     responses: never;

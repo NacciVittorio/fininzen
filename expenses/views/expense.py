@@ -129,7 +129,7 @@ class ExpenseViewSet(ViewAsMixin, viewsets.ModelViewSet):
         logger.warning(
             "Reset: %d expenses deleted by user=%s",
             count,
-            _effective_user(request),
+            _effective_user(request).id,
         )
         return Response({"deleted": count})
 

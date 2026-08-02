@@ -60,6 +60,44 @@ export function AboutSettingsSection() {
                         ›
                     </span>
                 </Link>
+                <Link
+                    href="/privacy"
+                    className="grouped-list__item pressable"
+                    style={{ color: "var(--accent)" }}
+                >
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                        {T("legal_footer_privacy")}
+                    </span>
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            color: "var(--fg-faint)",
+                            fontSize: 17,
+                            lineHeight: 1,
+                        }}
+                    >
+                        ›
+                    </span>
+                </Link>
+                <Link
+                    href="/terms"
+                    className="grouped-list__item pressable"
+                    style={{ color: "var(--accent)" }}
+                >
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                        {T("legal_footer_terms")}
+                    </span>
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            color: "var(--fg-faint)",
+                            fontSize: 17,
+                            lineHeight: 1,
+                        }}
+                    >
+                        ›
+                    </span>
+                </Link>
             </GroupedList>
         </div>
     );

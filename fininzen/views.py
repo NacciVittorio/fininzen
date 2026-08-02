@@ -11,6 +11,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db import connection
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import inline_serializer
 from rest_framework import exceptions, serializers, status
@@ -215,15 +216,23 @@ class LogoutView(APIView):
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
+    terms_accepted = serializers.BooleanField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ["email", "password", "password2"]
+        fields = ["email", "password", "password2", "terms_accepted"]
 
     def validate_email(self, value):
         value = value.strip().lower()
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate_terms_accepted(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "You must accept the Privacy Policy and Terms of Service."
+            )
         return value
 
     def validate(self, data):
@@ -234,6 +243,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop("password2")
+        validated_data.pop("terms_accepted")
         user = User.objects.create_user(
             username=validated_data["email"],
             email=validated_data["email"],
@@ -241,7 +251,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         )
         # Start new accounts already caught up on the current release, so their
         # first login doesn't announce changes that predate the account.
-        UserProfile.objects.create(user=user, last_seen_release=settings.APP_VERSION)
+        UserProfile.objects.create(
+            user=user,
+            last_seen_release=settings.APP_VERSION,
+            terms_accepted_at=timezone.now(),
+        )
         if settings.E2E_AUTO_APPROVE_REGISTRATION:
             UserProfile.objects.filter(user=user).update(
                 status=UserProfile.STATUS_APPROVED
@@ -394,8 +408,8 @@ class GrantsView(APIView):
         )
         logger.info(
             "GrantsView POST: owner=%s grantee=%s permission=%s created=%s",
-            request.user,
-            grantee,
+            request.user.id,
+            grantee.id,
             permission,
             created,
         )
@@ -575,7 +589,7 @@ class ProfileView(APIView):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         logger.debug(
             "ProfileView GET: user=%s separator=%s",
-            request.user,
+            request.user.id,
             profile.decimal_separator,
         )
         return Response(UserProfileSerializer(profile).data)
@@ -611,10 +625,9 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         logger.info(
-            "ProfileView PATCH: user=%s separator=%s name=%s",
-            request.user,
+            "ProfileView PATCH: user=%s separator=%s",
+            request.user.id,
             serializer.instance.decimal_separator,
-            serializer.instance.name,
         )
         return Response(UserProfileSerializer(serializer.instance).data)
 
@@ -648,7 +661,7 @@ class ChangePasswordView(APIView):
             )
         user.set_password(serializer.validated_data["new_password"])
         user.save()
-        logger.info("ChangePasswordView: user=%s changed password", user)
+        logger.info("ChangePasswordView: user=%s changed password", user.id)
         return Response({"detail": "Password aggiornata."}, status=status.HTTP_200_OK)
 
 
@@ -730,14 +743,11 @@ class AccountView(APIView):
             )
 
         user_id = request.user.id
-        username = request.user.username
         with transaction.atomic():
             request.user.delete()
             from portfolio.models import DashboardSummary, FireSettings
 
             DashboardSummary.objects.filter(owner_id=user_id).delete()
             FireSettings.objects.filter(owner_id=user_id).delete()
-        logger.warning(
-            "AccountView DELETE: deleted user_id=%s username=%s", user_id, username
-        )
+        logger.warning("AccountView DELETE: deleted user_id=%s", user_id)
         return Response(status=status.HTTP_204_NO_CONTENT)

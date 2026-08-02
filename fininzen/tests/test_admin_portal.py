@@ -77,6 +77,7 @@ def test_register_creates_pending_user(db):
             "email": "newcomer@test.com",
             "password": "SuperSecret123!",
             "password2": "SuperSecret123!",
+            "terms_accepted": True,
         },
         format="json",
     )
@@ -86,6 +87,22 @@ def test_register_creates_pending_user(db):
     profile = UserProfile.objects.get(user=user)
     assert profile.status == UserProfile.STATUS_PENDING
     assert profile.role == UserProfile.ROLE_USER
+
+
+def test_register_rejects_missing_terms_acceptance(db):
+    res = APIClient().post(
+        "/api/auth/register/",
+        data={
+            "email": "no-consent@test.com",
+            "password": "SuperSecret123!",
+            "password2": "SuperSecret123!",
+            "terms_accepted": False,
+        },
+        format="json",
+    )
+
+    assert res.status_code == 400
+    assert not User.objects.filter(email="no-consent@test.com").exists()
 
 
 def test_pending_user_cannot_login(pending_user):

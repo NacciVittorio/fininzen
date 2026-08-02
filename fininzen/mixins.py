@@ -37,7 +37,7 @@ def resolve_view_as(request):
             raise ValueError
     except (TypeError, ValueError):
         _throttle_view_as_attempt(request)
-        logger.warning("ViewAs: malformed owner id from user=%s", user)
+        logger.warning("ViewAs: malformed owner id from user=%s", user.id)
         raise ParseError("X-View-As must be a positive integer.")
 
     grant = (
@@ -49,7 +49,7 @@ def resolve_view_as(request):
         _throttle_view_as_attempt(request)
         logger.warning(
             "ViewAs: rejected user=%s owner_id=%s ip=%s",
-            user,
+            user.id,
             owner_id,
             request.META.get("REMOTE_ADDR", "?"),
         )
@@ -59,8 +59,8 @@ def resolve_view_as(request):
     request.view_as_permission = grant.permission
     logger.debug(
         "ViewAs: user=%s viewing_as=%s permission=%s",
-        user,
-        grant.owner,
+        user.id,
+        grant.owner_id,
         grant.permission,
     )
     return grant.owner
@@ -101,8 +101,8 @@ class ViewAsMixin:
             if request.method not in SAFE_METHODS:
                 logger.warning(
                     "ViewAsMixin: write blocked for user=%s viewing as=%s method=%s",
-                    request.user,
-                    view_as,
+                    request.user.id,
+                    view_as.id,
                     request.method,
                 )
                 raise PermissionDenied("Accesso in sola lettura.")
