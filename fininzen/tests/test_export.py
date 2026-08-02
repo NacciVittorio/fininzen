@@ -20,13 +20,17 @@ from django.contrib.auth.models import User
 from django.test import Client
 
 import fininzen.export_views as export_views
-from expenses.models import Category, Expense
+from expenses.models import Budget, Category, Expense, RecurringExpense
+from fininzen.models import DataAccessGrant, UserProfile
 from portfolio.models import (
+    AllocationTarget,
     Asset,
     AssetPriceHistory,
     AssetTransaction,
     ContributionSource,
+    FireSettings,
     InvestmentType,
+    RecurringInvestmentPlan,
 )
 
 
@@ -183,6 +187,13 @@ def test_export_transactions_returns_csv(client, buy_tx, bank_cash_in_tx):
         "total_value",
         "contribution_source",
         "notes",
+        "fee",
+        "tax_amount",
+        "fx_rate_to_eur",
+        "gross_amount_eur",
+        "fee_eur",
+        "tax_amount_eur",
+        "is_verified",
     ]
     asset_names = [r[1] for r in rows[1:]]
     # Investment trade is included…
@@ -227,7 +238,7 @@ def test_export_price_history_returns_csv(client, price_point):
     res = client.get("/api/export/?type=price_history")
     assert res.status_code == 200
     rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
-    assert rows[0] == ["asset_name", "date", "close", "currency"]
+    assert rows[0] == ["asset_name", "date", "close", "currency", "open"]
     assert any(r[0] == "VWCE" for r in rows[1:])
 
 
@@ -247,7 +258,23 @@ def test_export_all_returns_zip_with_every_kind(
     assert "filename*=UTF-8''fininzen_export_" in res["Content-Disposition"]
     with zipfile.ZipFile(io.BytesIO(_response_body(res))) as zf:
         names = zf.namelist()
-        for kind in ("accounts", "assets", "transactions", "cashflow", "price_history"):
+        for kind in (
+            "accounts",
+            "assets",
+            "transactions",
+            "cashflow",
+            "price_history",
+            "categories",
+            "budgets",
+            "recurring_expenses",
+            "recurring_investment_plans",
+            "allocation_targets",
+            "fire_settings",
+            "investment_types",
+            "contribution_sources",
+            "profile",
+            "sharing",
+        ):
             assert any(
                 n.startswith(f"fininzen_{kind}_") and n.endswith(".csv") for n in names
             ), f"missing {kind} in zip: {names}"
@@ -257,6 +284,259 @@ def test_export_all_returns_zip_with_every_kind(
         # bank-account cashflow movements — so Export All loses no data.
         assert any(r[1] == "VWCE" and r[2] == "buy" for r in tx_rows[1:])
         assert any(r[1] == "Main Bank" and r[2] == "cash_in" for r in tx_rows[1:])
+
+
+# ── New kinds (complete-export follow-up) ───────────────────────────────────
+
+
+@pytest.fixture
+def subcategory(test_user, cat_food):
+    return Category.objects.create(
+        name="Restaurants",
+        category_type=Category.EXPENSE,
+        parent=cat_food,
+        owner=test_user,
+    )
+
+
+@pytest.fixture
+def budget(test_user, cat_food):
+    return Budget.objects.create(
+        category=cat_food, amount=Decimal("300.00"), owner=test_user
+    )
+
+
+@pytest.fixture
+def recurring_expense(test_user, cat_food):
+    return RecurringExpense.objects.create(
+        description="Rent",
+        amount=Decimal("800.00"),
+        category=cat_food,
+        start_date=date(2026, 1, 1),
+        owner=test_user,
+    )
+
+
+@pytest.fixture
+def recurring_investment_plan(test_user, etf_asset, bank_account):
+    return RecurringInvestmentPlan.objects.create(
+        name="Monthly VWCE",
+        asset=etf_asset,
+        source_account=bank_account,
+        amount=Decimal("200.00"),
+        start_date=date(2026, 1, 1),
+        owner=test_user,
+    )
+
+
+@pytest.fixture
+def allocation_target(test_user, itype_etf):
+    return AllocationTarget.objects.create(
+        investment_type=itype_etf, target_percent=Decimal("70.00"), owner=test_user
+    )
+
+
+@pytest.fixture
+def fire_settings(test_user):
+    return FireSettings.objects.create(owner=test_user, user_age=35, retirement_age=60)
+
+
+@pytest.fixture
+def sharing_grant(test_user):
+    grantee = User.objects.create_user(
+        username="grantee2@test.com", email="grantee2@test.com", password="pw12345!"
+    )
+    return DataAccessGrant.objects.create(
+        owner=test_user, grantee=grantee, permission="read"
+    )
+
+
+def test_export_categories_returns_csv(client, subcategory, cat_food):
+    res = client.get("/api/export/?type=categories")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == ["id", "name", "category_type", "color", "icon", "parent"]
+    assert any(r[1] == "Restaurants" and r[5] == "Food" for r in rows[1:])
+    assert any(r[1] == "Food" and r[5] == "" for r in rows[1:])
+
+
+def test_export_budgets_returns_csv(client, budget):
+    res = client.get("/api/export/?type=budgets")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == ["id", "category", "amount"]
+    assert any(r[1] == "Food" and r[2] == "300.00" for r in rows[1:])
+
+
+def test_export_recurring_expenses_returns_csv(client, recurring_expense):
+    res = client.get("/api/export/?type=recurring_expenses")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "description",
+        "amount",
+        "category",
+        "linked_asset",
+        "frequency",
+        "day_of_month",
+        "month_of_year",
+        "start_date",
+        "end_date",
+        "status",
+    ]
+    assert any(r[1] == "Rent" and r[3] == "Food" for r in rows[1:])
+
+
+def test_export_recurring_investment_plans_returns_csv(
+    client, recurring_investment_plan
+):
+    res = client.get("/api/export/?type=recurring_investment_plans")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "name",
+        "asset",
+        "source_account",
+        "amount",
+        "frequency",
+        "day_of_week",
+        "day_of_month",
+        "anchor_month",
+        "start_date",
+        "end_date",
+        "status",
+    ]
+    assert any(
+        r[1] == "Monthly VWCE" and r[2] == "VWCE" and r[3] == "Main Bank"
+        for r in rows[1:]
+    )
+
+
+def test_export_allocation_targets_returns_csv(client, allocation_target):
+    res = client.get("/api/export/?type=allocation_targets")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == ["id", "investment_type", "target_percent"]
+    assert any(r[1] == "ETF" and r[2] == "70.00" for r in rows[1:])
+
+
+def test_export_fire_settings_returns_csv(client, fire_settings):
+    res = client.get("/api/export/?type=fire_settings")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0][:2] == ["user_age", "retirement_age"]
+    assert len(rows) == 2
+    assert rows[1][:2] == ["35", "60"]
+
+
+def test_export_fire_settings_header_only_when_absent(client):
+    res = client.get("/api/export/?type=fire_settings")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert len(rows) == 1
+    assert FireSettings.objects.count() == 0
+
+
+def test_export_investment_types_returns_csv(client, itype_bank, itype_etf):
+    res = client.get("/api/export/?type=investment_types")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "name",
+        "color",
+        "icon",
+        "is_bank_account",
+        "supports_ticker",
+        "is_liquid_default",
+        "supports_contribution_source",
+        "tax_rate",
+    ]
+    names = [r[1] for r in rows[1:]]
+    assert "Bank" in names and "ETF" in names
+
+
+def test_export_contribution_sources_returns_csv(client, contribution_source):
+    res = client.get("/api/export/?type=contribution_sources")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == ["id", "name", "sort_order", "is_active"]
+    assert any(r[1] == "TFR" for r in rows[1:])
+
+
+def test_export_profile_returns_csv(client, test_user):
+    profile = UserProfile.objects.create(user=test_user, name="Vittorio")
+    res = client.get("/api/export/?type=profile")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0][:2] == ["decimal_separator", "name"]
+    assert len(rows) == 2
+    assert rows[1][:2] == [profile.decimal_separator, "Vittorio"]
+    # security/internal fields must never appear
+    header_text = ",".join(rows[0])
+    assert "mfa_secret" not in header_text
+    assert "status" not in header_text
+    assert "role" not in header_text
+
+
+def test_export_profile_header_only_when_absent(client):
+    res = client.get("/api/export/?type=profile")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert len(rows) == 1
+
+
+def test_export_sharing_returns_only_grants_given(client, test_user, sharing_grant):
+    # A grant received (not given) by test_user must not appear.
+    other = User.objects.create_user(username="other2@test.com", password="pw123456!")
+    DataAccessGrant.objects.create(owner=other, grantee=test_user, permission="full")
+
+    res = client.get("/api/export/?type=sharing")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == ["id", "grantee", "permission", "created_at"]
+    grantees = [r[1] for r in rows[1:]]
+    assert "grantee2@test.com" in grantees
+    assert other.username not in grantees
+
+
+def test_export_categories_sanitizes_formulas(client, test_user):
+    Category.objects.create(
+        name='=HYPERLINK("http://attacker","click")',
+        category_type=Category.EXPENSE,
+        owner=test_user,
+    )
+    res = client.get("/api/export/?type=categories")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    _assert_no_unescaped_formula(rows[1:])
+    assert any(r[1].startswith("'=") for r in rows[1:])
+
+
+def test_export_recurring_expenses_sanitizes_formulas(client, test_user, cat_food):
+    RecurringExpense.objects.create(
+        description="=evil_recurring",
+        amount=Decimal("10.00"),
+        category=cat_food,
+        start_date=date(2026, 1, 1),
+        owner=test_user,
+    )
+    res = client.get("/api/export/?type=recurring_expenses")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    _assert_no_unescaped_formula(rows[1:])
+    assert any(r[1].startswith("'=") for r in rows[1:])
+
+
+def test_export_profile_sanitizes_formulas(client, test_user):
+    UserProfile.objects.create(user=test_user, name="=evil_name")
+    res = client.get("/api/export/?type=profile")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    _assert_no_unescaped_formula(rows[1:])
+    assert rows[1][1].startswith("'=")
 
 
 # ── 4xx paths ────────────────────────────────────────────────────────────────
@@ -296,8 +576,6 @@ def test_export_demo_user_returns_403(db):
 def test_export_blocked_under_viewas(db, test_user, itype_etf):
     """A grantee using X-View-As must not be able to bulk-export the
     owner's data — read grants don't include exfiltration rights."""
-    from fininzen.models import DataAccessGrant
-
     grantee = User.objects.create_user(
         username="grantee@test.com", email="grantee@test.com", password="pw12345!"
     )
@@ -389,6 +667,7 @@ def dangerous_etf(test_user, itype_etf):
         price_per_share=Decimal("1.0000"),
         current_value=Decimal("1.00"),
         invested_capital=Decimal("1.00"),
+        notes="=evil_note",
         owner=test_user,
     )
 

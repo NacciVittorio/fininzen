@@ -456,12 +456,8 @@ const en: Record<string, string> = {
     // Settings - Export section (Feature F)
     export_title: "Export your data",
     export_desc:
-        "Download a snapshot of your data as CSV (or everything as a ZIP). Useful for backups and analysis in spreadsheets.",
+        "Download a full snapshot of your data as a ZIP of CSV files. Useful for backups and analysis in spreadsheets.",
     export_all: "Export All (.zip)",
-    export_assets: "Assets",
-    export_transactions: "Investments",
-    export_cashflow: "Cash Flow",
-    export_btn_download: "Download CSV",
     export_demo_blocked: "Export is disabled in demo mode.",
     export_viewas_blocked:
         "Export is disabled while viewing another user's data — switch back to your own account.",

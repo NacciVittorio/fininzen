@@ -81,22 +81,24 @@ export function DataImportSection() {
 
             {importTypeOptions.length > 0 ? (
                 <>
-                    <CsvImportTypeSelector
-                        T={T}
-                        importTypeOptions={importTypeOptions}
-                        csvImportType={csvImportType}
-                        setCsvImportType={setCsvImportType}
-                        setCsvMap={setCsvMap}
-                        setCsvImportPreview={setCsvImportPreview}
-                    />
-                    <CsvUploadCard
-                        T={T}
-                        csvFileInputRef={csvFileInputRef}
-                        csvFile={csvFile}
-                        csvSep={csvSep}
-                        handleCSVUpload={handleCSVUpload}
-                        handleCsvSepChange={handleCsvSepChange}
-                    />
+                    <Card variant="settings">
+                        <CsvImportTypeSelector
+                            T={T}
+                            importTypeOptions={importTypeOptions}
+                            csvImportType={csvImportType}
+                            setCsvImportType={setCsvImportType}
+                            setCsvMap={setCsvMap}
+                            setCsvImportPreview={setCsvImportPreview}
+                        />
+                        <CsvUploadCard
+                            T={T}
+                            csvFileInputRef={csvFileInputRef}
+                            csvFile={csvFile}
+                            csvSep={csvSep}
+                            handleCSVUpload={handleCSVUpload}
+                            handleCsvSepChange={handleCsvSepChange}
+                        />
+                    </Card>
                     <CsvColumnMappingCard
                         T={T}
                         categories={categories}

@@ -458,12 +458,8 @@ const it: Record<string, string> = {
     // Settings - Export section (Feature F)
     export_title: "Esporta i tuoi dati",
     export_desc:
-        "Scarica una copia dei tuoi dati in CSV (o tutto insieme in ZIP). Utile per backup e analisi su foglio elettronico.",
+        "Scarica una copia completa dei tuoi dati in un unico ZIP di file CSV. Utile per backup e analisi su foglio elettronico.",
     export_all: "Esporta tutto (.zip)",
-    export_assets: "Asset",
-    export_transactions: "Investimenti",
-    export_cashflow: "Cash Flow",
-    export_btn_download: "Scarica CSV",
     export_demo_blocked: "L'export è disabilitato in modalità demo.",
     export_viewas_blocked:
         "Export disabilitato mentre stai visualizzando i dati di un altro utente — torna al tuo account.",

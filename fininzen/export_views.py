@@ -5,12 +5,22 @@ Single endpoint `GET /api/export/?type=<kind>` that streams the user's data
 as CSV (or all kinds bundled as a ZIP when `type=all`).
 
 Kinds mirror the roadmap spec:
-    accounts        Asset rows whose investment_type is a bank account
-    assets          all Asset rows
-    transactions    AssetTransaction rows
-    cashflow        Expense rows
-    price_history   AssetPriceHistory rows
-    all             every kind above, zipped together
+    accounts                    Asset rows whose investment_type is a bank account
+    assets                      all Asset rows
+    transactions                AssetTransaction rows
+    cashflow                    Expense rows
+    price_history               AssetPriceHistory rows
+    categories                  Category rows
+    budgets                     Budget rows
+    recurring_expenses          RecurringExpense rows
+    recurring_investment_plans  RecurringInvestmentPlan rows
+    allocation_targets          AllocationTarget rows
+    fire_settings               FireSettings (singleton, header + at most one row)
+    investment_types            InvestmentType rows
+    contribution_sources        ContributionSource rows
+    profile                     UserProfile preferences (singleton, non-sensitive fields only)
+    sharing                     DataAccessGrant rows the user created (owner=user)
+    all                         every kind above, zipped together
 
 Auth: IsAuthenticated. Demo user is rejected with 403 — exports leak the
 whole dataset and would defeat the demo sandboxing.
@@ -21,6 +31,7 @@ explicitly rejected because browsing grants do not authorize bulk extraction.
 
 import csv
 import io
+import json
 import logging
 import tempfile
 import zipfile
@@ -33,14 +44,40 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from expenses.models import Expense
+from expenses.models import Budget, Category, Expense, RecurringExpense
 from fininzen.mixins import _effective_user, resolve_view_as
+from fininzen.models import DataAccessGrant, UserProfile
 from fininzen.permissions import DEMO_USERNAME
-from portfolio.models import Asset, AssetPriceHistory, AssetTransaction
+from portfolio.models import (
+    AllocationTarget,
+    Asset,
+    AssetPriceHistory,
+    AssetTransaction,
+    ContributionSource,
+    FireSettings,
+    InvestmentType,
+    RecurringInvestmentPlan,
+)
 
 logger = logging.getLogger(__name__)
 
-_CSV_KINDS = ("accounts", "assets", "transactions", "cashflow", "price_history")
+_CSV_KINDS = (
+    "accounts",
+    "assets",
+    "transactions",
+    "cashflow",
+    "price_history",
+    "categories",
+    "budgets",
+    "recurring_expenses",
+    "recurring_investment_plans",
+    "allocation_targets",
+    "fire_settings",
+    "investment_types",
+    "contribution_sources",
+    "profile",
+    "sharing",
+)
 _ZIP_MAX_BYTES = 50 * 1024 * 1024
 
 
@@ -77,6 +114,7 @@ def _assets_rows(user):
         "invested_capital",
         "invested_capital_eur",
         "contribution_source_mode",
+        "notes",
     ]
     qs = (
         Asset.objects.filter(owner=user)
@@ -99,6 +137,7 @@ def _assets_rows(user):
             str(a.invested_capital if a.invested_capital is not None else "0"),
             "" if a.invested_capital_eur is None else str(a.invested_capital_eur),
             a.contribution_source_mode,
+            a.notes,
         ]
 
 
@@ -112,6 +151,13 @@ _TX_HEADER = [
     "total_value",
     "contribution_source",
     "notes",
+    "fee",
+    "tax_amount",
+    "fx_rate_to_eur",
+    "gross_amount_eur",
+    "fee_eur",
+    "tax_amount_eur",
+    "is_verified",
 ]
 
 
@@ -127,6 +173,13 @@ def _tx_row(t):
         str(total),
         t.contribution_source.name if t.contribution_source_id else "",
         t.notes,
+        str(t.fee),
+        str(t.tax_amount),
+        "" if t.fx_rate_to_eur is None else str(t.fx_rate_to_eur),
+        "" if t.gross_amount_eur is None else str(t.gross_amount_eur),
+        "" if t.fee_eur is None else str(t.fee_eur),
+        "" if t.tax_amount_eur is None else str(t.tax_amount_eur),
+        t.is_verified,
     ]
 
 
@@ -183,14 +236,271 @@ def _cashflow_rows(user):
 
 
 def _price_history_rows(user):
-    yield ["asset_name", "date", "close", "currency"]
+    yield ["asset_name", "date", "close", "currency", "open"]
     qs = (
         AssetPriceHistory.objects.filter(asset__owner=user)
         .select_related("asset")
         .order_by("asset__name", "date")
     )
     for p in qs:
-        yield [p.asset.name, p.date.isoformat(), str(p.close), p.asset.currency]
+        yield [
+            p.asset.name,
+            p.date.isoformat(),
+            str(p.close),
+            p.asset.currency,
+            "" if p.open is None else str(p.open),
+        ]
+
+
+def _categories_rows(user):
+    yield ["id", "name", "category_type", "color", "icon", "parent"]
+    qs = (
+        Category.objects.filter(owner=user)
+        .select_related("parent")
+        .order_by("category_type", "name")
+    )
+    for c in qs:
+        yield [
+            c.id,
+            c.name,
+            c.category_type,
+            c.color,
+            c.icon,
+            c.parent.name if c.parent_id else "",
+        ]
+
+
+def _budgets_rows(user):
+    yield ["id", "category", "amount"]
+    qs = (
+        Budget.objects.filter(owner=user)
+        .select_related("category")
+        .order_by("category__name")
+    )
+    for b in qs:
+        yield [b.id, b.category.name, str(b.amount)]
+
+
+def _recurring_expenses_rows(user):
+    yield [
+        "id",
+        "description",
+        "amount",
+        "category",
+        "linked_asset",
+        "frequency",
+        "day_of_month",
+        "month_of_year",
+        "start_date",
+        "end_date",
+        "status",
+    ]
+    qs = (
+        RecurringExpense.objects.filter(owner=user)
+        .select_related("category", "linked_asset")
+        .order_by("-start_date", "id")
+    )
+    for r in qs:
+        yield [
+            r.id,
+            r.description,
+            str(r.amount),
+            r.category.name if r.category_id else "",
+            r.linked_asset.name if r.linked_asset_id else "",
+            r.frequency,
+            r.day_of_month,
+            "" if r.month_of_year is None else r.month_of_year,
+            r.start_date.isoformat(),
+            r.end_date.isoformat() if r.end_date else "",
+            r.status,
+        ]
+
+
+def _recurring_investment_plans_rows(user):
+    yield [
+        "id",
+        "name",
+        "asset",
+        "source_account",
+        "amount",
+        "frequency",
+        "day_of_week",
+        "day_of_month",
+        "anchor_month",
+        "start_date",
+        "end_date",
+        "status",
+    ]
+    qs = (
+        RecurringInvestmentPlan.objects.filter(owner=user)
+        .select_related("asset", "source_account")
+        .order_by("name", "id")
+    )
+    for p in qs:
+        yield [
+            p.id,
+            p.name,
+            p.asset.name,
+            p.source_account.name,
+            str(p.amount),
+            p.frequency,
+            "" if p.day_of_week is None else p.day_of_week,
+            p.day_of_month,
+            "" if p.anchor_month is None else p.anchor_month,
+            p.start_date.isoformat(),
+            p.end_date.isoformat() if p.end_date else "",
+            p.status,
+        ]
+
+
+def _allocation_targets_rows(user):
+    yield ["id", "investment_type", "target_percent"]
+    qs = (
+        AllocationTarget.objects.filter(owner=user)
+        .select_related("investment_type")
+        .order_by("investment_type__name")
+    )
+    for t in qs:
+        yield [t.id, t.investment_type.name, str(t.target_percent)]
+
+
+_FIRE_SETTINGS_HEADER = [
+    "user_age",
+    "retirement_age",
+    "withdrawal_rate",
+    "annual_expenses_override",
+    "growth_rate_bear",
+    "growth_rate_base",
+    "growth_rate_bull",
+    "inflation_rate",
+    "net_worth_goal",
+    "model_mode",
+    "swr_base",
+    "swr_min",
+    "swr_max",
+    "annual_expenses_retirement",
+    "annual_passive_income_retirement",
+    "expected_real_return",
+    "expected_nominal_return",
+    "annual_contribution",
+    "tax_drag_rate",
+    "target_retirement_age",
+    "life_expectancy",
+    "portfolio_equity_pct",
+]
+
+
+def _fire_settings_rows(user):
+    yield _FIRE_SETTINGS_HEADER
+    # Read directly rather than FireSettings.get_singleton(), which creates a
+    # row on first access — a GET export request must not have write side effects.
+    fs = FireSettings.objects.filter(owner=user).first()
+    if fs is None:
+        return
+    yield [
+        fs.user_age,
+        fs.retirement_age,
+        str(fs.withdrawal_rate),
+        "" if fs.annual_expenses_override is None else str(fs.annual_expenses_override),
+        str(fs.growth_rate_bear),
+        str(fs.growth_rate_base),
+        str(fs.growth_rate_bull),
+        str(fs.inflation_rate),
+        "" if fs.net_worth_goal is None else str(fs.net_worth_goal),
+        fs.model_mode,
+        str(fs.swr_base),
+        str(fs.swr_min),
+        str(fs.swr_max),
+        ""
+        if fs.annual_expenses_retirement is None
+        else str(fs.annual_expenses_retirement),
+        str(fs.annual_passive_income_retirement),
+        str(fs.expected_real_return),
+        str(fs.expected_nominal_return),
+        "" if fs.annual_contribution is None else str(fs.annual_contribution),
+        str(fs.tax_drag_rate),
+        fs.target_retirement_age,
+        fs.life_expectancy,
+        str(fs.portfolio_equity_pct),
+    ]
+
+
+def _investment_types_rows(user):
+    yield [
+        "id",
+        "name",
+        "color",
+        "icon",
+        "is_bank_account",
+        "supports_ticker",
+        "is_liquid_default",
+        "supports_contribution_source",
+        "tax_rate",
+    ]
+    qs = InvestmentType.objects.filter(owner=user).order_by("name")
+    for t in qs:
+        yield [
+            t.id,
+            t.name,
+            t.color,
+            t.icon,
+            t.is_bank_account,
+            t.supports_ticker,
+            t.is_liquid_default,
+            t.supports_contribution_source,
+            str(t.tax_rate),
+        ]
+
+
+def _contribution_sources_rows(user):
+    yield ["id", "name", "sort_order", "is_active"]
+    qs = ContributionSource.objects.filter(owner=user).order_by("sort_order", "name")
+    for s in qs:
+        yield [s.id, s.name, s.sort_order, s.is_active]
+
+
+_PROFILE_HEADER = [
+    "decimal_separator",
+    "name",
+    "dashboard_config",
+    "dashboard_preferences",
+    "transaction_preferences",
+    "enabled_features",
+    "accounting_month_start_day",
+    "privacy_preferences",
+    "last_seen_release",
+    "terms_accepted_at",
+]
+
+
+def _profile_rows(user):
+    yield _PROFILE_HEADER
+    profile = UserProfile.objects.filter(user=user).first()
+    if profile is None:
+        return
+    yield [
+        profile.decimal_separator,
+        profile.name,
+        json.dumps(profile.dashboard_config),
+        json.dumps(profile.dashboard_preferences),
+        json.dumps(profile.transaction_preferences),
+        json.dumps(profile.enabled_features),
+        profile.accounting_month_start_day,
+        json.dumps(profile.privacy_preferences),
+        profile.last_seen_release,
+        profile.terms_accepted_at.isoformat() if profile.terms_accepted_at else "",
+    ]
+
+
+def _sharing_rows(user):
+    yield ["id", "grantee", "permission", "created_at"]
+    qs = (
+        DataAccessGrant.objects.filter(owner=user)
+        .select_related("grantee")
+        .order_by("-created_at")
+    )
+    for g in qs:
+        yield [g.id, g.grantee.username, g.permission, g.created_at.isoformat()]
 
 
 _ROW_PRODUCERS = {
@@ -199,6 +509,16 @@ _ROW_PRODUCERS = {
     "transactions": _investment_transactions_rows,
     "cashflow": _cashflow_rows,
     "price_history": _price_history_rows,
+    "categories": _categories_rows,
+    "budgets": _budgets_rows,
+    "recurring_expenses": _recurring_expenses_rows,
+    "recurring_investment_plans": _recurring_investment_plans_rows,
+    "allocation_targets": _allocation_targets_rows,
+    "fire_settings": _fire_settings_rows,
+    "investment_types": _investment_types_rows,
+    "contribution_sources": _contribution_sources_rows,
+    "profile": _profile_rows,
+    "sharing": _sharing_rows,
 }
 
 # Export All (ZIP) keeps the full transactions stream — including bank-account

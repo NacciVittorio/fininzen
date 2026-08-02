@@ -1,22 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { fetchExportDataset } from "../../api/export";
 import type { ExportDatasetType } from "../../api/export";
 import { Card } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
 import { LONG_FETCH_TIMEOUT_MS } from "../../utils/api";
-import { buildExportOptions } from "../../utils/exportOptions";
 import { logError } from "../../utils/logger";
 
 export function DataExportSection() {
-    const { T, apiFetch, isDemo, viewAs, isFeatureEnabled } = useSettings();
+    const { T, apiFetch, isDemo, viewAs } = useSettings();
     const [exportingType, setExportingType] = useState<string | null>(null);
     const [exportError, setExportError] = useState<string | null>(null);
-    const exportOptions = useMemo(
-        () => buildExportOptions({ isFeatureEnabled, T }),
-        [T, isFeatureEnabled],
-    );
 
     const downloadExport = async (type: ExportDatasetType) => {
         if (isDemo) {
@@ -77,8 +72,6 @@ export function DataExportSection() {
         }
     };
 
-    if (exportOptions.length === 0) return null;
-
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
@@ -89,64 +82,16 @@ export function DataExportSection() {
             </div>
 
             <Card variant="settings">
-                {isFeatureEnabled("cashflow") &&
-                    isFeatureEnabled("accounts") &&
-                    isFeatureEnabled("investments") && (
-                        <button
-                            type="button"
-                            onClick={() => downloadExport("all")}
-                            disabled={
-                                exportingType !== null || isDemo || !!viewAs
-                            }
-                            className="btn btn-p"
-                            style={{ width: "100%", marginBottom: 12 }}
-                            aria-label={T("export_all")}
-                        >
-                            {exportingType === "all"
-                                ? "..."
-                                : `📦 ${T("export_all")}`}
-                        </button>
-                    )}
-
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                    }}
+                <button
+                    type="button"
+                    onClick={() => downloadExport("all")}
+                    disabled={exportingType !== null || isDemo || !!viewAs}
+                    className="btn btn-p"
+                    style={{ width: "100%" }}
+                    aria-label={T("export_all")}
                 >
-                    {exportOptions.map(({ type, label }) => (
-                        <div
-                            key={type}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                padding: "8px 12px",
-                                borderRadius: 8,
-                                background: "var(--card-inset)",
-                            }}
-                        >
-                            <span style={{ fontSize: 14, color: "var(--fg)" }}>
-                                {label}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => downloadExport(type)}
-                                disabled={
-                                    exportingType !== null || isDemo || !!viewAs
-                                }
-                                className="btn btn-sm"
-                                aria-label={`${T("export_btn_download")} ${label}`}
-                            >
-                                {exportingType === type
-                                    ? "..."
-                                    : T("export_btn_download")}
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                    {exportingType === "all" ? "..." : `📦 ${T("export_all")}`}
+                </button>
 
                 {exportError && (
                     <div

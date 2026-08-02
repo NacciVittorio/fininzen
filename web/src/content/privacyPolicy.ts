@@ -5,9 +5,10 @@
 // doppio e disallineato.
 //
 // Nota per chi lavora su questo file: audit trail per l'uso di
-// DataAccessGrant (view-as), export CSV esteso a tutti i modelli, e un
-// workflow strutturato per le richieste privacy sono stati identificati come
-// miglioramenti futuri — volutamente fuori scope qui.
+// DataAccessGrant (view-as) e un workflow strutturato per le richieste
+// privacy sono stati identificati come miglioramenti futuri — volutamente
+// fuori scope qui. (L'export CSV era limitato a pochi modelli: esteso a
+// tutti i dati dell'utente in questa revisione — vedi fininzen/export_views.py.)
 
 export type PolicySection = {
     id: string;
