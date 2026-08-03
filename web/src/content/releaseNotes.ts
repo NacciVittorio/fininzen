@@ -23,6 +23,22 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: "0.13.1",
+        date: "2026-08-03",
+        highlights: {
+            it: [
+                "Il prezzo per azione nelle transazioni di portafoglio ora accetta fino a 4 cifre decimali (prima si fermava a 2).",
+                "Le spese ricorrenti vengono ora generate automaticamente ogni giorno, senza dover aprire l'app per crearle manualmente.",
+                "Il pannello Admin è ora raggiungibile anche da mobile, con una nuova voce in Impostazioni per gli amministratori.",
+            ],
+            en: [
+                "Price per share in portfolio transactions now accepts up to 4 decimal digits (previously capped at 2).",
+                "Recurring expenses are now generated automatically every day, without needing to open the app to create them manually.",
+                "The Admin portal is now reachable from mobile too, via a new entry in Settings for admin users.",
+            ],
+        },
+    },
+    {
         version: "0.13.0",
         date: "2026-07-31",
         highlights: {

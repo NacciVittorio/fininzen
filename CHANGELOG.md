@@ -11,12 +11,22 @@ automatically by `just release` (commitizen) from Conventional Commits — see
 ### Feat
 
 - **auth,expenses**: add long-lived API tokens and quick-add expense endpoint
+- **splitting**: add shared-expense tracking (Splitwise-style groups, contacts,
+  settlements, recurring split expenses)
 
 ### Refactor
 
 - **settings**: reorganize Settings into grouped routes (Account, Planning,
   Preferenze, Dati, About) with real deep-linkable routes, shared
   SettingsCard/SettingsRow helper, consolidated danger-zone
+
+## v0.13.1 (2026-08-03)
+
+### Fix
+
+- **web**: make Admin panel reachable from mobile via Settings
+- **expenses**: auto-generate recurring expenses via daily systemd timer
+- **portfolio**: allow up to 4 decimals on Price per Share input
 
 ## v0.13.0 (2026-07-31)
 
