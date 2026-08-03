@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Icon } from "../../components/ui";
 import type { Translator } from "../../types";
 import type { SettingsNavigationItem } from "../../context/useDerivedAppData";
 
@@ -9,10 +10,12 @@ export function SettingsRoot({
     navItems,
     T,
     logout,
+    isAdmin,
 }: {
     navItems: readonly SettingsNavigationItem[];
     T: Translator;
     logout: () => void;
+    isAdmin?: boolean;
 }) {
     return (
         <div>
@@ -69,6 +72,52 @@ export function SettingsRoot({
                     </Link>
                 ))}
             </div>
+
+            {isAdmin && (
+                <div className="grouped-list" style={{ marginBottom: 20 }}>
+                    <Link
+                        href="/admin"
+                        data-testid="settings-root-admin"
+                        className="grouped-list__item pressable"
+                        style={{ width: "100%", textAlign: "left" }}
+                    >
+                        <span
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                                flex: 1,
+                                minWidth: 0,
+                            }}
+                        >
+                            <span
+                                style={{
+                                    fontSize: 17,
+                                    width: 24,
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Icon name="shield" />
+                            </span>
+                            <span
+                                style={{
+                                    fontSize: 15,
+                                    fontWeight: 500,
+                                    color: "var(--fg)",
+                                }}
+                            >
+                                {T("tab_admin")}
+                            </span>
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            style={{ color: "var(--fg-faint)", fontSize: 17 }}
+                        >
+                            ›
+                        </span>
+                    </Link>
+                </div>
+            )}
 
             <div className="grouped-list" style={{ marginBottom: 20 }}>
                 <button
