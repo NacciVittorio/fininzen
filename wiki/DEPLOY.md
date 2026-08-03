@@ -116,11 +116,14 @@ install -m 0644 /opt/fininzen/deploy/systemd/fininzen.service              /etc/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-web.service          /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.service /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.timer   /etc/systemd/system/
+install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-recurring.service /etc/systemd/system/
+install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-recurring.timer   /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable --now fininzen              # gunicorn su 127.0.0.1:8001
 systemctl enable --now fininzen-web          # next start su 127.0.0.1:3000
 systemctl enable --now fininzen-refresh-prices.timer   # refresh prezzi orario
+systemctl enable --now fininzen-generate-recurring.timer   # genera spese ricorrenti giornaliero
 
 systemctl status fininzen fininzen-web --no-pager
 ```
@@ -131,6 +134,9 @@ systemctl status fininzen fininzen-web --no-pager
   `DJANGO_ORIGIN=http://127.0.0.1:8001` per le fetch server-side.
 - `fininzen-refresh-prices.{service,timer}` — `manage.py refresh_asset_prices`
   ogni ora (`Nice=10`, `IOSchedulingClass=idle`).
+- `fininzen-generate-recurring.{service,timer}` — `manage.py generate_recurring_expenses`
+  una volta al giorno (`Persistent=true`, recupera l'esecuzione mancata se il VPS
+  era spento); genera le `Expense` mancanti per tutte le `RecurringExpense` attive.
 
 ## 8. Caddy (site-block sull'host)
 

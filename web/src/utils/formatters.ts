@@ -80,7 +80,10 @@ export const makeFormatTick =
         return `${v.toFixed(range < 10 ? 2 : 0)}`;
     };
 
-export const filterAmountInput = (val: string): string => {
+export const filterAmountInput = (
+    val: string,
+    maxDecimals: number = 2,
+): string => {
     const stripped = val.replace(/[^0-9,.]/g, "");
     let sepFound = false;
     const normalized = stripped
@@ -100,7 +103,7 @@ export const filterAmountInput = (val: string): string => {
     const decPart = normalized
         .slice(sepIndex + 1)
         .replace(/[,.]/g, "")
-        .slice(0, 2);
+        .slice(0, maxDecimals);
     return `${intPart}${sep}${decPart}`;
 };
 
@@ -257,9 +260,12 @@ const normalizeOperators = (val: string): string =>
 // delegates to filterAmountInput, so a plain number behaves exactly as it did
 // before this feature existed (same clamping, same single separator) — that is
 // what keeps `page.fill("42.50")` and every existing form untouched.
-export const filterAmountExpression = (val: string): string => {
+export const filterAmountExpression = (
+    val: string,
+    maxDecimals: number = 2,
+): string => {
     const norm = normalizeOperators(val);
-    if (!OPERATOR_RE.test(norm)) return filterAmountInput(norm);
+    if (!OPERATOR_RE.test(norm)) return filterAmountInput(norm, maxDecimals);
 
     let out = "";
     let sepInLiteral = false;
@@ -286,13 +292,15 @@ export const filterAmountExpression = (val: string): string => {
 export const hasAmountOperator = (val: string): boolean =>
     /[+\-*/×÷−]/.test(val);
 
-// Money-safe rounding to 2 decimals. (n * 100) is often off by an ulp —
-// 12.50 + 8.30 gives 2079.9999999999995 — which would round down to 20.79.
-// toPrecision(12) sits well inside the double's significant digits while
-// leaving room for the accumulated error, so it repairs the binary noise
-// *before* the half-up rounding.
-const roundMoney = (n: number): number =>
-    Math.round(Number((n * 100).toPrecision(12))) / 100;
+// Money-safe rounding to `maxDecimals` decimals (default 2). (n * 100) is
+// often off by an ulp — 12.50 + 8.30 gives 2079.9999999999995 — which would
+// round down to 20.79. toPrecision(12) sits well inside the double's
+// significant digits while leaving room for the accumulated error, so it
+// repairs the binary noise *before* the half-up rounding.
+const roundMoney = (n: number, maxDecimals: number = 2): number => {
+    const mult = 10 ** maxDecimals;
+    return Math.round(Number((n * mult).toPrecision(12))) / mult;
+};
 
 const stripTrailingOperator = (s: string): string =>
     OPERATORS.includes(s[s.length - 1] ?? "") ? s.slice(0, -1) : s;
@@ -309,7 +317,10 @@ const stripTrailingOperator = (s: string): string =>
 // 2,234 — unpredictable. That heuristic exists for API prefills, which never
 // come through this path, and a plain typed number can't reach 3 decimals
 // anyway because filterAmountInput clamps it.
-export const evaluateExpression = (expr: string): AmountEvalResult => {
+export const evaluateExpression = (
+    expr: string,
+    maxDecimals: number = 2,
+): AmountEvalResult => {
     const s = stripTrailingOperator(normalizeOperators(expr));
     if (!s) return { ok: false, error: "empty" };
 
@@ -382,7 +393,7 @@ export const evaluateExpression = (expr: string): AmountEvalResult => {
         return { ok: false, error: divZero ? "divzero" : "syntax" };
     if (i !== s.length) return { ok: false, error: "syntax" }; // trailing junk
     if (!Number.isFinite(raw)) return { ok: false, error: "overflow" };
-    const value = roundMoney(raw);
+    const value = roundMoney(raw, maxDecimals);
     if (!Number.isFinite(value) || Math.abs(value) > MONEY_MAX_MAGNITUDE)
         return { ok: false, error: "overflow" };
     // Amounts must be > 0 (isValidAmount). Reporting "negative" here is the
@@ -399,13 +410,17 @@ export const evaluateExpression = (expr: string): AmountEvalResult => {
 export const formatResult = (
     n: number,
     sep: DecimalSeparator = ",",
+    maxDecimals: number = 2,
 ): string => {
     if (!Number.isFinite(n) || n < 0 || n > MONEY_MAX_MAGNITUDE) return "";
-    const fixed = n.toFixed(2);
+    const fixed = n.toFixed(maxDecimals);
     // No Intl.NumberFormat: it would add thousands separators, and
     // filterAmountInput (one separator max) would mangle "1.234,56" into
     // "1.23". The final pass through it guarantees a value the field accepts.
-    return filterAmountInput(sep === "." ? fixed : fixed.replace(".", ","));
+    return filterAmountInput(
+        sep === "." ? fixed : fixed.replace(".", ","),
+        maxDecimals,
+    );
 };
 
 // Single entry point shared by the calculator UI and the submit handlers:
@@ -414,6 +429,7 @@ export const formatResult = (
 export const resolveAmountField = (
     val: string,
     sep: DecimalSeparator = ",",
+    maxDecimals: number = 2,
 ):
     | { ok: true; text: string; value: number }
     | { ok: false; error: AmountEvalError } => {
@@ -423,11 +439,15 @@ export const resolveAmountField = (
             return { ok: false, error: val.trim() ? "syntax" : "empty" };
         // Deliberately not reformatted: running "12" through formatResult
         // would rewrite it to "12,00" under the user's fingers on every blur.
-        return { ok: true, text: filterAmountInput(val), value: n };
+        return {
+            ok: true,
+            text: filterAmountInput(val, maxDecimals),
+            value: n,
+        };
     }
-    const evaluated = evaluateExpression(val);
+    const evaluated = evaluateExpression(val, maxDecimals);
     if (!evaluated.ok) return evaluated;
-    const text = formatResult(evaluated.value, sep);
+    const text = formatResult(evaluated.value, sep, maxDecimals);
     return text
         ? { ok: true, text, value: evaluated.value }
         : { ok: false, error: "overflow" };

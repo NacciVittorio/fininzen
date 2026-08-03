@@ -203,7 +203,7 @@ export default function AssetDetailSheet({
                                 value={
                                     a.price_per_share
                                         ? masked(
-                                              `${parseFloat(String(a.price_per_share)).toFixed(2)} ${a.currency || "EUR"}`,
+                                              `${parseFloat(String(a.price_per_share)).toFixed(4)} ${a.currency || "EUR"}`,
                                           )
                                         : "—"
                                 }
