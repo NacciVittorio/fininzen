@@ -221,6 +221,7 @@ export default function SettingsView() {
                             isDemo={isDemo}
                             viewAs={viewAs}
                             logout={logout}
+                            isAdmin={profile.role === "admin"}
                         />
                     </>
                 ) : (
