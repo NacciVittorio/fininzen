@@ -98,6 +98,7 @@ export default function TransactionTradeFields({
                         decimalSeparator={decimalSeparator}
                         placeholder={amountPlaceholder}
                         suffix={currency}
+                        maxDecimals={4}
                         T={T}
                     />
                     {/* Why the field is (still) empty: the historical-price
