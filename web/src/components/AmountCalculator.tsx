@@ -65,6 +65,8 @@ export type AmountCalculatorProps = {
     onFocusClearError?: () => void;
     disabled?: boolean;
     "data-testid"?: string;
+    /** Decimal digits accepted while typing/resolving. Defaults to 2 (EUR amounts). */
+    maxDecimals?: number;
 };
 
 // ── Operator bar ───────────────────────────────────────────────────────────
@@ -251,6 +253,7 @@ export default function AmountCalculator({
     onFocusClearError,
     disabled,
     "data-testid": testId,
+    maxDecimals = 2,
 }: AmountCalculatorProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const pendingCaret = useRef<number | null>(null);
@@ -276,14 +279,18 @@ export default function AmountCalculator({
     // exactly as typed — never rewritten into something that looks valid.
     const commit = useCallback(() => {
         if (!value.trim()) return;
-        const resolved = resolveAmountField(value, decimalSeparator);
+        const resolved = resolveAmountField(
+            value,
+            decimalSeparator,
+            maxDecimals,
+        );
         if (!resolved.ok) {
             setError(resolved.error);
             return;
         }
         setError(null);
         if (resolved.text !== value) onChange(resolved.text);
-    }, [value, decimalSeparator, onChange]);
+    }, [value, decimalSeparator, maxDecimals, onChange]);
 
     // The value is owned by the parent, so without this the caret would jump to
     // the end of the text after every bar key.
@@ -297,6 +304,7 @@ export default function AmountCalculator({
     const replaceRange = (from: number, to: number, chunk: string) => {
         const next = filterAmountExpression(
             value.slice(0, from) + chunk + value.slice(to),
+            maxDecimals,
         );
         // filterAmountExpression is the only validator, so the bar can never
         // produce a string the inline field could not — which also means it can
@@ -351,7 +359,12 @@ export default function AmountCalculator({
                     onChange={(event) => {
                         onFocusClearError?.();
                         setError(null);
-                        onChange(filterAmountExpression(event.target.value));
+                        onChange(
+                            filterAmountExpression(
+                                event.target.value,
+                                maxDecimals,
+                            ),
+                        );
                     }}
                     onKeyDown={(event) => {
                         if (event.key !== "Enter") return;
