@@ -6,6 +6,14 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.13.1 (2026-08-03)
+
+### Fix
+
+- **web**: make Admin panel reachable from mobile via Settings
+- **expenses**: auto-generate recurring expenses via daily systemd timer
+- **portfolio**: allow up to 4 decimals on Price per Share input
+
 ## v0.13.0 (2026-07-31)
 
 ### Feat
