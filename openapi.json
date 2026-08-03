@@ -1672,7 +1672,7 @@
         "/api/expenses/cashflow/": {
             "get": {
                 "operationId": "expenses_cashflow_retrieve",
-                "description": "GET /api/expenses/cashflow/\n\nUnified feed: expenses (income/outcome) + transfer pairs + adjustments.\n\nQuery params:\n  date_from, date_to  — YYYY-MM-DD\n  category            — category id\n  parent_category     — parent category id\n  account             — Asset id\n  types               — comma-separated subset of income,outcome,transfer,adjustment\n  page                — page number (default 1)\n  page_size           — items per page (default 50, maximum 200)",
+                "description": "GET /api/expenses/cashflow/\n\nUnified feed: expenses (income/outcome) + transfer pairs + adjustments.\n\nQuery params:\n  date_from, date_to  — YYYY-MM-DD\n  category            — category id\n  parent_category     — parent category id\n  account             — Asset id\n  types               — comma-separated subset of income,outcome,transfer,adjustment,\n                         split,split_reimbursement\n  page                — page number (default 1)\n  page_size           — items per page (default 50, maximum 200)",
                 "tags": [
                     "expenses"
                 ],
@@ -5414,6 +5414,1816 @@
                     }
                 }
             }
+        },
+        "/api/split/balances/overview/": {
+            "get": {
+                "operationId": "split_balances_overview_retrieve",
+                "description": "GET /api/split/balances/overview/\n\nSaldo complessivo per persona dell'utente autenticato, calcolato sulle\nshares di TUTTE le spese a cui ha accesso — gruppi di cui è\ncreatore/membro attivo + spese occasionali proprie o di cui è\npartecipante ad-hoc (stesso perimetro di `user_can_access_expense`,\nespresso qui come queryset invece che come check per-oggetto) — più i\nsettlement di cui è parte diretta (payer/payee) o che appartengono a un\ngruppo a cui ha accesso. Riusa `compute_balances` esteso invece che\nfiltrato su un singolo gruppo (piano sez. 3.2).",
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/split/contacts/": {
+            "get": {
+                "operationId": "split_contacts_list",
+                "description": "CRUD per la rubrica Split, scoped a `owner=request.user`.\n\nDELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato\nda una partecipazione storica (gruppi/spese) — mirror semplificato di\nCategoryViewSet.destroy().",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedSplitContactList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_contacts_create",
+                "description": "CRUD per la rubrica Split, scoped a `owner=request.user`.\n\nDELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato\nda una partecipazione storica (gruppi/spese) — mirror semplificato di\nCategoryViewSet.destroy().",
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitContactRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitContactRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitContactRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitContact"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/contacts/{id}/": {
+            "get": {
+                "operationId": "split_contacts_retrieve",
+                "description": "CRUD per la rubrica Split, scoped a `owner=request.user`.\n\nDELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato\nda una partecipazione storica (gruppi/spese) — mirror semplificato di\nCategoryViewSet.destroy().",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitContact"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "split_contacts_update",
+                "description": "CRUD per la rubrica Split, scoped a `owner=request.user`.\n\nDELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato\nda una partecipazione storica (gruppi/spese) — mirror semplificato di\nCategoryViewSet.destroy().",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitContactRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitContactRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitContactRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitContact"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "split_contacts_partial_update",
+                "description": "CRUD per la rubrica Split, scoped a `owner=request.user`.\n\nDELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato\nda una partecipazione storica (gruppi/spese) — mirror semplificato di\nCategoryViewSet.destroy().",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitContactRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitContactRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitContactRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitContact"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "split_contacts_destroy",
+                "description": "CRUD per la rubrica Split, scoped a `owner=request.user`.\n\nDELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato\nda una partecipazione storica (gruppi/spese) — mirror semplificato di\nCategoryViewSet.destroy().",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/split/expenses/": {
+            "get": {
+                "operationId": "split_expenses_list",
+                "description": "CRUD spese condivise.\n\nOgni create/update riscrive le shares dentro transaction.atomic() (vedi\nserializers.SplitExpenseSerializer + services.apply_split_shares).",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedSplitExpenseList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_expenses_create",
+                "description": "CRUD spese condivise.\n\nOgni create/update riscrive le shares dentro transaction.atomic() (vedi\nserializers.SplitExpenseSerializer + services.apply_split_shares).",
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/expenses/{id}/": {
+            "get": {
+                "operationId": "split_expenses_retrieve",
+                "description": "CRUD spese condivise.\n\nOgni create/update riscrive le shares dentro transaction.atomic() (vedi\nserializers.SplitExpenseSerializer + services.apply_split_shares).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "split_expenses_update",
+                "description": "CRUD spese condivise.\n\nOgni create/update riscrive le shares dentro transaction.atomic() (vedi\nserializers.SplitExpenseSerializer + services.apply_split_shares).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "split_expenses_partial_update",
+                "description": "CRUD spese condivise.\n\nOgni create/update riscrive le shares dentro transaction.atomic() (vedi\nserializers.SplitExpenseSerializer + services.apply_split_shares).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitExpenseRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "split_expenses_destroy",
+                "description": "CRUD spese condivise.\n\nOgni create/update riscrive le shares dentro transaction.atomic() (vedi\nserializers.SplitExpenseSerializer + services.apply_split_shares).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/split/groups/": {
+            "get": {
+                "operationId": "split_groups_list",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedSplitGroupList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_groups_create",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/groups/{id}/": {
+            "get": {
+                "operationId": "split_groups_retrieve",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "split_groups_update",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "split_groups_partial_update",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitGroupRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitGroupRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitGroupRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "split_groups_destroy",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/split/groups/{id}/balances/": {
+            "get": {
+                "operationId": "split_groups_balances_retrieve",
+                "description": "Saldo netto per membro del gruppo, spese e settlement inclusi\n(piano sez. 3.2/6).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/groups/{id}/members/": {
+            "get": {
+                "operationId": "split_groups_members_retrieve",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_groups_members_create",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitGroupRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/groups/{id}/members/{member_id}/": {
+            "delete": {
+                "operationId": "split_groups_members_destroy",
+                "description": "CRUD gruppi + sotto-risorsa membri.\n\nAutorizzazione via membership (user_can_access_group), MAI via\nViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è\ntra pari (co-titolarità), non una delega owner→grantee.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "member_id",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^\\d+$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/split/groups/{id}/simplify/": {
+            "get": {
+                "operationId": "split_groups_simplify_retrieve",
+                "description": "GET /api/split/groups/{id}/simplify/ (piano sez. 3.3/6): lista\nminima di transazioni suggerite per azzerare i saldi correnti del\ngruppo (spese + settlement già registrati).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitGroup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/partner-links/": {
+            "get": {
+                "operationId": "split_partner_links_list",
+                "description": "GET  /api/split/partner-links/         — { sent: [...], received: [...] }\nPOST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta\nPOST /api/split/partner-links/{id}/accept/\nPOST /api/split/partner-links/{id}/decline/",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedSplitPartnerLinkList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_partner_links_create",
+                "description": "GET  /api/split/partner-links/         — { sent: [...], received: [...] }\nPOST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta\nPOST /api/split/partner-links/{id}/accept/\nPOST /api/split/partner-links/{id}/decline/",
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitPartnerLink"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/partner-links/{id}/accept/": {
+            "post": {
+                "operationId": "split_partner_links_accept_create",
+                "description": "GET  /api/split/partner-links/         — { sent: [...], received: [...] }\nPOST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta\nPOST /api/split/partner-links/{id}/accept/\nPOST /api/split/partner-links/{id}/decline/",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitPartnerLink"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/partner-links/{id}/decline/": {
+            "post": {
+                "operationId": "split_partner_links_decline_create",
+                "description": "GET  /api/split/partner-links/         — { sent: [...], received: [...] }\nPOST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta\nPOST /api/split/partner-links/{id}/accept/\nPOST /api/split/partner-links/{id}/decline/",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitPartnerLink"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/recurring/": {
+            "get": {
+                "operationId": "split_recurring_list",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedSplitRecurringExpenseList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_recurring_create",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/recurring/{id}/": {
+            "get": {
+                "operationId": "split_recurring_retrieve",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "split_recurring_update",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "split_recurring_partial_update",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitRecurringExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitRecurringExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSplitRecurringExpenseRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "split_recurring_destroy",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/split/recurring/{id}/disable/": {
+            "post": {
+                "operationId": "split_recurring_disable_create",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/recurring/{id}/enable/": {
+            "post": {
+                "operationId": "split_recurring_enable_create",
+                "description": "CRUD per le spese ricorrenti di gruppo.\n\n`get_queryset` è volutamente più permissivo (creatore della ricorrenza\nOPPURE creatore del gruppo OPPURE membro attivo del gruppo) della\nscoping usata da generate/backfill/disable (solo membro attivo, piano\nsez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di\nSplit (es. SplitExpenseViewSet); la seconda è il perimetro di business\nlogic esplicitamente richiesto dal piano.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/recurring/generate/": {
+            "post": {
+                "operationId": "split_recurring_generate_create",
+                "description": "POST /api/split/recurring/generate/\n\nGenera le spese ricorrenti di gruppo per il mese/anno indicato, per\ntutti i gruppi dove l'utente è membro attivo. Body: {month, year}.",
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitRecurringExpenseRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/recurring/status/": {
+            "get": {
+                "operationId": "split_recurring_status_retrieve",
+                "description": "GET /api/split/recurring/status/?month=M&year=Y\n\nStato per il widget \"Ricorrenti di gruppo del mese\": per ogni\nrecurring attiva indica se l'occorrenza del mese target è già\ngenerata o pending.",
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitRecurringExpense"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/settlements/": {
+            "get": {
+                "operationId": "split_settlements_list",
+                "description": "list/create/retrieve/delete per i settlement (piano sez. 6: \"GET,\nPOST, DELETE\"). Niente update: un settlement è un evento immutabile una\nvolta registrato — per correggerlo si cancella e se ne crea uno nuovo,\ncosì l'eventuale shadow-tx collegata viene sempre ricreata da zero\ninvece che mutata in-place (stesso principio di apply_split_shares che\nriscrive sempre da zero, ma qui applicato cancellando la riga intera dato\nche un settlement non ha figli da riscrivere).",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedSplitSettlementList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "split_settlements_create",
+                "description": "list/create/retrieve/delete per i settlement (piano sez. 6: \"GET,\nPOST, DELETE\"). Niente update: un settlement è un evento immutabile una\nvolta registrato — per correggerlo si cancella e se ne crea uno nuovo,\ncosì l'eventuale shadow-tx collegata viene sempre ricreata da zero\ninvece che mutata in-place (stesso principio di apply_split_shares che\nriscrive sempre da zero, ma qui applicato cancellando la riga intera dato\nche un settlement non ha figli da riscrivere).",
+                "tags": [
+                    "split"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitSettlementRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitSettlementRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitSettlementRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitSettlement"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/split/settlements/{id}/": {
+            "get": {
+                "operationId": "split_settlements_retrieve",
+                "description": "list/create/retrieve/delete per i settlement (piano sez. 6: \"GET,\nPOST, DELETE\"). Niente update: un settlement è un evento immutabile una\nvolta registrato — per correggerlo si cancella e se ne crea uno nuovo,\ncosì l'eventuale shadow-tx collegata viene sempre ricreata da zero\ninvece che mutata in-place (stesso principio di apply_split_shares che\nriscrive sempre da zero, ma qui applicato cancellando la riga intera dato\nche un settlement non ha figli da riscrivere).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SplitSettlement"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "split_settlements_destroy",
+                "description": "list/create/retrieve/delete per i settlement (piano sez. 6: \"GET,\nPOST, DELETE\"). Niente update: un settlement è un evento immutabile una\nvolta registrato — per correggerlo si cancella e se ne crea uno nuovo,\ncosì l'eventuale shadow-tx collegata viene sempre ricreata da zero\ninvece che mutata in-place (stesso principio di apply_split_shares che\nriscrive sempre da zero, ma qui applicato cancellando la riga intera dato\nche un settlement non ha figli da riscrivere).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "split"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -6211,6 +8021,14 @@
                     "description"
                 ]
             },
+            "Frequency5b8Enum": {
+                "enum": [
+                    "MONTHLY",
+                    "YEARLY"
+                ],
+                "type": "string",
+                "description": "* `MONTHLY` - Monthly\n* `YEARLY` - Yearly"
+            },
             "InvestmentType": {
                 "type": "object",
                 "properties": {
@@ -6608,6 +8426,192 @@
                     }
                 }
             },
+            "PaginatedSplitContactList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitContact"
+                        }
+                    }
+                }
+            },
+            "PaginatedSplitExpenseList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitExpense"
+                        }
+                    }
+                }
+            },
+            "PaginatedSplitGroupList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitGroup"
+                        }
+                    }
+                }
+            },
+            "PaginatedSplitPartnerLinkList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitPartnerLink"
+                        }
+                    }
+                }
+            },
+            "PaginatedSplitRecurringExpenseList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitRecurringExpense"
+                        }
+                    }
+                }
+            },
+            "PaginatedSplitSettlementList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitSettlement"
+                        }
+                    }
+                }
+            },
             "PatchedAssetRequest": {
                 "type": "object",
                 "properties": {
@@ -6858,7 +8862,7 @@
                         "nullable": true
                     },
                     "frequency": {
-                        "$ref": "#/components/schemas/RecurringExpenseFrequencyEnum"
+                        "$ref": "#/components/schemas/Frequency5b8Enum"
                     },
                     "day_of_month": {
                         "type": "integer",
@@ -6952,6 +8956,150 @@
                     }
                 }
             },
+            "PatchedSplitContactRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                    },
+                    "color": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 7
+                    }
+                }
+            },
+            "PatchedSplitExpenseRequest": {
+                "type": "object",
+                "properties": {
+                    "group": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "split_method": {
+                        "$ref": "#/components/schemas/SplitMethodEnum"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "participants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitExpenseParticipantInputRequest"
+                        },
+                        "writeOnly": true
+                    }
+                }
+            },
+            "PatchedSplitGroupRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "icon": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 10
+                    },
+                    "is_archived": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "PatchedSplitRecurringExpenseRequest": {
+                "type": "object",
+                "description": "Mirror di expenses.serializers.RecurringExpenseSerializer, più il\npayload write-only `participants` (stessa forma — e stesso serializer —\ndi SplitExpenseSerializer) che alimenta il template\nSplitRecurringExpenseParticipant (piano sez. 1.7/3.4). La validazione di\n\"ogni partecipante è un membro attivo del gruppo\" vive nel service layer\n(apply_split_recurring_participants → SplitServiceError, catturato in\ncreate()/update() sotto), non duplicata qui — stesso principio di\nSplitExpenseSerializer/apply_split_shares.",
+                "properties": {
+                    "group": {
+                        "type": "integer"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "split_method": {
+                        "$ref": "#/components/schemas/SplitMethodEnum"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "frequency": {
+                        "$ref": "#/components/schemas/Frequency5b8Enum"
+                    },
+                    "day_of_month": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "format": "int64"
+                    },
+                    "month_of_year": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/StatusE95Enum"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "participants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitExpenseParticipantInputRequest"
+                        },
+                        "writeOnly": true
+                    }
+                }
+            },
             "PriceSourceEnum": {
                 "enum": [
                     "AUTO",
@@ -6989,7 +9137,7 @@
                         "readOnly": true
                     },
                     "frequency": {
-                        "$ref": "#/components/schemas/RecurringExpenseFrequencyEnum"
+                        "$ref": "#/components/schemas/Frequency5b8Enum"
                     },
                     "day_of_month": {
                         "type": "integer",
@@ -7048,14 +9196,6 @@
                     "start_date"
                 ]
             },
-            "RecurringExpenseFrequencyEnum": {
-                "enum": [
-                    "MONTHLY",
-                    "YEARLY"
-                ],
-                "type": "string",
-                "description": "* `MONTHLY` - Monthly\n* `YEARLY` - Yearly"
-            },
             "RecurringExpenseRequest": {
                 "type": "object",
                 "properties": {
@@ -7077,7 +9217,7 @@
                         "nullable": true
                     },
                     "frequency": {
-                        "$ref": "#/components/schemas/RecurringExpenseFrequencyEnum"
+                        "$ref": "#/components/schemas/Frequency5b8Enum"
                     },
                     "day_of_month": {
                         "type": "integer",
@@ -7304,6 +9444,759 @@
                 ],
                 "type": "string",
                 "description": "* `user` - User\n* `admin` - Admin"
+            },
+            "SplitContact": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "display_name": {
+                        "type": "string",
+                        "maxLength": 80
+                    },
+                    "color": {
+                        "type": "string",
+                        "maxLength": 7
+                    },
+                    "linked_user": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "linked_user_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "is_archived": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "display_name",
+                    "id",
+                    "is_archived",
+                    "linked_user",
+                    "linked_user_email"
+                ]
+            },
+            "SplitContactRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                    },
+                    "color": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 7
+                    }
+                },
+                "required": [
+                    "display_name"
+                ]
+            },
+            "SplitExpense": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "group": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "split_method": {
+                        "$ref": "#/components/schemas/SplitMethodEnum"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "shares": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitExpenseShareOutput"
+                        },
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "created_at",
+                    "created_by",
+                    "date",
+                    "description",
+                    "id",
+                    "shares"
+                ]
+            },
+            "SplitExpenseParticipantInput": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "contact_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "raw_input": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,4})?$",
+                        "nullable": true
+                    },
+                    "is_payer": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            },
+            "SplitExpenseParticipantInputRequest": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "contact_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "raw_input": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,4})?$",
+                        "nullable": true
+                    },
+                    "is_payer": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            },
+            "SplitExpenseRequest": {
+                "type": "object",
+                "properties": {
+                    "group": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "split_method": {
+                        "$ref": "#/components/schemas/SplitMethodEnum"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "participants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitExpenseParticipantInputRequest"
+                        },
+                        "writeOnly": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "date",
+                    "description",
+                    "participants"
+                ]
+            },
+            "SplitExpenseShareOutput": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant_user_id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant_contact_id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "share_amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+                        "readOnly": true
+                    },
+                    "raw_input": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,4})?$",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "is_payer": {
+                        "type": "boolean",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "id",
+                    "is_payer",
+                    "participant",
+                    "participant_contact_id",
+                    "participant_user_id",
+                    "raw_input",
+                    "share_amount"
+                ]
+            },
+            "SplitGroup": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "icon": {
+                        "type": "string",
+                        "maxLength": 10
+                    },
+                    "is_archived": {
+                        "type": "boolean"
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "members": {
+                        "type": "string",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "created_by",
+                    "id",
+                    "members",
+                    "name"
+                ]
+            },
+            "SplitGroupRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "icon": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 10
+                    },
+                    "is_archived": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name"
+                ]
+            },
+            "SplitMethodEnum": {
+                "enum": [
+                    "equal",
+                    "exact",
+                    "percentage",
+                    "shares"
+                ],
+                "type": "string",
+                "description": "* `equal` - Equal\n* `exact` - Exact amounts\n* `percentage` - Percentage\n* `shares` - Shares/weights"
+            },
+            "SplitPartnerLink": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "requester": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "requester_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "recipient": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "recipient_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/SplitPartnerLinkStatusEnum"
+                            }
+                        ],
+                        "readOnly": true,
+                        "default": "PENDING"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "responded_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "recipient",
+                    "recipient_email",
+                    "requester",
+                    "requester_email",
+                    "responded_at",
+                    "status"
+                ]
+            },
+            "SplitPartnerLinkStatusEnum": {
+                "enum": [
+                    "PENDING",
+                    "ACCEPTED",
+                    "DECLINED",
+                    "CANCELLED"
+                ],
+                "type": "string",
+                "description": "* `PENDING` - Pending\n* `ACCEPTED` - Accepted\n* `DECLINED` - Declined\n* `CANCELLED` - Cancelled"
+            },
+            "SplitRecurringExpense": {
+                "type": "object",
+                "description": "Mirror di expenses.serializers.RecurringExpenseSerializer, più il\npayload write-only `participants` (stessa forma — e stesso serializer —\ndi SplitExpenseSerializer) che alimenta il template\nSplitRecurringExpenseParticipant (piano sez. 1.7/3.4). La validazione di\n\"ogni partecipante è un membro attivo del gruppo\" vive nel service layer\n(apply_split_recurring_participants → SplitServiceError, catturato in\ncreate()/update() sotto), non duplicata qui — stesso principio di\nSplitExpenseSerializer/apply_split_shares.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "group": {
+                        "type": "integer"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "split_method": {
+                        "$ref": "#/components/schemas/SplitMethodEnum"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset_name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "frequency": {
+                        "$ref": "#/components/schemas/Frequency5b8Enum"
+                    },
+                    "day_of_month": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "format": "int64"
+                    },
+                    "month_of_year": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/StatusE95Enum"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "disabled_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant_templates": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitRecurringExpenseParticipantOutput"
+                        },
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "created_at",
+                    "created_by",
+                    "deleted_at",
+                    "description",
+                    "disabled_at",
+                    "group",
+                    "id",
+                    "linked_asset_name",
+                    "participant_templates",
+                    "start_date"
+                ]
+            },
+            "SplitRecurringExpenseParticipantOutput": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant_user_id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "participant_contact_id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "raw_input": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,4})?$",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "is_payer": {
+                        "type": "boolean",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "id",
+                    "is_payer",
+                    "participant",
+                    "participant_contact_id",
+                    "participant_user_id",
+                    "raw_input"
+                ]
+            },
+            "SplitRecurringExpenseRequest": {
+                "type": "object",
+                "description": "Mirror di expenses.serializers.RecurringExpenseSerializer, più il\npayload write-only `participants` (stessa forma — e stesso serializer —\ndi SplitExpenseSerializer) che alimenta il template\nSplitRecurringExpenseParticipant (piano sez. 1.7/3.4). La validazione di\n\"ogni partecipante è un membro attivo del gruppo\" vive nel service layer\n(apply_split_recurring_participants → SplitServiceError, catturato in\ncreate()/update() sotto), non duplicata qui — stesso principio di\nSplitExpenseSerializer/apply_split_shares.",
+                "properties": {
+                    "group": {
+                        "type": "integer"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "split_method": {
+                        "$ref": "#/components/schemas/SplitMethodEnum"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "frequency": {
+                        "$ref": "#/components/schemas/Frequency5b8Enum"
+                    },
+                    "day_of_month": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "format": "int64"
+                    },
+                    "month_of_year": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/StatusE95Enum"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "participants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SplitExpenseParticipantInputRequest"
+                        },
+                        "writeOnly": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "description",
+                    "group",
+                    "participants",
+                    "start_date"
+                ]
+            },
+            "SplitSettlement": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "group": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payer_user": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payer_user_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "payer_contact": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payer_contact_name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "payee_user": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payee_user_email": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "payee_contact": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payee_contact_name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "created_at",
+                    "created_by",
+                    "date",
+                    "id",
+                    "payee_contact_name",
+                    "payee_user_email",
+                    "payer_contact_name",
+                    "payer_user_email"
+                ]
+            },
+            "SplitSettlementRequest": {
+                "type": "object",
+                "properties": {
+                    "group": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payer_user": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payer_contact": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payee_user": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "payee_contact": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "linked_asset": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "date"
+                ]
             },
             "StatusE95Enum": {
                 "enum": [

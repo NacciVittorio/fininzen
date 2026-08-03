@@ -3504,6 +3504,12 @@ export interface components {
             /** Format: date */
             end_date?: string | null;
         };
+        /**
+         * @description * `user` - User
+         *     * `admin` - Admin
+         * @enum {string}
+         */
+        RoleEnum: "user" | "admin";
         SplitContact: {
             readonly id: number;
             display_name: string;
@@ -3733,12 +3739,6 @@ export interface components {
             notes?: string;
             linked_asset?: number | null;
         };
-        /**
-         * @description * `user` - User
-         *     * `admin` - Admin
-         * @enum {string}
-         */
-        RoleEnum: "user" | "admin";
         /**
          * @description * `ACTIVE` - Active
          *     * `DISABLED` - Disabled
