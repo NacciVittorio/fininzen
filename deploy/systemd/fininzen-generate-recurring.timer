@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Fininzen recurring expenses generation on a schedule
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=15m
+Persistent=true
+Unit=fininzen-generate-recurring.service
+
+[Install]
+WantedBy=timers.target
