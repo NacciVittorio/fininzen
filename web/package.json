@@ -52,5 +52,9 @@
                 "brace-expansion": "^1.1.16"
             }
         }
+    },
+    "allowScripts": {
+        "fsevents@2.3.2": true,
+        "unrs-resolver@1.12.2": true
     }
 }
