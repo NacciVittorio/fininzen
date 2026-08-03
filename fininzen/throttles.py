@@ -18,6 +18,15 @@ class GrantRateThrottle(UserRateThrottle):
     scope = "grant"
 
 
+class SplitLinkRateThrottle(UserRateThrottle):
+    """Mirror of GrantRateThrottle for POST /api/split/partner-links/: the
+    email→user lookup in splitting.services.send_partner_request is the same
+    email-enumeration surface as GrantsView.post(), so it gets the same guard.
+    """
+
+    scope = "split_link"
+
+
 class WebAuthnRateThrottle(AnonRateThrottle):
     """Throttle the unauthenticated WebAuthn auth endpoints (challenge/verify).
 

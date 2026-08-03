@@ -97,6 +97,8 @@ urlpatterns = [
     path("api/expenses/", include("expenses.urls")),
     # Tutte le API del portafoglio sotto /api/portfolio/
     path("api/portfolio/", include("portfolio.urls")),
+    # Tutte le API della feature Split sotto /api/split/
+    path("api/split/", include("splitting.urls")),
     # Data export (Feature F)
     path("api/export/", ExportView.as_view()),
     # OpenAPI schema (source of truth for the frontend typed client).

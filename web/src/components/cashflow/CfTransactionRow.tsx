@@ -62,14 +62,19 @@ export default function CfTransactionRow({
     const isTransfer = item.source_type === "transfer";
     const isAdjustment = item.source_type === "adjustment";
     const isVerified = item.is_verified;
+    // "split" is a shared expense's net personal quota — real outcome money
+    // (piano sez. 5, decision #3), so it reads exactly like a plain expense
+    // row. "split_reimbursement" (a settle-up) stays neutral like
+    // transfer/adjustment: it moves money between people, not in/out of the
+    // budget.
+    const isOutcome = item.type === "outcome" || item.type === "split";
     const typeColor =
         item.type === "income"
             ? "var(--success)"
-            : item.type === "outcome"
+            : isOutcome
               ? "var(--danger)"
               : "var(--fg-soft)";
-    const sign =
-        item.type === "income" ? "+" : item.type === "outcome" ? "-" : "±";
+    const sign = item.type === "income" ? "+" : isOutcome ? "-" : "±";
     const catIcon =
         item.category?.icon ||
         (isTransfer ? (

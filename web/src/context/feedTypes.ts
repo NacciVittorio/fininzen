@@ -1,5 +1,19 @@
 export type EntityId = number | string;
-export type CashflowItemType = "income" | "outcome" | "transfer" | "adjustment";
+// BUG FIX (found while writing web/e2e/split.spec.ts, piano sez. 5/8.2): the
+// backend feed (expenses/cashflow.py::_ALL_TYPES) has returned "split" and
+// "split_reimbursement" items since the CashFlow integration phase, but this
+// union never grew to match — `item.type === "outcome"` in CfTransactionRow
+// silently never matched a split expense's net-quota row, so every such row
+// rendered with the neutral "±" grey styling of a transfer/adjustment instead
+// of the red "-" outcome styling a real expense gets, even though decision #3
+// (piano sez. 5) means it IS real outcome money from the user's perspective.
+export type CashflowItemType =
+    | "income"
+    | "outcome"
+    | "transfer"
+    | "adjustment"
+    | "split"
+    | "split_reimbursement";
 
 export type CashflowAccountRef = { id: EntityId; name: string };
 
