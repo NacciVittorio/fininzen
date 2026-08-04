@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { BottomSheet, Card } from "../../components/ui";
+import { BottomSheet, ModalError } from "../../components/ui";
 import CategorySelect from "../../components/CategorySelect";
 import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
@@ -72,18 +72,34 @@ export default function SplitExpenseFormModal({
     } = useSplit();
 
     const [addValue, setAddValue] = useState("");
+    // Gates the live compute-error: participants are seeded the instant the
+    // modal opens (see effect below) while amountText is still "", which
+    // would otherwise flash "Invalid amount" before the user has typed
+    // anything.
+    const [amountTouched, setAmountTouched] = useState(false);
+
+    // The group the form actually targets. Starts out equal to the `group`
+    // prop (whichever screen opened the modal) but, once a group selector
+    // exists, the two can diverge — this is what candidates/participants
+    // must key off, not the prop, or switching groups in the selector would
+    // never change who's selectable (piano Split UX fixes: "a cosa serve il
+    // gruppo se non lo scelgo mai").
+    const selectedGroup = useMemo(
+        () => groups.find((g) => g.id === splitExpenseForm.group) ?? null,
+        [groups, splitExpenseForm.group],
+    );
 
     const mySplitUserId = resolveMySplitUserId({
         myEmail: user,
         groups,
-        groupMembers: group?.members,
+        groupMembers: selectedGroup?.members,
         partnerLinksSent,
         partnerLinksReceived,
     });
 
     const candidates: ParticipantCandidate[] = useMemo(() => {
-        if (group) {
-            return group.members
+        if (selectedGroup) {
+            return selectedGroup.members
                 .filter((member) => member.is_active)
                 .map((member) => ({
                     key: splitIdentityKey({
@@ -130,7 +146,7 @@ export default function SplitExpenseFormModal({
             }
         }
         return list;
-    }, [group, contacts, mySplitUserId, user, T]);
+    }, [selectedGroup, contacts, mySplitUserId, user, T]);
 
     const candidatesByKey = useMemo(
         () =>
@@ -152,8 +168,10 @@ export default function SplitExpenseFormModal({
         if (!openKey) return;
         if (expense) {
             loadSplitExpenseForEdit(expense);
+            setAmountTouched(true);
             return;
         }
+        setAmountTouched(false);
         resetSplitExpenseForm(group?.id ?? null);
         if (group) {
             group.members
@@ -169,6 +187,56 @@ export default function SplitExpenseFormModal({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [openKey]);
+
+    // Re-derives participants whenever the user changes the group selector
+    // mid-session (as opposed to at open time, handled above) — participants
+    // picked under the old group are very likely not members of the new one
+    // and the backend would reject them at submit
+    // (splitting/services.py::_resolve_participant, "participant_not_in_group").
+    const handleGroupChange = (value: string) => {
+        const nextGroupId = value ? Number(value) : null;
+        const nextGroup =
+            nextGroupId != null
+                ? (groups.find((g) => g.id === nextGroupId) ?? null)
+                : null;
+        const nextParticipants = nextGroup
+            ? nextGroup.members
+                  .filter((member) => member.is_active)
+                  .map((member, index) => ({
+                      key: splitIdentityKey({
+                          user_id: member.user,
+                          contact_id: member.contact,
+                      }),
+                      user_id: member.user,
+                      contact_id: member.contact,
+                      rawInputText: "",
+                      isPayer: index === 0,
+                  }))
+            : (() => {
+                  const selfId = resolveMySplitUserId({
+                      myEmail: user,
+                      groups,
+                      partnerLinksSent,
+                      partnerLinksReceived,
+                  });
+                  return selfId != null
+                      ? [
+                            {
+                                key: `user:${selfId}`,
+                                user_id: selfId,
+                                contact_id: null,
+                                rawInputText: "",
+                                isPayer: true,
+                            },
+                        ]
+                      : [];
+              })();
+        setSplitExpenseForm((prev) => ({
+            ...prev,
+            group: nextGroupId,
+            participants: nextParticipants,
+        }));
+    };
 
     const payer = splitExpenseForm.participants.find((p) => p.isPayer) ?? null;
     const payerIsSelf =
@@ -207,6 +275,7 @@ export default function SplitExpenseFormModal({
               : "EUR";
 
     const hasComputeError =
+        amountTouched &&
         splitExpenseForm.participants.length > 0 &&
         splitExpenseComputeError != null;
     const computeErrorText = splitExpenseComputeError
@@ -246,11 +315,37 @@ export default function SplitExpenseFormModal({
                         gap: 12,
                     }}
                 >
-                    {group && (
-                        <div style={{ fontSize: 12, color: "var(--fg-soft)" }}>
-                            {group.icon} {group.name}
-                        </div>
-                    )}
+                    <div>
+                        <FieldLabel
+                            text={T("split_expense_group_label")}
+                            htmlFor="split-exp-group"
+                        />
+                        <Select
+                            id="split-exp-group"
+                            data-testid="split-expense-group"
+                            value={
+                                splitExpenseForm.group != null
+                                    ? String(splitExpenseForm.group)
+                                    : ""
+                            }
+                            onChange={handleGroupChange}
+                            options={[
+                                {
+                                    value: "",
+                                    label: T(
+                                        "split_expense_group_standalone_option",
+                                    ),
+                                },
+                                ...groups
+                                    .filter((g) => !g.is_archived)
+                                    .map((g) => ({
+                                        value: String(g.id),
+                                        label: `${g.icon ?? ""} ${g.name}`.trim(),
+                                    })),
+                            ]}
+                            placeholder=""
+                        />
+                    </div>
                     <div>
                         <FieldLabel
                             text={T("label_description")}
@@ -279,12 +374,13 @@ export default function SplitExpenseFormModal({
                             id="split-exp-amount"
                             data-testid="split-expense-amount"
                             value={splitExpenseForm.amountText}
-                            onChange={(amount) =>
+                            onChange={(amount) => {
+                                setAmountTouched(true);
                                 setSplitExpenseForm((prev) => ({
                                     ...prev,
                                     amountText: amount,
-                                }))
-                            }
+                                }));
+                            }}
                             decimalSeparator={decimalSeparator}
                             placeholder={
                                 decimalSeparator === "," ? "0,00" : "0.00"
@@ -599,17 +695,9 @@ export default function SplitExpenseFormModal({
                     </div>
 
                     {displayError && (
-                        <Card
-                            tone="danger"
-                            data-testid="split-expense-error"
-                            style={{
-                                padding: "8px 10px",
-                                fontSize: 12,
-                                color: "var(--danger)",
-                            }}
-                        >
+                        <ModalError data-testid="split-expense-error">
                             {displayError}
-                        </Card>
+                        </ModalError>
                     )}
 
                     <div

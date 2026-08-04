@@ -294,11 +294,15 @@ export function useSplitExpenseForm({
             }
             const participants = buildParticipantsPayload();
             if (!participants || !participants.length) {
-                setSplitExpenseFormError(T("error_invalid_amount"));
+                setSplitExpenseFormError(
+                    T("split_error_participants_required"),
+                );
                 return null;
             }
             if (!participants.some((p) => p.is_payer)) {
-                setSplitExpenseFormError(T("error_invalid_amount"));
+                setSplitExpenseFormError(
+                    T("split_error_single_payer_required"),
+                );
                 return null;
             }
             setSplitExpenseFormSubmitting(true);

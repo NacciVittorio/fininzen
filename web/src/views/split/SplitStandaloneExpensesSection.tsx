@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { Card, GroupedList } from "../../components/ui";
+import { Card, GroupedList, ModalError } from "../../components/ui";
 import Modal from "../../components/Modal";
 import { useFormatters } from "../../utils/useFormatters";
 import { deleteSplitExpense } from "../../api/split";
@@ -53,16 +53,9 @@ export default function SplitStandaloneExpensesSection() {
     return (
         <div style={{ marginBottom: 16 }}>
             {standaloneExpensesError && (
-                <Card
-                    tone="danger"
-                    style={{
-                        padding: 16,
-                        marginBottom: 16,
-                        color: "var(--danger)",
-                    }}
-                >
-                    {standaloneExpensesError}
-                </Card>
+                <div style={{ marginBottom: 16 }}>
+                    <ModalError>{standaloneExpensesError}</ModalError>
+                </div>
             )}
 
             {standaloneExpenses.length === 0 ? (

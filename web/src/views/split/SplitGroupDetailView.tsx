@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { Card, GroupedList, PageHeader } from "../../components/ui";
+import { Card, GroupedList, ModalError, PageHeader } from "../../components/ui";
 import Modal from "../../components/Modal";
 import Select from "../../components/Select";
 import { useFormatters } from "../../utils/useFormatters";
 import { deleteSplitExpense } from "../../api/split";
 import type {
     SplitBalanceEntry,
+    SplitContact,
     SplitExpense,
+    SplitParticipant,
     SplitSettlement,
 } from "../../api/split";
 import {
@@ -72,6 +74,13 @@ export default function SplitGroupDetailView() {
     const [deletingSettlement, setDeletingSettlement] = useState(false);
     const [showRecurring, setShowRecurring] = useState(false);
     const [addMemberValue, setAddMemberValue] = useState("");
+    const [pendingMember, setPendingMember] = useState<SplitContact | null>(
+        null,
+    );
+    const [addingMember, setAddingMember] = useState(false);
+    const [removeMemberTarget, setRemoveMemberTarget] =
+        useState<SplitParticipant | null>(null);
+    const [removingMember, setRemovingMember] = useState(false);
 
     if (!selectedGroupId) return null;
 
@@ -116,14 +125,36 @@ export default function SplitGroupDetailView() {
             (candidate) => String(candidate.id) === value,
         );
         if (!contact) return;
-        if (contact.linked_user != null) {
-            addMemberToSplitGroup(selectedGroupId, {
-                user_id: contact.linked_user,
+        setAddMemberValue(value);
+        setPendingMember(contact);
+    };
+
+    const handleConfirmAddMember = async () => {
+        if (!pendingMember) return;
+        setAddingMember(true);
+        if (pendingMember.linked_user != null) {
+            await addMemberToSplitGroup(selectedGroupId, {
+                user_id: pendingMember.linked_user,
             });
         } else {
-            addMemberToSplitGroup(selectedGroupId, { contact_id: contact.id });
+            await addMemberToSplitGroup(selectedGroupId, {
+                contact_id: pendingMember.id,
+            });
         }
+        setAddingMember(false);
+        setPendingMember(null);
         setAddMemberValue("");
+    };
+
+    const handleConfirmRemoveMember = async () => {
+        if (!removeMemberTarget) return;
+        setRemovingMember(true);
+        await removeMemberFromSplitGroup(
+            selectedGroupId,
+            removeMemberTarget.id,
+        );
+        setRemovingMember(false);
+        setRemoveMemberTarget(null);
     };
 
     const handleDeleteExpense = async () => {
@@ -238,16 +269,9 @@ export default function SplitGroupDetailView() {
             />
 
             {groupDetailError && (
-                <Card
-                    tone="danger"
-                    style={{
-                        padding: 16,
-                        marginBottom: 16,
-                        color: "var(--danger)",
-                    }}
-                >
-                    {groupDetailError}
-                </Card>
+                <div style={{ marginBottom: 16 }}>
+                    <ModalError>{groupDetailError}</ModalError>
+                </div>
             )}
 
             <Card
@@ -443,10 +467,7 @@ export default function SplitGroupDetailView() {
                                     className="btn btn-r btn-sm"
                                     data-testid={`split-member-remove-${member.id}`}
                                     onClick={() =>
-                                        removeMemberFromSplitGroup(
-                                            selectedGroupId,
-                                            member.id,
-                                        )
+                                        setRemoveMemberTarget(member)
                                     }
                                 >
                                     {T("btn_delete")}
@@ -728,6 +749,103 @@ export default function SplitGroupDetailView() {
                                 data-testid="split-settlement-delete-confirm"
                                 disabled={deletingSettlement}
                                 onClick={handleDeleteSettlement}
+                            >
+                                {T("btn_delete")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {pendingMember && (
+                <Modal
+                    title={T("modal_add_member")}
+                    onClose={() => {
+                        setPendingMember(null);
+                        setAddMemberValue("");
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 14 }}>
+                            {pendingMember.display_name}
+                        </div>
+                        <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                            {T("split_add_member_confirm_body")}
+                        </div>
+                        <div
+                            className="row"
+                            style={{ justifyContent: "flex-end", gap: 8 }}
+                        >
+                            <button
+                                className="btn btn-g"
+                                onClick={() => {
+                                    setPendingMember(null);
+                                    setAddMemberValue("");
+                                }}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                className="btn btn-p"
+                                data-testid="split-add-member-confirm"
+                                disabled={addingMember}
+                                onClick={handleConfirmAddMember}
+                            >
+                                {T("btn_add")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {removeMemberTarget && (
+                <Modal
+                    title={T("modal_remove_member")}
+                    onClose={() => setRemoveMemberTarget(null)}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 14 }}>
+                            {splitMemberLabel(removeMemberTarget, {
+                                myEmail: user,
+                                contacts,
+                                T,
+                            })}
+                        </div>
+                        <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                            {T("split_remove_member_confirm_body")}
+                        </div>
+                        <div
+                            className="row"
+                            style={{ justifyContent: "flex-end", gap: 8 }}
+                        >
+                            <button
+                                className="btn btn-g"
+                                onClick={() => setRemoveMemberTarget(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    background: "var(--danger)",
+                                    color: "var(--btn-primary-fg)",
+                                    padding: "10px 18px",
+                                }}
+                                data-testid="split-member-remove-confirm"
+                                disabled={removingMember}
+                                onClick={handleConfirmRemoveMember}
                             >
                                 {T("btn_delete")}
                             </button>

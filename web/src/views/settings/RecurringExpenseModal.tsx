@@ -1,9 +1,10 @@
 "use client";
 
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import CategorySelect from "../../components/CategorySelect";
 import FieldLabel from "../../components/FieldLabel";
 import Modal from "../../components/Modal";
+import { ModalError } from "../../components/ui";
 import { filterAmountInput } from "../../utils/formatters";
 import type { Asset, Category } from "../../api/types";
 import type { RecurringForm } from "../../context/formBuilders";
@@ -292,22 +293,5 @@ export function DateRangeFields<F>({
                 />
             </div>
         </>
-    );
-}
-
-export function ModalError({ children }: { children: ReactNode }) {
-    return (
-        <div
-            style={{
-                fontSize: 12,
-                color: "var(--danger)",
-                background: "#ff6b6b11",
-                border: "1px solid #ff6b6b33",
-                borderRadius: 8,
-                padding: "8px 10px",
-            }}
-        >
-            {children}
-        </div>
     );
 }

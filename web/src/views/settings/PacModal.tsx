@@ -3,8 +3,9 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import FieldLabel from "../../components/FieldLabel";
 import Modal from "../../components/Modal";
+import { ModalError } from "../../components/ui";
 import { filterAmountInput } from "../../utils/formatters";
-import { DateRangeFields, ModalError } from "./RecurringExpenseModal";
+import { DateRangeFields } from "./RecurringExpenseModal";
 import type { Asset } from "../../api/types";
 import type { PacForm } from "../../context/formBuilders";
 import type { EntityId } from "../../context/feedTypes";

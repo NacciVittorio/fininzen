@@ -1238,6 +1238,8 @@ const it: Record<string, string> = {
     split_partner_requests_title: "Richieste di collegamento",
     split_partner_requests_received: "Ricevute",
     split_partner_requests_sent: "Inviate",
+    split_expense_group_label: "Gruppo",
+    split_expense_group_standalone_option: "Nessun gruppo (spesa singola)",
     split_participants_label: "Partecipanti",
     split_participants_empty: "Aggiungi almeno un partecipante.",
     split_participant_add_placeholder: "Aggiungi partecipante…",
@@ -1254,6 +1256,8 @@ const it: Record<string, string> = {
     split_error_shares_too_skewed:
         "Questa divisione è troppo sbilanciata — una quota risulterebbe negativa dopo l'arrotondamento. Prova importi diversi.",
     split_error_single_payer_required: "Deve esserci esattamente un pagatore.",
+    split_error_participants_required:
+        "Aggiungi almeno un partecipante — se è la tua prima spesa, crea prima un gruppo o aggiungi un partner.",
     split_error_duplicate_participant:
         "Lo stesso partecipante è stato aggiunto due volte.",
     split_error_participant_not_in_group:
@@ -1278,6 +1282,14 @@ const it: Record<string, string> = {
     split_group_expenses_title: "Spese del gruppo",
     split_group_expenses_empty: "Nessuna spesa in questo gruppo ancora.",
     split_add_member_placeholder: "Aggiungi membro…",
+    modal_add_member: "Aggiungere il membro?",
+    split_add_member_confirm_body: "Vedrà le spese e i saldi di questo gruppo.",
+    modal_remove_member: "Rimuovere il membro?",
+    split_remove_member_confirm_body:
+        "Perderà l'accesso a questo gruppo; potrai riaggiungerlo in seguito.",
+    modal_add_contact: "Aggiungere il contatto?",
+    split_add_contact_confirm_body:
+        "Verrà creata una nuova voce nella tua rubrica Split.",
     split_simplify_empty: "Nessuna transazione da semplificare: tutto saldato.",
     split_settle_you_pay: "Devi pagare",
     split_settle_you_receive: "Devi ricevere da",

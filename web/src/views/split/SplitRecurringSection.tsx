@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { BottomSheet, Card } from "../../components/ui";
+import { BottomSheet, Card, ModalError } from "../../components/ui";
 import CategorySelect from "../../components/CategorySelect";
 import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
@@ -1017,17 +1017,9 @@ export default function SplitRecurringSection({
                             )}
 
                             {displayFormError && (
-                                <Card
-                                    tone="danger"
-                                    data-testid="split-recurring-error"
-                                    style={{
-                                        padding: "8px 10px",
-                                        fontSize: 12,
-                                        color: "var(--danger)",
-                                    }}
-                                >
+                                <ModalError data-testid="split-recurring-error">
                                     {displayFormError}
-                                </Card>
+                                </ModalError>
                             )}
 
                             <div

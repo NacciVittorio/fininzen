@@ -1227,6 +1227,8 @@ const en: Record<string, string> = {
     split_partner_requests_title: "Partner requests",
     split_partner_requests_received: "Received",
     split_partner_requests_sent: "Sent",
+    split_expense_group_label: "Group",
+    split_expense_group_standalone_option: "No group (standalone expense)",
     split_participants_label: "Participants",
     split_participants_empty: "Add at least one participant.",
     split_participant_add_placeholder: "Add participant…",
@@ -1243,6 +1245,8 @@ const en: Record<string, string> = {
         "This split is too skewed — a share would end up negative after rounding. Try different amounts.",
     split_error_single_payer_required:
         "Exactly one participant must be the payer.",
+    split_error_participants_required:
+        "Add at least one participant — if this is your first expense, create a group or add a partner first.",
     split_error_duplicate_participant: "The same participant was added twice.",
     split_error_participant_not_in_group:
         "That participant isn't an active member of this group.",
@@ -1265,6 +1269,15 @@ const en: Record<string, string> = {
     split_group_expenses_title: "Group expenses",
     split_group_expenses_empty: "No expenses in this group yet.",
     split_add_member_placeholder: "Add member…",
+    modal_add_member: "Add member?",
+    split_add_member_confirm_body:
+        "They'll see this group's expenses and balances.",
+    modal_remove_member: "Remove member?",
+    split_remove_member_confirm_body:
+        "They'll lose access to this group; you can add them back later.",
+    modal_add_contact: "Add contact?",
+    split_add_contact_confirm_body:
+        "This creates a new entry in your Split address book.",
     split_simplify_empty: "Nothing to simplify: all settled up.",
     split_settle_you_pay: "You need to pay",
     split_settle_you_receive: "You need to receive from",

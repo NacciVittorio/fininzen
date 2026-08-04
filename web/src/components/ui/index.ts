@@ -28,3 +28,4 @@ export type { SwipeAction } from "./SwipeRow";
 export { default as LargeTitleHeader } from "./LargeTitleHeader";
 export { default as CategoryDot } from "./CategoryDot";
 export { default as SheetTitle } from "./SheetTitle";
+export { default as ModalError } from "./ModalError";

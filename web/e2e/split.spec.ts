@@ -245,8 +245,9 @@ test.describe.serial("Split feature", () => {
             '[data-testid="split-contact-name-input"]',
             localContactName,
         );
+        await page.click('[data-testid="split-contact-new-submit"]');
         await waitForApi(page, "POST", "/split/contacts/", () =>
-            page.click('[data-testid="split-contact-new-submit"]'),
+            page.click('[data-testid="split-contact-new-confirm"]'),
         );
         const localRow = page
             .locator('[data-testid^="split-contact-row-"]')
@@ -283,14 +284,14 @@ test.describe.serial("Split feature", () => {
             page.locator('[data-testid="split-add-member-select"]'),
         ).toBeVisible({ timeout: 8000 });
         await page.click('[data-testid="split-add-member-select"]');
+        await page.click(
+            `[data-testid="split-add-member-select-option-${contactBId}"]`,
+        );
         await waitForApi(
             page,
             "POST",
             `/split/groups/${groupId}/members/`,
-            () =>
-                page.click(
-                    `[data-testid="split-add-member-select-option-${contactBId}"]`,
-                ),
+            () => page.click('[data-testid="split-add-member-confirm"]'),
         );
         await expect(
             page.locator('[data-testid^="split-member-row-"]').filter({
@@ -299,14 +300,14 @@ test.describe.serial("Split feature", () => {
         ).toBeVisible({ timeout: 8000 });
 
         await page.click('[data-testid="split-add-member-select"]');
+        await page.click(
+            `[data-testid="split-add-member-select-option-${localContactId}"]`,
+        );
         await waitForApi(
             page,
             "POST",
             `/split/groups/${groupId}/members/`,
-            () =>
-                page.click(
-                    `[data-testid="split-add-member-select-option-${localContactId}"]`,
-                ),
+            () => page.click('[data-testid="split-add-member-confirm"]'),
         );
         await expect(
             page.locator('[data-testid^="split-member-row-"]').filter({

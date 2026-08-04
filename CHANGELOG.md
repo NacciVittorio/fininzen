@@ -13,12 +13,44 @@ automatically by `just release` (commitizen) from Conventional Commits — see
 - **auth,expenses**: add long-lived API tokens and quick-add expense endpoint
 - **splitting**: add shared-expense tracking (Splitwise-style groups, contacts,
   settlements, recurring split expenses)
+- **gdpr**: add privacy policy, terms of service, and a required registration
+  consent checkbox; stop logging user email/name in plaintext across expenses,
+  portfolio, and auth views
+- **export**: extend the GDPR data export to all user models — categories,
+  budgets, recurring expenses, PAC plans, allocation targets, FIRE settings,
+  profile preferences, and sharing grants — and simplify Settings > Dati to a
+  single "Esporta tutto" button
+
+### Fix
+
+- **splitting**: harden the Split feature ahead of release (QA batches 1-4) —
+  reject shares that go negative after rounding instead of crashing, anonymize
+  a deleted user's Split identity instead of cascading group deletes, add the
+  missing settlement-history and standalone-expense list/edit/delete views,
+  i18n for all backend Split error codes, access-control and concurrency
+  fixes (member removal, row-locked concurrent edits), and a daily systemd
+  timer for recurring Split expenses
+- **split**: QA batch 5 — standardize the Split error banners, convert the
+  remaining hand-rolled expense/settlement lists to GroupedList, and fix
+  several accessibility gaps (missing `htmlFor`/`aria-label`s, BottomSheet
+  `ariaLabel` not distinguishing add vs edit)
+- **split**: fix expense creation always failing with a misleading "Invalid
+  amount" error (three unrelated failures — bad amount, no participants, no
+  payer — were sharing one message); add a real, editable group selector to
+  the expense form; add confirmation dialogs for creating a contact and for
+  adding/removing a group member; add contact rename; show which groups a
+  contact belongs to; unify the Split error banners on the shared
+  `ModalError` component used elsewhere in Settings
+- **settings**: redirect `/settings/planning` back to `/settings` when no
+  planning modules are enabled, matching the guard the top-level tabs already
+  had; remove the unused `SettingsManagementModals` wrapper
 
 ### Refactor
 
 - **settings**: reorganize Settings into grouped routes (Account, Planning,
   Preferenze, Dati, About) with real deep-linkable routes, shared
-  SettingsCard/SettingsRow helper, consolidated danger-zone
+  SettingsCard/SettingsRow helper, consolidated danger-zone, and migrate the
+  remaining sections onto GroupedList/Card (including a Sharing i18n key fix)
 
 ## v0.13.1 (2026-08-03)
 
