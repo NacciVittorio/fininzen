@@ -397,9 +397,41 @@ class TestSplitRecurringApi:
 
         res_enable = client.post(f"/api/split/recurring/{rec.id}/enable/")
         assert res_enable.status_code == 200
+        assert res_enable.json()["status"] == SplitRecurringExpense.STATUS_ACTIVE
         rec.refresh_from_db()
         assert rec.status == SplitRecurringExpense.STATUS_ACTIVE
         assert rec.is_active is True
+
+    def test_enable_on_expired_template_reports_it_stayed_disabled(
+        self, group_of_three, test_user
+    ):
+        """Piano Batch 4.4: enabling a template whose end_date has already
+        passed used to always return a blanket {"ok": True} — the DB row
+        got flipped straight back to DISABLED by
+        backfill_recurring_split_expense's own expiry check in the same
+        request, but the response never said so. `status` in the response
+        must reflect what actually stuck, not what was requested."""
+        group, p1, _p2, _p3 = group_of_three
+        rec = _make_equal_recurring(
+            group,
+            p1,
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+            created_by=test_user,
+        )
+        rec.status = SplitRecurringExpense.STATUS_DISABLED
+        rec.is_active = False
+        rec.save(update_fields=["status", "is_active"])
+        client = Client()
+        client.force_login(test_user)
+
+        res = client.post(f"/api/split/recurring/{rec.id}/enable/")
+
+        assert res.status_code == 200
+        assert res.json()["status"] == SplitRecurringExpense.STATUS_DISABLED
+        rec.refresh_from_db()
+        assert rec.status == SplitRecurringExpense.STATUS_DISABLED
+        assert rec.is_active is False
 
     def test_generate_and_status_endpoints(self, group_of_three, test_user):
         group, p1, _p2, _p3 = group_of_three

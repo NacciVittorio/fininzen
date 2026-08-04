@@ -168,6 +168,10 @@ export type SplitRecurringBackfillResult = {
 };
 export type SplitRecurringEnableResponse = SplitRecurringBackfillResult & {
     ok: true;
+    // The template's actual resulting status — an already-expired template
+    // (end_date in the past) gets disabled again in the same request, so
+    // this can come back "DISABLED" even though the call succeeded.
+    status: "ACTIVE" | "DISABLED" | "DELETED";
 };
 export type SplitRecurringDisableResponse = { ok: true };
 

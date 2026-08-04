@@ -8,10 +8,15 @@ import Modal from "../../components/Modal";
 import Select from "../../components/Select";
 import { useFormatters } from "../../utils/useFormatters";
 import { deleteSplitExpense } from "../../api/split";
-import type { SplitBalanceEntry, SplitExpense } from "../../api/split";
+import type {
+    SplitBalanceEntry,
+    SplitExpense,
+    SplitSettlement,
+} from "../../api/split";
 import {
     resolveMySplitUserId,
     simplifiedTransactionToSettleEntry,
+    splitIdentityIsMe,
     splitIdentityKey,
     splitIdentityLabel,
     splitMemberLabel,
@@ -40,6 +45,7 @@ export default function SplitGroupDetailView() {
         groupMembers,
         groupBalances,
         groupExpenses,
+        groupSettlements,
         groupSimplified,
         groupDetailLoading,
         groupSimplifyLoading,
@@ -49,6 +55,7 @@ export default function SplitGroupDetailView() {
         addMemberToSplitGroup,
         removeMemberFromSplitGroup,
         loadSplitGroupSimplify,
+        removeSplitSettlement,
     } = useSplit();
 
     const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -60,6 +67,9 @@ export default function SplitGroupDetailView() {
     );
     const [deleteTarget, setDeleteTarget] = useState<SplitExpense | null>(null);
     const [deletingExpense, setDeletingExpense] = useState(false);
+    const [deleteSettlementTarget, setDeleteSettlementTarget] =
+        useState<SplitSettlement | null>(null);
+    const [deletingSettlement, setDeletingSettlement] = useState(false);
     const [showRecurring, setShowRecurring] = useState(false);
     const [addMemberValue, setAddMemberValue] = useState("");
 
@@ -84,6 +94,13 @@ export default function SplitGroupDetailView() {
     });
 
     const refresh = () => loadSplitGroupDetail(selectedGroupId);
+    // piano Batch 4.6: removal is creator-only server-side now (falling back
+    // to "anyone" only if the group has no creator left, e.g. anonymized —
+    // piano Batch 1.2) — mirror that here instead of showing a Delete button
+    // that's guaranteed to 403 for anyone else.
+    const canRemoveMembers =
+        groupDetail.created_by == null ||
+        groupDetail.created_by === mySplitUserId;
 
     const memberCandidates = contacts.filter((contact) => {
         if (contact.is_archived) return false;
@@ -120,6 +137,62 @@ export default function SplitGroupDetailView() {
         setDeletingExpense(false);
         setDeleteTarget(null);
         refresh();
+    };
+
+    const handleDeleteSettlement = async () => {
+        if (!deleteSettlementTarget) return;
+        if (guardDemo()) {
+            setDeleteSettlementTarget(null);
+            return;
+        }
+        setDeletingSettlement(true);
+        await removeSplitSettlement(deleteSettlementTarget.id);
+        setDeletingSettlement(false);
+        setDeleteSettlementTarget(null);
+        refresh();
+    };
+
+    const settlementPartyLabel = (
+        settlement: SplitSettlement,
+        side: "payer" | "payee",
+    ) =>
+        splitIdentityLabel(
+            {
+                display_name:
+                    side === "payer"
+                        ? settlement.payer_contact_name
+                        : settlement.payee_contact_name,
+                email:
+                    side === "payer"
+                        ? settlement.payer_user_email
+                        : settlement.payee_user_email,
+            },
+            { myEmail: user, T },
+        );
+
+    // Group balances above color-codes owed-to-you (green) vs you-owe (red) —
+    // the settlement history list mirrors that same signifier: red when I'm
+    // the one who paid (money out), green when I'm the one who got paid
+    // (money in), neutral when I'm not a direct party (a settlement between
+    // two other group members, still shown here for group-history context).
+    const settlementAmountColor = (settlement: SplitSettlement): string => {
+        const iAmPayer = splitIdentityIsMe(
+            {
+                user_id: settlement.payer_user ?? null,
+                email: settlement.payer_user_email ?? null,
+            },
+            { mySplitUserId, myEmail: user },
+        );
+        if (iAmPayer) return "var(--danger)";
+        const iAmPayee = splitIdentityIsMe(
+            {
+                user_id: settlement.payee_user ?? null,
+                email: settlement.payee_user_email ?? null,
+            },
+            { mySplitUserId, myEmail: user },
+        );
+        if (iAmPayee) return "var(--success)";
+        return "var(--fg)";
     };
 
     return (
@@ -364,7 +437,7 @@ export default function SplitGroupDetailView() {
                                     T,
                                 })}
                             </span>
-                            {member.user_email !== user && (
+                            {member.user_email !== user && canRemoveMembers && (
                                 <button
                                     type="button"
                                     className="btn btn-r btn-sm"
@@ -492,6 +565,98 @@ export default function SplitGroupDetailView() {
                 )}
             </div>
 
+            <div style={{ marginBottom: 16 }}>
+                <div className="grouped-list__title">
+                    {T("split_group_settlements_title")}
+                </div>
+                {groupSettlements.length === 0 ? (
+                    <Card
+                        style={{
+                            padding: 20,
+                            textAlign: "center",
+                            color: "var(--fg-soft)",
+                        }}
+                        data-testid="split-group-settlements-empty"
+                    >
+                        {T("split_group_settlements_empty")}
+                    </Card>
+                ) : (
+                    <div className="grouped-list">
+                        {groupSettlements.map((settlement) => (
+                            <div
+                                key={settlement.id}
+                                className="grouped-list__item"
+                                data-testid={`split-settlement-row-${settlement.id}`}
+                                style={{ alignItems: "center", gap: 10 }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 10,
+                                        flex: 1,
+                                        minWidth: 0,
+                                    }}
+                                >
+                                    <span style={{ fontSize: 18 }}>💸</span>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div
+                                            style={{
+                                                fontSize: 14,
+                                                fontWeight: 500,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            {settlementPartyLabel(
+                                                settlement,
+                                                "payer",
+                                            )}{" "}
+                                            →{" "}
+                                            {settlementPartyLabel(
+                                                settlement,
+                                                "payee",
+                                            )}
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: 11,
+                                                color: "var(--fg-soft)",
+                                            }}
+                                        >
+                                            {settlement.date}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span
+                                    style={{
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        fontFamily: "var(--font-mono)",
+                                        color: settlementAmountColor(
+                                            settlement,
+                                        ),
+                                    }}
+                                >
+                                    {formatEur(settlement.amount)}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="btn btn-r btn-sm"
+                                    data-testid={`split-settlement-delete-${settlement.id}`}
+                                    onClick={() =>
+                                        setDeleteSettlementTarget(settlement)
+                                    }
+                                >
+                                    {T("btn_delete")}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             <button
                 type="button"
                 className="btn btn-g btn-sm"
@@ -557,6 +722,61 @@ export default function SplitGroupDetailView() {
                                 data-testid="split-expense-delete-confirm"
                                 disabled={deletingExpense}
                                 onClick={handleDeleteExpense}
+                            >
+                                {T("btn_delete")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {deleteSettlementTarget && (
+                <Modal
+                    title={T("modal_delete_settlement")}
+                    onClose={() => setDeleteSettlementTarget(null)}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 14 }}>
+                            {settlementPartyLabel(
+                                deleteSettlementTarget,
+                                "payer",
+                            )}{" "}
+                            →{" "}
+                            {settlementPartyLabel(
+                                deleteSettlementTarget,
+                                "payee",
+                            )}{" "}
+                            — {formatEur(deleteSettlementTarget.amount)}
+                        </div>
+                        <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                            {T("action_cannot_be_undone")}
+                        </div>
+                        <div
+                            className="row"
+                            style={{ justifyContent: "flex-end", gap: 8 }}
+                        >
+                            <button
+                                className="btn btn-g"
+                                onClick={() => setDeleteSettlementTarget(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    background: "var(--danger)",
+                                    color: "var(--btn-primary-fg)",
+                                    padding: "10px 18px",
+                                }}
+                                data-testid="split-settlement-delete-confirm"
+                                disabled={deletingSettlement}
+                                onClick={handleDeleteSettlement}
                             >
                                 {T("btn_delete")}
                             </button>

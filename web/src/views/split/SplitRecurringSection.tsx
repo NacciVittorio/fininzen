@@ -19,6 +19,7 @@ import {
     computeExactShares,
     computePercentageShares,
     computeWeightedShares,
+    SPLIT_COMPUTE_ERROR_KEYS,
 } from "../../context/split/splitShareMath";
 import {
     resolveMySplitUserId,
@@ -105,6 +106,7 @@ export default function SplitRecurringSection({
         recurrings,
         recurringLoading,
         recurringError,
+        setRecurringError,
         loadSplitRecurring,
         addSplitRecurring,
         editSplitRecurring,
@@ -200,6 +202,25 @@ export default function SplitRecurringSection({
             : { shares: null, error: result.error };
     }, [form, decimalSeparator]);
 
+    // Read recurringError reactively at render time rather than capturing it
+    // synchronously right after an await in handleSubmit — same
+    // stale-closure bug SplitSettleUpModal.tsx had (piano Batch 3.3): its
+    // setRecurringError(...) is an async state update not yet visible in
+    // handleSubmit's own closure until the next render, so the first failed
+    // submit in a session always fell through to a generic fallback instead
+    // of the real server message.
+    const displayFormError =
+        formError ??
+        recurringError ??
+        (computed.error
+            ? T(SPLIT_COMPUTE_ERROR_KEYS[computed.error] ?? "error_network")
+            : null);
+    // piano Batch 4.1: submit wasn't gated on a visible compute error, only
+    // on `submitting` — a skewed/invalid split could be sent to the server
+    // anyway (which would then reject it) instead of being blocked client-side.
+    const hasComputeError =
+        form.participants.length > 0 && computed.error != null;
+
     const payer = form.participants.find((p) => p.isPayer) ?? null;
     const payerIsSelf =
         payer != null &&
@@ -232,6 +253,7 @@ export default function SplitRecurringSection({
             }));
         setForm({ ...emptyForm(), participants: seededParticipants });
         setFormError(null);
+        setRecurringError(null);
         setShowForm(true);
     };
 
@@ -271,6 +293,7 @@ export default function SplitRecurringSection({
             })),
         });
         setFormError(null);
+        setRecurringError(null);
         setShowForm(true);
     };
 
@@ -330,8 +353,6 @@ export default function SplitRecurringSection({
         setSubmitting(false);
         if (result) {
             setShowForm(false);
-        } else {
-            setFormError(recurringError ?? T("error_network"));
         }
     };
 
@@ -955,7 +976,7 @@ export default function SplitRecurringSection({
                                 </>
                             )}
 
-                            {(formError || computed.error) && (
+                            {displayFormError && (
                                 <div
                                     style={{
                                         fontSize: 12,
@@ -966,7 +987,7 @@ export default function SplitRecurringSection({
                                         padding: "8px 10px",
                                     }}
                                 >
-                                    {formError ?? T("error_invalid_amount")}
+                                    {displayFormError}
                                 </div>
                             )}
 
@@ -987,7 +1008,7 @@ export default function SplitRecurringSection({
                                 <button
                                     className="btn btn-p"
                                     data-testid="split-recurring-submit"
-                                    disabled={submitting}
+                                    disabled={submitting || hasComputeError}
                                     onClick={handleSubmit}
                                 >
                                     {submitting

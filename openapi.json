@@ -9546,7 +9546,8 @@
                     },
                     "created_by": {
                         "type": "integer",
-                        "readOnly": true
+                        "readOnly": true,
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",
@@ -9734,7 +9735,8 @@
                     },
                     "created_by": {
                         "type": "integer",
-                        "readOnly": true
+                        "readOnly": true,
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",
@@ -9934,7 +9936,8 @@
                     },
                     "created_by": {
                         "type": "integer",
-                        "readOnly": true
+                        "readOnly": true,
+                        "nullable": true
                     },
                     "participant_templates": {
                         "type": "array",
@@ -10133,7 +10136,8 @@
                     },
                     "created_by": {
                         "type": "integer",
-                        "readOnly": true
+                        "readOnly": true,
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",

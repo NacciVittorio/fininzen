@@ -20,6 +20,12 @@ Kinds mirror the roadmap spec:
     contribution_sources        ContributionSource rows
     profile                     UserProfile preferences (singleton, non-sensitive fields only)
     sharing                     DataAccessGrant rows the user created (owner=user)
+    split_contacts               SplitContact rows (owner=user)
+    split_groups                 SplitGroup rows the user created or was ever a member of
+    split_expenses                SplitExpense rows in scope (created, group member, or ad-hoc party)
+    split_expense_shares         SplitExpenseShare rows for the expenses above
+    split_settlements            SplitSettlement rows in scope (created, party, or group member)
+    split_recurring_expenses     SplitRecurringExpense rows for groups the user belongs to
     all                         every kind above, zipped together
 
 Auth: IsAuthenticated. Demo user is rejected with 403 — exports leak the
@@ -38,6 +44,7 @@ import zipfile
 from datetime import date
 from urllib.parse import quote
 
+from django.db.models import Q
 from django.http import FileResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -58,6 +65,14 @@ from portfolio.models import (
     InvestmentType,
     RecurringInvestmentPlan,
 )
+from splitting.models import (
+    SplitContact,
+    SplitExpense,
+    SplitExpenseShare,
+    SplitGroup,
+    SplitRecurringExpense,
+    SplitSettlement,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +92,12 @@ _CSV_KINDS = (
     "contribution_sources",
     "profile",
     "sharing",
+    "split_contacts",
+    "split_groups",
+    "split_expenses",
+    "split_expense_shares",
+    "split_settlements",
+    "split_recurring_expenses",
 )
 _ZIP_MAX_BYTES = 50 * 1024 * 1024
 
@@ -503,6 +524,201 @@ def _sharing_rows(user):
         yield [g.id, g.grantee.username, g.permission, g.created_at.isoformat()]
 
 
+# ── Split (piano QA-fix Batch 3.4: "Export All" silently omitted every Split
+#    contact/group/expense/settlement) ──────────────────────────────────────
+#
+# Scope mirrors SplitBalancesOverviewView's queryset (splitting/views/
+# balances.py) — created it, currently/formerly an active-or-inactive group
+# member, or a direct settlement party — but without the `is_active=True`
+# restriction that view applies: a data export is "everything about me",
+# including groups/expenses from before a membership was removed, not just
+# what's currently reachable in the UI.
+
+
+def _split_identity_label(user_obj, contact_obj):
+    if user_obj is not None:
+        return user_obj.email
+    if contact_obj is not None:
+        return contact_obj.display_name
+    return ""
+
+
+def _split_contacts_rows(user):
+    yield [
+        "id",
+        "display_name",
+        "color",
+        "linked_user",
+        "is_archived",
+        "created_at",
+    ]
+    qs = (
+        SplitContact.objects.filter(owner=user)
+        .select_related("linked_user")
+        .order_by("display_name", "id")
+    )
+    for c in qs:
+        yield [
+            c.id,
+            c.display_name,
+            c.color,
+            c.linked_user.email if c.linked_user_id else "",
+            c.is_archived,
+            c.created_at.isoformat(),
+        ]
+
+
+def _split_groups_rows(user):
+    yield ["id", "name", "icon", "is_archived", "created_at"]
+    qs = (
+        SplitGroup.objects.filter(Q(created_by=user) | Q(participants__user=user))
+        .distinct()
+        .order_by("-created_at", "id")
+    )
+    for g in qs:
+        yield [g.id, g.name, g.icon, g.is_archived, g.created_at.isoformat()]
+
+
+def _split_expenses_scope(user):
+    return SplitExpense.objects.filter(
+        Q(created_by=user)
+        | Q(group__participants__user=user)
+        | Q(adhoc_participants__user=user)
+    ).distinct()
+
+
+def _split_expenses_rows(user):
+    yield [
+        "id",
+        "group",
+        "description",
+        "amount",
+        "date",
+        "split_method",
+        "category",
+        "linked_asset",
+        "notes",
+        "created_at",
+    ]
+    qs = (
+        _split_expenses_scope(user)
+        .select_related("group", "category", "linked_asset")
+        .order_by("-date", "-created_at")
+    )
+    for e in qs:
+        yield [
+            e.id,
+            e.group.name if e.group_id else "",
+            e.description,
+            str(e.amount),
+            e.date.isoformat(),
+            e.split_method,
+            e.category.name if e.category_id else "",
+            e.linked_asset.name if e.linked_asset_id else "",
+            e.notes,
+            e.created_at.isoformat(),
+        ]
+
+
+def _split_expense_shares_rows(user):
+    yield ["id", "expense", "participant", "share_amount", "raw_input", "is_payer"]
+    qs = (
+        SplitExpenseShare.objects.filter(expense__in=_split_expenses_scope(user))
+        .select_related("expense", "participant__user", "participant__contact")
+        .order_by("expense_id", "id")
+    )
+    for s in qs:
+        identity = _split_identity_label(s.participant.user, s.participant.contact)
+        yield [
+            s.id,
+            s.expense.description,
+            identity,
+            str(s.share_amount),
+            "" if s.raw_input is None else str(s.raw_input),
+            s.is_payer,
+        ]
+
+
+def _split_settlements_rows(user):
+    yield [
+        "id",
+        "group",
+        "payer",
+        "payee",
+        "amount",
+        "date",
+        "notes",
+        "linked_asset",
+        "created_at",
+    ]
+    qs = (
+        SplitSettlement.objects.filter(
+            Q(created_by=user)
+            | Q(payer_user=user)
+            | Q(payee_user=user)
+            | Q(group__participants__user=user)
+        )
+        .distinct()
+        .select_related(
+            "group",
+            "payer_user",
+            "payer_contact",
+            "payee_user",
+            "payee_contact",
+            "linked_asset",
+        )
+        .order_by("-date", "-created_at")
+    )
+    for s in qs:
+        yield [
+            s.id,
+            s.group.name if s.group_id else "",
+            _split_identity_label(s.payer_user, s.payer_contact),
+            _split_identity_label(s.payee_user, s.payee_contact),
+            str(s.amount),
+            s.date.isoformat(),
+            s.notes,
+            s.linked_asset.name if s.linked_asset_id else "",
+            s.created_at.isoformat(),
+        ]
+
+
+def _split_recurring_expenses_rows(user):
+    yield [
+        "id",
+        "group",
+        "description",
+        "amount",
+        "split_method",
+        "frequency",
+        "day_of_month",
+        "month_of_year",
+        "start_date",
+        "end_date",
+        "status",
+    ]
+    qs = (
+        SplitRecurringExpense.objects.filter(group__participants__user=user)
+        .distinct()
+        .select_related("group")
+        .order_by("-start_date", "id")
+    )
+    for r in qs:
+        yield [
+            r.id,
+            r.group.name,
+            r.description,
+            str(r.amount),
+            r.split_method,
+            r.frequency,
+            r.day_of_month,
+            "" if r.month_of_year is None else r.month_of_year,
+            r.start_date.isoformat(),
+            r.end_date.isoformat() if r.end_date else "",
+            r.status,
+        ]
+
+
 _ROW_PRODUCERS = {
     "accounts": _accounts_rows,
     "assets": _assets_rows,
@@ -519,6 +735,12 @@ _ROW_PRODUCERS = {
     "contribution_sources": _contribution_sources_rows,
     "profile": _profile_rows,
     "sharing": _sharing_rows,
+    "split_contacts": _split_contacts_rows,
+    "split_groups": _split_groups_rows,
+    "split_expenses": _split_expenses_rows,
+    "split_expense_shares": _split_expense_shares_rows,
+    "split_settlements": _split_settlements_rows,
+    "split_recurring_expenses": _split_recurring_expenses_rows,
 }
 
 # Export All (ZIP) keeps the full transactions stream — including bank-account

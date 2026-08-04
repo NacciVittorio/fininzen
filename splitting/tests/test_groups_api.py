@@ -287,6 +287,96 @@ class TestGroupMembers:
         user_ids = {m["user"] for m in res.json()}
         assert second_user.id not in user_ids
 
+    def test_non_creator_member_cannot_remove_another_member(
+        self, test_user, second_user, third_user
+    ):
+        """Piano Batch 4.6: previously any active member could remove any
+        other member, including the founder — restricted to the group's
+        creator only."""
+        from django.test import Client
+
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        owner_p = SplitParticipant.objects.create(
+            group=group, user=test_user, added_by=test_user
+        )
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        third_p = SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+
+        second_client = Client()
+        second_client.force_login(second_user)
+        res = second_client.delete(
+            f"/api/split/groups/{group.id}/members/{third_p.id}/"
+        )
+
+        assert res.status_code == 403
+        assert res.json() == {"error": "only_group_creator_can_remove_members"}
+        third_p.refresh_from_db()
+        assert third_p.is_active is True
+
+        # A non-creator member also can't remove the founder.
+        res_founder = second_client.delete(
+            f"/api/split/groups/{group.id}/members/{owner_p.id}/"
+        )
+        assert res_founder.status_code == 403
+        owner_p.refresh_from_db()
+        assert owner_p.is_active is True
+
+    def test_creator_can_remove_any_member(
+        self, client, test_user, second_user, third_user
+    ):
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        third_p = SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+
+        res = client.delete(f"/api/split/groups/{group.id}/members/{third_p.id}/")
+
+        assert res.status_code == 204
+        third_p.refresh_from_db()
+        assert third_p.is_active is False
+
+    def test_any_active_member_can_remove_when_group_has_no_creator(
+        self, second_user, third_user
+    ):
+        """A group whose creator's account was later deleted (created_by
+        SET_NULL — anonymize_split_identity_for_user, piano Batch 1.2) must
+        not get permanently stuck with nobody able to manage membership."""
+        from django.test import Client
+
+        group = SplitGroup.objects.create(name="Weekend", created_by=None)
+        member_p = SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=second_user
+        )
+        SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=second_user
+        )
+
+        second_client = Client()
+        second_client.force_login(second_user)
+        # second_user needs access to the group at all to even reach
+        # get_object() — active membership (not creator, since there is
+        # none) already satisfies user_can_access_group.
+        res = second_client.get(f"/api/split/groups/{group.id}/members/")
+        assert res.status_code == 200
+
+        third_client = Client()
+        third_client.force_login(third_user)
+        res = third_client.delete(
+            f"/api/split/groups/{group.id}/members/{member_p.id}/"
+        )
+
+        assert res.status_code == 204
+        member_p.refresh_from_db()
+        assert member_p.is_active is False
+
 
 # ── Balances / simplify a livello di gruppo ─────────────────────────────
 

@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portfolio", "0048_assettransaction_source_split_expense_and_more"),
         ("splitting", "0001_initial"),

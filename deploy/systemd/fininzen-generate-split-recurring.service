@@ -1,0 +1,19 @@
+[Unit]
+Description=Fininzen Split recurring expenses generation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=fininzen
+Group=fininzen
+WorkingDirectory=/opt/fininzen
+EnvironmentFile=/etc/fininzen.env
+ExecStart=/opt/fininzen/venv/bin/python manage.py generate_split_recurring_expenses
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ReadWritePaths=/opt/fininzen

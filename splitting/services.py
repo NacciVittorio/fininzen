@@ -20,10 +20,12 @@ from .models import (
     SplitContact,
     SplitExpense,
     SplitExpenseShare,
+    SplitGroup,
     SplitParticipant,
     SplitPartnerLink,
     SplitRecurringExpense,
     SplitRecurringExpenseParticipant,
+    SplitSettlement,
 )
 
 logger = logging.getLogger(__name__)
@@ -148,6 +150,8 @@ def _distribute_remainder(total, raw_shares):
     step = _CENT if diff_cents > 0 else -_CENT
     for i in range(abs(diff_cents)):
         quantized[i % len(quantized)] += step
+    if any(q < 0 for q in quantized):
+        raise SplitServiceError("shares_too_skewed")
     return quantized
 
 
@@ -309,6 +313,15 @@ def apply_split_shares(expense, participants_payload, split_method, *, added_by)
             raise SplitServiceError("raw_input_required")
 
     with transaction.atomic():
+        # Piano Batch 4.7: without a row lock, two concurrent edits of the
+        # same expense could interleave their delete-then-bulk_create passes
+        # — no error, just a silent last-write-wins with no conflict signal.
+        # select_for_update() is a no-op on SQLite (dev/test backend) but
+        # keeps this correct under PostgreSQL (same pattern as
+        # portfolio/services.py::_recompute_asset_locked). `expense` itself
+        # has no scalar fields mutated here, so re-pointing every subsequent
+        # use at the locked copy is enough — no mirror-back needed.
+        expense = SplitExpense.objects.select_for_update().get(pk=expense.pk)
         expense.shares.all().delete()
 
         resolved = [
@@ -767,3 +780,207 @@ def split_recurring_status(user, year: int, month: int) -> dict:
             "total": total,
         },
     }
+
+
+# ── Account deletion: anonimizzazione identità Split ────────────────────────
+#
+# SplitParticipant.user e SplitSettlement.payer_user/payee_user sono
+# SET_NULL, ma vincolati da CheckConstraint a "esattamente uno tra
+# user/contact" — un SET_NULL nudo lascia la riga con entrambi None,
+# violando il constraint (IntegrityError/500 sull'endpoint di self-delete
+# esistente). anonymize_split_identity_for_user() va chiamata da
+# AccountView.delete PRIMA di user.delete(), nella stessa transazione:
+# sostituisce l'identità di `user` con un SplitContact placeholder anonimo
+# (nessuna email/nome originale) ovunque esista un altro utente ancora
+# presente con un interesse reale sui dati, cosicché saldi e storico degli
+# ALTRI partecipanti restino intatti. Dove `user` non ha mai condiviso Split
+# con nessun altro utente (solo bookkeeping personale con propri contatti
+# locali — quei SplitContact sono owner=user, CASCADE, e cascaterebbero
+# comunque), non c'è nulla da preservare per conto terzi: gruppi/spese/
+# settlement coinvolti vengono eliminati esplicitamente qui.
+
+
+def _find_split_anchor_user_id(user):
+    """Trova un altro utente ancora esistente che condivide con `user` un
+    gruppo, una spesa occasionale o un settlement — userà il suo id come
+    owner del SplitContact placeholder. Deterministico (id più basso) così
+    chiamate ripetute concordano. None se `user` non ha mai condiviso Split
+    con un altro utente registrato."""
+    own = SplitParticipant.objects.filter(user=user).values_list(
+        "group_id", "standalone_expense_id"
+    )
+    group_ids = {g for g, _ in own if g is not None}
+    expense_ids = {e for _, e in own if e is not None}
+
+    if group_ids or expense_ids:
+        other = (
+            SplitParticipant.objects.filter(
+                Q(group_id__in=group_ids) | Q(standalone_expense_id__in=expense_ids)
+            )
+            .filter(user__isnull=False)
+            .exclude(user=user)
+            .order_by("user_id")
+            .values_list("user_id", flat=True)
+            .first()
+        )
+        if other:
+            return other
+
+    other = (
+        SplitSettlement.objects.filter(payer_user=user, payee_user__isnull=False)
+        .order_by("payee_user_id")
+        .values_list("payee_user_id", flat=True)
+        .first()
+    )
+    if other:
+        return other
+    return (
+        SplitSettlement.objects.filter(payee_user=user, payer_user__isnull=False)
+        .order_by("payer_user_id")
+        .values_list("payer_user_id", flat=True)
+        .first()
+    )
+
+
+def anonymize_split_identity_for_user(user):
+    """Prepara i dati Split di `user` per la cancellazione dell'account. Vedi
+    il commento di sezione sopra per il ragionamento completo."""
+    own = SplitParticipant.objects.filter(user=user).values_list(
+        "group_id", "standalone_expense_id"
+    )
+    group_ids = {g for g, _ in own if g is not None}
+    expense_ids = {e for _, e in own if e is not None}
+
+    anchor_id = _find_split_anchor_user_id(user)
+
+    if anchor_id is None:
+        # Nessun altro utente reale in vista in nessuno scope: niente da
+        # preservare. Elimina esplicitamente gruppi/spese occasionali/
+        # settlement coinvolti (cascata pulita su participants/shares/
+        # shadow-tx) prima che user.delete() possa violare un constraint
+        # tramite la cascata dei suoi stessi SplitContact (owner=user).
+        if group_ids:
+            SplitGroup.objects.filter(id__in=group_ids).delete()
+        if expense_ids:
+            SplitExpense.objects.filter(id__in=expense_ids, group__isnull=True).delete()
+        SplitSettlement.objects.filter(Q(payer_user=user) | Q(payee_user=user)).delete()
+        logger.info(
+            "anonymize_split_identity_for_user: user=%s nessun anchor, "
+            "eliminati group_ids=%s expense_ids=%s",
+            user.id,
+            sorted(group_ids),
+            sorted(expense_ids),
+        )
+        return
+
+    placeholder = SplitContact.objects.create(
+        owner_id=anchor_id,
+        display_name="Utente eliminato",
+        is_archived=True,
+    )
+
+    # Per-scope: un gruppo/spesa senza NESSUN altro utente reale è "solo"
+    # anche se esiste un anchor globale trovato altrove — va eliminato, non
+    # anonimizzato (altrimenti resterebbe un gruppo fantasma inaccessibile a
+    # chiunque: user_can_access_group richiede created_by o una
+    # partecipazione attiva di un utente reale).
+    groups_with_other_user = set(
+        SplitParticipant.objects.filter(group_id__in=group_ids, user__isnull=False)
+        .exclude(user=user)
+        .values_list("group_id", flat=True)
+        .distinct()
+    )
+    expenses_with_other_user = set(
+        SplitParticipant.objects.filter(
+            standalone_expense_id__in=expense_ids, user__isnull=False
+        )
+        .exclude(user=user)
+        .values_list("standalone_expense_id", flat=True)
+        .distinct()
+    )
+    solo_group_ids = group_ids - groups_with_other_user
+    solo_expense_ids = expense_ids - expenses_with_other_user
+
+    if solo_group_ids:
+        SplitGroup.objects.filter(id__in=solo_group_ids).delete()
+    if solo_expense_ids:
+        SplitExpense.objects.filter(
+            id__in=solo_expense_ids, group__isnull=True
+        ).delete()
+
+    # Le righe "solo" sono già sparite via cascata sopra: quel che resta di
+    # SplitParticipant.filter(user=user) è per costruzione tutto condiviso.
+    SplitParticipant.objects.filter(user=user).update(user=None, contact=placeholder)
+
+    # Settlement: se `group` è valorizzato, altri membri del gruppo possono
+    # avere interesse allo storico saldi anche se la loro controparte
+    # diretta era un contatto locale di `user` — anonimizza sempre in quel
+    # caso. Se invece è cross-gruppo (group=None) e la controparte non è un
+    # secondo utente reale, il settlement è bookkeeping privato di `user`:
+    # eliminalo, stessa logica dei gruppi/spese "solo" sopra.
+    solo_settlement_ids = []
+    payer_ids = []
+    payee_ids = []
+    for s in SplitSettlement.objects.filter(Q(payer_user=user) | Q(payee_user=user)):
+        counterpart_is_real_other_user = (
+            s.payer_user_id == user.id
+            and s.payee_user_id
+            and s.payee_user_id != user.id
+        ) or (
+            s.payee_user_id == user.id
+            and s.payer_user_id
+            and s.payer_user_id != user.id
+        )
+        if s.group_id or counterpart_is_real_other_user:
+            (payer_ids if s.payer_user_id == user.id else payee_ids).append(s.id)
+        else:
+            solo_settlement_ids.append(s.id)
+
+    if solo_settlement_ids:
+        SplitSettlement.objects.filter(id__in=solo_settlement_ids).delete()
+    if payer_ids:
+        SplitSettlement.objects.filter(id__in=payer_ids).update(
+            payer_user=None, payer_contact=placeholder
+        )
+    if payee_ids:
+        SplitSettlement.objects.filter(id__in=payee_ids).update(
+            payee_user=None, payee_contact=placeholder
+        )
+
+    # Safety net: qualunque SplitContact ancora posseduto da `user` e ancora
+    # referenziato da una partecipazione/settlement (anche in uno scope dove
+    # `user` stesso non compariva come identità diretta, es. una spesa tra
+    # due SUOI contatti di cui non è mai stato partecipante) sopravvive
+    # reintestandolo all'anchor, invece di cascare via con lui.
+    still_referenced_contact_ids = (
+        set(
+            SplitParticipant.objects.filter(contact__owner_id=user.id).values_list(
+                "contact_id", flat=True
+            )
+        )
+        | set(
+            SplitSettlement.objects.filter(payer_contact__owner_id=user.id).values_list(
+                "payer_contact_id", flat=True
+            )
+        )
+        | set(
+            SplitSettlement.objects.filter(payee_contact__owner_id=user.id).values_list(
+                "payee_contact_id", flat=True
+            )
+        )
+    )
+    if still_referenced_contact_ids:
+        SplitContact.objects.filter(id__in=still_referenced_contact_ids).update(
+            owner_id=anchor_id
+        )
+
+    logger.info(
+        "anonymize_split_identity_for_user: user=%s anchor=%s placeholder_contact=%s "
+        "solo_group_ids=%s solo_expense_ids=%s solo_settlement_ids=%s",
+        user.id,
+        anchor_id,
+        placeholder.id,
+        sorted(solo_group_ids),
+        sorted(solo_expense_ids),
+        sorted(solo_settlement_ids),
+    )

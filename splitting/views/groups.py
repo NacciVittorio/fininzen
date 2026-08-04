@@ -101,9 +101,7 @@ class SplitGroupViewSet(viewsets.ModelViewSet):
                 defaults={"is_active": True, "added_by": request.user},
             )
         else:
-            contact = get_object_or_404(
-                SplitContact, pk=contact_id, owner=request.user
-            )
+            contact = get_object_or_404(SplitContact, pk=contact_id, owner=request.user)
             participant, _created = SplitParticipant.objects.update_or_create(
                 group=group,
                 contact=contact,
@@ -148,6 +146,20 @@ class SplitGroupViewSet(viewsets.ModelViewSet):
     )
     def remove_member(self, request, pk=None, member_id=None):
         group = self.get_object()
+        # Piano Batch 4.6: previously any active member could remove any
+        # other member, including the founder — restricted to the group's
+        # creator only, the classic single-admin model (mirrors how the
+        # creator is already auto-added as a member on group creation).
+        # `created_by` can be None (the original creator deleted their
+        # account — anonymize_split_identity_for_user, piano Batch 1.2):
+        # with no creator to defer to, fall back to the pre-4.6 behavior
+        # for this group specifically rather than locking membership
+        # changes out permanently.
+        if group.created_by_id is not None and group.created_by_id != request.user.id:
+            return Response(
+                {"error": "only_group_creator_can_remove_members"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         # Soft-remove (is_active=False), not a hard delete: shares on past
         # expenses reference this participant via PROTECT, and balance
         # queries (next phase) key off is_active to know who's still "in".

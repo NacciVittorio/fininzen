@@ -62,6 +62,19 @@ class TestDistributeRemainder:
         assert sum(shares) == Decimal("0.01")
         assert sorted(shares) == [Decimal("0.00"), Decimal("0.01")]
 
+    def test_redistribution_pushing_a_share_negative_raises(self):
+        """Piano sez. 1.1: 3 quote grezze che arrotondano a [0.00, 5.00, 5.00]
+        (somma 10.00) contro un totale di 9.97 richiedono di sottrarre 3
+        centesimi — uno per quota — e il primo, partito da 0.00, finirebbe
+        a -0.01. Prima della fix, questo valore negativo proseguiva intatto
+        fino al CheckConstraint DB (IntegrityError/500); ora viene
+        intercettato qui con un errore di dominio pulito."""
+        with pytest.raises(SplitServiceError):
+            _distribute_remainder(
+                Decimal("9.97"),
+                [Decimal("0.001"), Decimal("5.001"), Decimal("5.001")],
+            )
+
 
 # ── compute_exact_shares ─────────────────────────────────────────────────
 
@@ -101,6 +114,26 @@ class TestComputePercentageShares:
     def test_rejects_empty(self):
         with pytest.raises(SplitServiceError):
             compute_percentage_shares(Decimal("100"), [])
+
+    def test_skewed_percentages_that_sum_to_100_but_round_negative_raise(self):
+        """8 percentuali reali che sommano esattamente a 100.000% ma il cui
+        arrotondamento indipendente per centesimo somma a 100.03 — la
+        ridistribuzione del resto (-3 centesimi) porta la prima quota
+        (partita da 0.00) a -0.01. Prima della fix (piano sez. 1.1) questo
+        arrivava intatto al CheckConstraint DB come IntegrityError/500."""
+        pcts = [
+            Decimal("0.001"),
+            Decimal("2.975"),
+            Decimal("0.142"),
+            Decimal("1.166"),
+            Decimal("2.441"),
+            Decimal("0.067"),
+            Decimal("2.121"),
+            Decimal("91.087"),
+        ]
+        assert sum(pcts) == Decimal("100.000")
+        with pytest.raises(SplitServiceError):
+            compute_percentage_shares(Decimal("100"), pcts)
 
 
 # ── compute_weighted_shares ──────────────────────────────────────────────

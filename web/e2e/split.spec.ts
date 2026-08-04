@@ -1,4 +1,11 @@
-import { test, expect, Browser, BrowserContext, Page, Locator } from "@playwright/test";
+import {
+    test,
+    expect,
+    Browser,
+    BrowserContext,
+    Page,
+    Locator,
+} from "@playwright/test";
 import { loginAsTestUser } from "./helpers/auth";
 
 // Split feature E2E (piano sez. 8.2). Mirrors data-access-grant.spec.ts for the
@@ -122,9 +129,9 @@ async function blurAmountField(page: Page): Promise<void> {
 async function gotoSplit(page: Page): Promise<void> {
     await page.click('nav a[href="/split"]');
     await expect(page).toHaveURL(/\/split$/);
-    await expect(page.locator('[data-testid="split-tab-groups"]')).toBeVisible(
-        { timeout: 10000 },
-    );
+    await expect(page.locator('[data-testid="split-tab-groups"]')).toBeVisible({
+        timeout: 10000,
+    });
 }
 
 async function gotoSplitContacts(page: Page): Promise<void> {
@@ -152,6 +159,11 @@ test.describe.serial("Split feature", () => {
     let userBId = 0;
     const groupName = `E2E Split Group ${RUN_ID}`;
     const equalExpenseDesc = `E2E split equal ${RUN_ID}`;
+
+    // Populated by test (e) — read back by test (g).
+    let settleNote = "";
+    // Populated by test (f) — read back by test (h).
+    let linkedExpenseDesc = "";
 
     test.beforeAll(async ({ browser }: { browser: Browser }) => {
         contextB = await browser.newContext({
@@ -199,7 +211,10 @@ test.describe.serial("Split feature", () => {
             pageB,
             "POST",
             `/split/partner-links/${linkId}/accept/`,
-            () => pageB.click(`[data-testid="split-partner-link-accept-${linkId}"]`),
+            () =>
+                pageB.click(
+                    `[data-testid="split-partner-link-accept-${linkId}"]`,
+                ),
         );
 
         // B now has A as a mutual contact.
@@ -259,19 +274,23 @@ test.describe.serial("Split feature", () => {
         groupId = await idFromTestId(groupRow);
 
         await groupRow.click();
-        await expect(page.locator('[data-testid="split-group-balances"]')).toBeVisible(
-            { timeout: 8000 },
-        );
+        await expect(
+            page.locator('[data-testid="split-group-balances"]'),
+        ).toBeVisible({ timeout: 8000 });
 
         // Add B (the linked contact) then the local contact to the roster.
         await expect(
             page.locator('[data-testid="split-add-member-select"]'),
         ).toBeVisible({ timeout: 8000 });
         await page.click('[data-testid="split-add-member-select"]');
-        await waitForApi(page, "POST", `/split/groups/${groupId}/members/`, () =>
-            page.click(
-                `[data-testid="split-add-member-select-option-${contactBId}"]`,
-            ),
+        await waitForApi(
+            page,
+            "POST",
+            `/split/groups/${groupId}/members/`,
+            () =>
+                page.click(
+                    `[data-testid="split-add-member-select-option-${contactBId}"]`,
+                ),
         );
         await expect(
             page.locator('[data-testid^="split-member-row-"]').filter({
@@ -280,10 +299,14 @@ test.describe.serial("Split feature", () => {
         ).toBeVisible({ timeout: 8000 });
 
         await page.click('[data-testid="split-add-member-select"]');
-        await waitForApi(page, "POST", `/split/groups/${groupId}/members/`, () =>
-            page.click(
-                `[data-testid="split-add-member-select-option-${localContactId}"]`,
-            ),
+        await waitForApi(
+            page,
+            "POST",
+            `/split/groups/${groupId}/members/`,
+            () =>
+                page.click(
+                    `[data-testid="split-add-member-select-option-${localContactId}"]`,
+                ),
         );
         await expect(
             page.locator('[data-testid^="split-member-row-"]').filter({
@@ -316,7 +339,9 @@ test.describe.serial("Split feature", () => {
         await sheet
             .locator('[data-testid="split-expense-description"]')
             .fill(equalExpenseDesc);
-        await sheet.locator('[data-testid="split-expense-amount"]').fill("90,00");
+        await sheet
+            .locator('[data-testid="split-expense-amount"]')
+            .fill("90,00");
         await blurAmountField(page);
         // Method stays "equal"; payer defaults to the first participant added
         // to the group, which is A (the creator) — exactly who we want.
@@ -358,9 +383,9 @@ test.describe.serial("Split feature", () => {
             .filter({ hasText: groupName });
         await expect(groupRow).toBeVisible({ timeout: 8000 });
         await groupRow.click();
-        await expect(page.locator('[data-testid="split-group-new-expense"]')).toBeVisible(
-            { timeout: 8000 },
-        );
+        await expect(
+            page.locator('[data-testid="split-group-new-expense"]'),
+        ).toBeVisible({ timeout: 8000 });
 
         await page.click('[data-testid="split-group-new-expense"]');
         const sheet = page.locator('[role="dialog"]');
@@ -369,7 +394,9 @@ test.describe.serial("Split feature", () => {
         ).toBeVisible({ timeout: 8000 });
         // Opening "new expense" on a group auto-adds all its active members —
         // no manual participant-adding needed here.
-        await sheet.locator('[data-testid="split-expense-amount"]').fill("100,00");
+        await sheet
+            .locator('[data-testid="split-expense-amount"]')
+            .fill("100,00");
         await blurAmountField(page);
 
         const rowA = sheet.locator(
@@ -387,10 +414,14 @@ test.describe.serial("Split feature", () => {
 
         const fillRawInputs = async (a: string, b: string, local: string) => {
             await rowA
-                .locator(`[data-testid="split-expense-raw-input-user:${userAId}"]`)
+                .locator(
+                    `[data-testid="split-expense-raw-input-user:${userAId}"]`,
+                )
                 .fill(a);
             await rowB
-                .locator(`[data-testid="split-expense-raw-input-user:${userBId}"]`)
+                .locator(
+                    `[data-testid="split-expense-raw-input-user:${userBId}"]`,
+                )
                 .fill(b);
             await rowLocal
                 .locator(
@@ -415,9 +446,7 @@ test.describe.serial("Split feature", () => {
         // resulting amounts.
         await sheet.locator('[data-testid="split-expense-method"]').click();
         await sheet
-            .locator(
-                '[data-testid="split-expense-method-option-percentage"]',
-            )
+            .locator('[data-testid="split-expense-method-option-percentage"]')
             .click();
         await expect(async () => {
             expect(await computedShareText(rowA)).toContain("50,00");
@@ -465,7 +494,11 @@ test.describe.serial("Split feature", () => {
             linked_asset: null,
             notes: "",
             participants: [
-                { contact_id: localContactId, raw_input: "20.00", is_payer: true },
+                {
+                    contact_id: localContactId,
+                    raw_input: "20.00",
+                    is_payer: true,
+                },
                 { user_id: userAId, raw_input: "5.00", is_payer: false },
                 { user_id: userBId, raw_input: "5.00", is_payer: false },
             ],
@@ -483,21 +516,26 @@ test.describe.serial("Split feature", () => {
         );
         await expect(aRow).toContainText(/\+\s?55,00/, { timeout: 8000 });
 
-        await waitForApi(page, "GET", `/split/groups/${groupId}/simplify/`, () =>
-            page.click('[data-testid="split-simplify-btn"]'),
+        await waitForApi(
+            page,
+            "GET",
+            `/split/groups/${groupId}/simplify/`,
+            () => page.click('[data-testid="split-simplify-btn"]'),
         );
 
-        const transactions = page.locator('[data-testid^="split-simplify-tx-"]');
+        const transactions = page.locator(
+            '[data-testid^="split-simplify-tx-"]',
+        );
         await expect(transactions).toHaveCount(2, { timeout: 8000 });
 
         // Greedy debtor/creditor: sole creditor A(55) is paid first by the
         // larger debtor B(35), then by Local(20) — in that order.
-        await expect(page.locator('[data-testid="split-simplify-tx-0"]')).toContainText(
-            /35,00/,
-        );
-        await expect(page.locator('[data-testid="split-simplify-tx-1"]')).toContainText(
-            /20,00/,
-        );
+        await expect(
+            page.locator('[data-testid="split-simplify-tx-0"]'),
+        ).toContainText(/35,00/);
+        await expect(
+            page.locator('[data-testid="split-simplify-tx-1"]'),
+        ).toContainText(/20,00/);
         // Both legs pay *me* (A is the only creditor), so both offer a
         // "Settle up" shortcut.
         await expect(
@@ -521,8 +559,11 @@ test.describe.serial("Split feature", () => {
         await expect(groupRow).toBeVisible({ timeout: 8000 });
         await groupRow.click();
 
-        await waitForApi(page, "GET", `/split/groups/${groupId}/simplify/`, () =>
-            page.click('[data-testid="split-simplify-btn"]'),
+        await waitForApi(
+            page,
+            "GET",
+            `/split/groups/${groupId}/simplify/`,
+            () => page.click('[data-testid="split-simplify-btn"]'),
         );
         // tx-0 is B → A 35.00 (see test d) — settle it in full.
         await page.click('[data-testid="split-simplify-settle-0"]');
@@ -531,12 +572,14 @@ test.describe.serial("Split feature", () => {
         await expect(
             sheet.locator('[data-testid="split-settle-amount"]'),
         ).toBeVisible({ timeout: 8000 });
-        await expect(sheet.locator('[data-testid="split-settle-amount"]')).toHaveValue(
-            /35,00/,
-        );
+        await expect(
+            sheet.locator('[data-testid="split-settle-amount"]'),
+        ).toHaveValue(/35,00/);
 
-        const settleNote = `E2E split settle ${RUN_ID}`;
-        await sheet.locator('[data-testid="split-settle-notes"]').fill(settleNote);
+        settleNote = `E2E split settle ${RUN_ID}`;
+        await sheet
+            .locator('[data-testid="split-settle-notes"]')
+            .fill(settleNote);
 
         const dateRange = await todayIso();
         // `/expenses/cashflow/` nests the totals under `summary` (alongside
@@ -631,7 +674,9 @@ test.describe.serial("Split feature", () => {
             },
         );
         if (!typeRes.ok())
-            throw new Error(`investment type create failed: ${typeRes.status()}`);
+            throw new Error(
+                `investment type create failed: ${typeRes.status()}`,
+            );
         const typeId = (await typeRes.json()).id;
 
         // `initial_balance` (not `current_value`/`invested_capital` directly)
@@ -678,7 +723,7 @@ test.describe.serial("Split feature", () => {
         // Default participant is "You" (A); add B so there is a real 2-way
         // equal split — A's net personal quota is exactly half.
         await gotoSplit(page);
-        const linkedExpenseDesc = `E2E split linked-account ${RUN_ID}`;
+        linkedExpenseDesc = `E2E split linked-account ${RUN_ID}`;
         await page.click('[data-testid="split-quick-expense-cta"]');
         const sheet = page.locator('[role="dialog"]');
         await expect(
@@ -687,7 +732,9 @@ test.describe.serial("Split feature", () => {
         await sheet
             .locator('[data-testid="split-expense-description"]')
             .fill(linkedExpenseDesc);
-        await sheet.locator('[data-testid="split-expense-amount"]').fill("100,00");
+        await sheet
+            .locator('[data-testid="split-expense-amount"]')
+            .fill("100,00");
         await blurAmountField(page);
 
         await sheet
@@ -742,12 +789,103 @@ test.describe.serial("Split feature", () => {
         // (red "-" sign, not the neutral "±" transfer/adjustment styling).
         await page.click('nav a[href="/cashflow"]');
         await expect(page).toHaveURL(/\/cashflow$/);
-        const row = page.locator(".tx-row").filter({ hasText: linkedExpenseDesc });
+        const row = page
+            .locator(".tx-row")
+            .filter({ hasText: linkedExpenseDesc });
         await expect(row).toBeVisible({ timeout: 10000 });
-        const rowText = (await row.innerText()).replace(
-            /[\s  ]/g,
-            "",
-        );
+        const rowText = (await row.innerText()).replace(/[\s  ]/g, "");
         expect(rowText).toContain("-50,00");
+    });
+
+    // g)/h) — piano QA-fix Batch 2.1/2.2: before this fix, a recorded
+    // settlement and a standalone ("quick") expense were both permanently
+    // invisible after creation — no list, no edit, no delete, anywhere in
+    // the app. Re-visit the state tests (e)/(f) already produced instead of
+    // re-seeding, since "does the thing I just created stay reachable" is
+    // exactly the gap that was found.
+    test("g) the settlement recorded in test e) is visible in the group's settlement history and can be deleted", async ({
+        page,
+    }) => {
+        test.setTimeout(30000);
+        await loginAsTestUser(page, EMAIL_A, PASS_A);
+
+        await gotoSplit(page);
+        const groupRow = page
+            .locator('[data-testid^="split-group-row-"]')
+            .filter({ hasText: groupName });
+        await expect(groupRow).toBeVisible({ timeout: 8000 });
+        await groupRow.click();
+
+        // The row shows payer → payee, date, and amount — not `notes` (not
+        // part of the section's spec, piano Batch 2.1), so match on the
+        // payer's email (B, unique to this run) instead of `settleNote`.
+        const settlementRow = page
+            .locator('[data-testid^="split-settlement-row-"]')
+            .filter({ hasText: EMAIL_B });
+        await expect(settlementRow).toBeVisible({ timeout: 8000 });
+        await expect(settlementRow).toContainText(/35,00/);
+        const settlementId = await idFromTestId(settlementRow);
+
+        await page.click(
+            `[data-testid="split-settlement-delete-${settlementId}"]`,
+        );
+        await waitForApi(
+            page,
+            "DELETE",
+            `/split/settlements/${settlementId}/`,
+            () => page.click('[data-testid="split-settlement-delete-confirm"]'),
+        );
+        await expect(settlementRow).toHaveCount(0, { timeout: 8000 });
+        await expect(
+            page.locator('[data-testid="split-group-settlements-empty"]'),
+        ).toBeVisible({ timeout: 8000 });
+    });
+
+    test("h) the standalone quick expense from test f) is visible, editable, and deletable afterward", async ({
+        page,
+    }) => {
+        test.setTimeout(30000);
+        await loginAsTestUser(page, EMAIL_A, PASS_A);
+
+        await gotoSplit(page);
+        const expenseRow = page
+            .locator('[data-testid^="split-standalone-expense-row-"]')
+            .filter({ hasText: linkedExpenseDesc });
+        await expect(expenseRow).toBeVisible({ timeout: 8000 });
+        const expenseId = await idFromTestId(expenseRow);
+
+        // Edit: change the description, confirm it's reflected in the list.
+        await expenseRow.locator("button", { hasText: "Edit" }).click();
+        const sheet = page.locator('[role="dialog"]');
+        await expect(
+            sheet.locator('[data-testid="split-expense-description"]'),
+        ).toHaveValue(linkedExpenseDesc, { timeout: 8000 });
+        const editedDesc = `${linkedExpenseDesc} (edited)`;
+        await sheet
+            .locator('[data-testid="split-expense-description"]')
+            .fill(editedDesc);
+        await waitForApi(page, "PATCH", `/split/expenses/${expenseId}/`, () =>
+            sheet.locator('[data-testid="split-expense-submit"]').click(),
+        );
+        await expect(sheet).toHaveCount(0);
+        const editedRow = page
+            .locator('[data-testid^="split-standalone-expense-row-"]')
+            .filter({ hasText: editedDesc });
+        await expect(editedRow).toBeVisible({ timeout: 8000 });
+
+        // Delete: row disappears, empty state shows (only standalone expense
+        // A has in this run).
+        await page.click(
+            `[data-testid="split-standalone-expense-delete-${expenseId}"]`,
+        );
+        await waitForApi(page, "DELETE", `/split/expenses/${expenseId}/`, () =>
+            page.click(
+                '[data-testid="split-standalone-expense-delete-confirm"]',
+            ),
+        );
+        await expect(editedRow).toHaveCount(0, { timeout: 8000 });
+        await expect(
+            page.locator('[data-testid="split-standalone-expenses-empty"]'),
+        ).toBeVisible({ timeout: 8000 });
     });
 });

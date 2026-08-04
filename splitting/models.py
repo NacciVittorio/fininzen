@@ -111,9 +111,17 @@ class SplitGroup(models.Model):
 
     name = models.CharField(max_length=120)
     icon = models.CharField(max_length=10, default="👥")
+    # SET_NULL (non CASCADE): il creatore è quasi sempre anche un membro
+    # attivo (SplitParticipant creato in perform_create) — CASCADE
+    # cancellerebbe l'intero gruppo, e con esso lo storico di TUTTI gli
+    # altri membri, alla sola cancellazione dell'account di chi l'ha creato
+    # (piano "Anonimizza l'identità Split" sez. 1.2). `created_by` è
+    # metadato di audit, nulla lo legge per i calcoli di saldo.
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="split_groups_created",
     )
     is_archived = models.BooleanField(default=False)
@@ -165,9 +173,19 @@ class SplitParticipant(models.Model):
         blank=True,
         related_name="participations",
     )
+    # SET_NULL (non CASCADE — bug trovato in fase di test empirico della
+    # cancellazione account, piano sez. 1.2): `added_by` è quasi sempre chi
+    # ha creato il gruppo/la spesa, che tipicamente aggiunge ANCHE tutti gli
+    # altri membri iniziali (perform_create, members() POST). Con CASCADE,
+    # cancellare quell'utente cancellava ogni riga SplitParticipant con
+    # added_by=lui — comprese quelle di ALTRI utenti reali (user/contact
+    # diversi da lui), svuotando l'intero gruppo invece di limitarsi a
+    # anonimizzare l'identità di chi viene davvero cancellato.
     added_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="+",
     )
     is_active = models.BooleanField(default=True)
@@ -263,9 +281,15 @@ class SplitExpense(models.Model):
         related_name="generated_expenses",
     )
     recurring_occurrence_date = models.DateField(null=True, blank=True)
+    # SET_NULL (non CASCADE): come SplitGroup.created_by sopra — CASCADE
+    # cancellerebbe l'intera spesa (e le quote di TUTTI gli altri
+    # partecipanti) alla sola cancellazione dell'account di chi l'ha
+    # creata, anche per una spesa occasionale tra due utenti registrati.
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="split_expenses_created",
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -415,9 +439,13 @@ class SplitSettlement(models.Model):
         blank=True,
         related_name="linked_split_settlements",
     )
+    # SET_NULL (non CASCADE): stesso motivo di SplitGroup.created_by/
+    # SplitExpense.created_by sopra.
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="split_settlements_created",
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -532,9 +560,14 @@ class SplitRecurringExpense(models.Model):
     disabled_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # SET_NULL (non CASCADE): stesso motivo degli altri created_by in questo
+    # file — CASCADE fermerebbe la generazione futura per TUTTO il gruppo
+    # alla sola cancellazione dell'account di chi ha definito la ricorrenza.
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="split_recurring_expenses_created",
     )
 

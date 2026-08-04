@@ -103,8 +103,16 @@ class SplitRecurringExpenseViewSet(viewsets.ModelViewSet):
         rec.is_active = True
         rec.disabled_at = None
         rec.save(update_fields=["status", "is_active", "disabled_at"])
+        # backfill_recurring_split_expense() calls
+        # _disable_split_recurring_if_expired(rec) first — for a template
+        # whose end_date has already passed, that flips `rec` straight back
+        # to DISABLED (mutating the same in-memory instance) before a single
+        # occurrence is generated. Piano Batch 4.4: this used to always
+        # return a blanket {"ok": True}, so the UI showed "enabled" even
+        # when the row was, in the same request, immediately disabled again.
+        # `status` here always reflects what actually stuck.
         result = backfill_recurring_split_expense(rec)
-        return Response({"ok": True, **result})
+        return Response({"ok": True, "status": rec.status, **result})
 
     @action(detail=True, methods=["post"], url_path="disable")
     def disable(self, request, pk=None):

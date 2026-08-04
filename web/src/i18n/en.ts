@@ -1236,6 +1236,27 @@ const en: Record<string, string> = {
     split_error_percentages_not_100: "Percentages must add up to 100.",
     split_error_weights_not_positive: "Shares must be positive.",
     split_error_invalid_input: "Invalid value.",
+    split_error_negative_share: "A share can't be negative.",
+    split_error_shares_too_skewed:
+        "This split is too skewed — a share would end up negative after rounding. Try different amounts.",
+    split_error_single_payer_required:
+        "Exactly one participant must be the payer.",
+    split_error_duplicate_participant: "The same participant was added twice.",
+    split_error_participant_not_in_group:
+        "That participant isn't an active member of this group.",
+    split_error_not_a_linked_partner:
+        "You can only add a linked partner or yourself.",
+    split_error_contact_not_found: "Contact not found.",
+    split_error_raw_input_required: "Enter a value for every participant.",
+    split_error_payer_not_active_member:
+        "The payer is no longer an active member of this group.",
+    split_error_participant_identity_invalid:
+        "Each participant must be either a contact or a linked user, not both.",
+    split_error_invalid_split_method: "Unknown split method.",
+    split_error_payer_required: "A payer is required.",
+    split_error_cannot_link_self:
+        "You can't send a partner request to yourself.",
+    split_error_email_required: "Enter an email address.",
     split_expense_new_quick: "New quick expense",
     split_group_balances_title: "Group balances",
     split_group_members_title: "Members",
@@ -1247,6 +1268,15 @@ const en: Record<string, string> = {
     split_settle_you_receive: "You need to receive from",
     split_settle_missing_identity:
         "Couldn't determine your Split identity: create a group or link a contact first.",
+    split_group_settlements_title: "Settlement history",
+    split_group_settlements_empty: "No settlements recorded in this group yet.",
+    modal_delete_settlement: "Delete this settlement?",
+    split_standalone_expenses_title: "Quick expenses",
+    split_standalone_expenses_empty: "No quick expenses yet.",
+    split_recurring_enable_expired:
+        "Couldn't re-enable this recurring expense: its end date has already passed. Edit the end date first.",
+    split_error_only_creator_can_remove_members:
+        "Only the group's creator can remove members.",
 };
 
 export default en;

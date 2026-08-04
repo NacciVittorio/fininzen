@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expenses", "0015_remove_expense_expense_amount_positive_and_more"),
         ("portfolio", "0049_assettransaction_source_split_settlement_and_more"),

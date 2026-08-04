@@ -573,3 +573,52 @@ class TestVisibilityAndAccess:
         assert res.status_code == 204
         assert not SplitExpense.objects.filter(id=expense_id).exists()
         assert not SplitExpenseShare.objects.filter(expense_id=expense_id).exists()
+
+    def test_removed_member_loses_access_to_expense_they_created(
+        self, client, second_client, test_user, second_user
+    ):
+        """Piano Batch 4.5: a GROUP expense's creator no longer keeps an
+        unconditional created_by shortcut — their access ends the moment
+        they're no longer an active member, same as anyone else."""
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        member_p = SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+
+        create_res = second_client.post(
+            "/api/split/expenses/",
+            data={
+                "group": group.id,
+                "description": "Groceries",
+                "amount": "20.00",
+                "date": "2026-07-01",
+                "split_method": "equal",
+                "participants": [
+                    {"user_id": second_user.id, "is_payer": True},
+                    {"user_id": test_user.id},
+                ],
+            },
+            content_type="application/json",
+        )
+        assert create_res.status_code == 201, create_res.content
+        expense_id = create_res.json()["id"]
+
+        # Still an active member: full access to what they created.
+        assert (
+            second_client.get(f"/api/split/expenses/{expense_id}/").status_code == 200
+        )
+
+        # test_user is the group's creator — only they can remove members
+        # (piano Batch 4.6).
+        client.delete(f"/api/split/groups/{group.id}/members/{member_p.id}/")
+
+        res = second_client.get(f"/api/split/expenses/{expense_id}/")
+        assert res.status_code == 404
+
+        res_patch = second_client.patch(
+            f"/api/split/expenses/{expense_id}/",
+            data={"description": "Should not work"},
+            content_type="application/json",
+        )
+        assert res_patch.status_code == 404

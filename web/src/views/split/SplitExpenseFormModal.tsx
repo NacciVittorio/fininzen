@@ -15,6 +15,7 @@ import {
     splitIdentityKey,
     splitMemberLabel,
 } from "./splitIdentity";
+import { SPLIT_COMPUTE_ERROR_KEYS } from "../../context/split/splitShareMath";
 import type { SplitExpense, SplitGroup, SplitMethod } from "../../api/split";
 
 type ParticipantCandidate = {
@@ -26,15 +27,6 @@ type ParticipantCandidate = {
 };
 
 const METHODS: SplitMethod[] = ["equal", "exact", "percentage", "shares"];
-
-const COMPUTE_ERROR_KEYS: Record<string, string> = {
-    no_participants: "split_error_no_participants",
-    exact_amounts_mismatch: "split_error_exact_mismatch",
-    percentages_not_100: "split_error_percentages_not_100",
-    weights_not_positive: "split_error_weights_not_positive",
-    invalid_amount: "error_invalid_amount",
-    invalid_input: "split_error_invalid_input",
-};
 
 // Create/edit form for a shared expense (piano sez. 1.5/7.5). `group=null`
 // means a standalone "quick expense" (participants come from the contact
@@ -214,12 +206,17 @@ export default function SplitExpenseFormModal({
               ? T("split_method_shares_unit")
               : "EUR";
 
+    const hasComputeError =
+        splitExpenseForm.participants.length > 0 &&
+        splitExpenseComputeError != null;
     const computeErrorText = splitExpenseComputeError
-        ? T(COMPUTE_ERROR_KEYS[splitExpenseComputeError] ?? "error_network")
+        ? T(
+              SPLIT_COMPUTE_ERROR_KEYS[splitExpenseComputeError] ??
+                  "error_network",
+          )
         : null;
     const displayError =
-        splitExpenseFormError ??
-        (splitExpenseForm.participants.length > 0 ? computeErrorText : null);
+        splitExpenseFormError ?? (hasComputeError ? computeErrorText : null);
 
     const handleSubmit = async () => {
         const result = await submitSplitExpenseForm();
@@ -631,7 +628,9 @@ export default function SplitExpenseFormModal({
                         <button
                             className="btn btn-p"
                             data-testid="split-expense-submit"
-                            disabled={splitExpenseFormSubmitting}
+                            disabled={
+                                splitExpenseFormSubmitting || hasComputeError
+                            }
                             onClick={handleSubmit}
                         >
                             {splitExpenseFormSubmitting

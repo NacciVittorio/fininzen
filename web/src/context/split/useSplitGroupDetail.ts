@@ -63,6 +63,13 @@ export function useSplitGroupDetail({
     );
     const requestSeqRef = useRef(0);
     const abortRef = useRef<AbortController | null>(null);
+    // Separate guards for refreshSplitGroupMembers/loadSplitGroupSimplify
+    // (piano Batch 4.2) — each protects against races with repeated calls to
+    // itself (e.g. a fast double-click), independent of loadSplitGroupDetail.
+    const membersRequestSeqRef = useRef(0);
+    const membersAbortRef = useRef<AbortController | null>(null);
+    const simplifyRequestSeqRef = useRef(0);
+    const simplifyAbortRef = useRef<AbortController | null>(null);
 
     const loadSplitGroupDetail = useCallback(
         async (groupId: number | string) => {
@@ -121,6 +128,10 @@ export function useSplitGroupDetail({
     const clearSplitGroupDetail = useCallback(() => {
         if (abortRef.current) abortRef.current.abort();
         requestSeqRef.current += 1;
+        if (membersAbortRef.current) membersAbortRef.current.abort();
+        membersRequestSeqRef.current += 1;
+        if (simplifyAbortRef.current) simplifyAbortRef.current.abort();
+        simplifyRequestSeqRef.current += 1;
         setSelectedGroupId(null);
         setGroupDetail(null);
         setGroupMembers([]);
@@ -142,11 +153,24 @@ export function useSplitGroupDetail({
     // silently dropping members added afterwards from new expenses/recurrings.
     const refreshSplitGroupMembers = useCallback(
         async (groupId: number | string) => {
+            const requestSeq = ++membersRequestSeqRef.current;
+            if (membersAbortRef.current) membersAbortRef.current.abort();
+            const controller = new AbortController();
+            membersAbortRef.current = controller;
             try {
                 const [members, balances] = await Promise.all([
-                    fetchSplitGroupMembers(apiFetch, groupId),
-                    fetchSplitGroupBalances(apiFetch, groupId),
+                    fetchSplitGroupMembers(
+                        apiFetch,
+                        groupId,
+                        controller.signal,
+                    ),
+                    fetchSplitGroupBalances(
+                        apiFetch,
+                        groupId,
+                        controller.signal,
+                    ),
                 ]);
+                if (requestSeq !== membersRequestSeqRef.current) return;
                 setGroupMembers(members);
                 setGroupBalances(balances);
                 setGroupDetail((prev) =>
@@ -154,8 +178,20 @@ export function useSplitGroupDetail({
                         ? { ...prev, members }
                         : prev,
                 );
+                // The roster/balances just changed — a previously computed
+                // "Simplify debts" suggestion no longer reflects reality
+                // (piano Batch 4.2). Same reset loadSplitGroupDetail already
+                // does on a fresh group load.
+                setGroupSimplified(null);
             } catch (error) {
-                setGroupDetailError(splitApiErrorMessage(error, T));
+                if (isAbortError(error)) return;
+                if (requestSeq === membersRequestSeqRef.current) {
+                    setGroupDetailError(splitApiErrorMessage(error, T));
+                }
+            } finally {
+                if (membersAbortRef.current === controller) {
+                    membersAbortRef.current = null;
+                }
             }
         },
         [apiFetch, T],
@@ -205,18 +241,32 @@ export function useSplitGroupDetail({
 
     const loadSplitGroupSimplify = useCallback(
         async (groupId: number | string) => {
+            const requestSeq = ++simplifyRequestSeqRef.current;
+            if (simplifyAbortRef.current) simplifyAbortRef.current.abort();
+            const controller = new AbortController();
+            simplifyAbortRef.current = controller;
             setGroupSimplifyLoading(true);
             try {
                 const transactions = await simplifySplitGroupDebts(
                     apiFetch,
                     groupId,
+                    controller.signal,
                 );
+                if (requestSeq !== simplifyRequestSeqRef.current) return;
                 setGroupSimplified(transactions);
                 setGroupDetailError(null);
             } catch (error) {
-                setGroupDetailError(splitApiErrorMessage(error, T));
+                if (isAbortError(error)) return;
+                if (requestSeq === simplifyRequestSeqRef.current) {
+                    setGroupDetailError(splitApiErrorMessage(error, T));
+                }
             } finally {
-                setGroupSimplifyLoading(false);
+                if (simplifyAbortRef.current === controller) {
+                    simplifyAbortRef.current = null;
+                }
+                if (requestSeq === simplifyRequestSeqRef.current) {
+                    setGroupSimplifyLoading(false);
+                }
             }
         },
         [apiFetch, T],

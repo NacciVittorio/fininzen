@@ -1248,6 +1248,28 @@ const it: Record<string, string> = {
     split_error_percentages_not_100: "Le percentuali devono sommare a 100.",
     split_error_weights_not_positive: "Le quote devono essere positive.",
     split_error_invalid_input: "Valore non valido.",
+    split_error_negative_share: "Una quota non può essere negativa.",
+    split_error_shares_too_skewed:
+        "Questa divisione è troppo sbilanciata — una quota risulterebbe negativa dopo l'arrotondamento. Prova importi diversi.",
+    split_error_single_payer_required: "Deve esserci esattamente un pagatore.",
+    split_error_duplicate_participant:
+        "Lo stesso partecipante è stato aggiunto due volte.",
+    split_error_participant_not_in_group:
+        "Quel partecipante non è un membro attivo di questo gruppo.",
+    split_error_not_a_linked_partner:
+        "Puoi aggiungere solo un partner collegato o te stesso.",
+    split_error_contact_not_found: "Contatto non trovato.",
+    split_error_raw_input_required:
+        "Inserisci un valore per ogni partecipante.",
+    split_error_payer_not_active_member:
+        "Il pagatore non è più un membro attivo di questo gruppo.",
+    split_error_participant_identity_invalid:
+        "Ogni partecipante deve essere un contatto o un utente collegato, non entrambi.",
+    split_error_invalid_split_method: "Metodo di divisione sconosciuto.",
+    split_error_payer_required: "È necessario un pagatore.",
+    split_error_cannot_link_self:
+        "Non puoi inviare una richiesta di collegamento a te stesso.",
+    split_error_email_required: "Inserisci un indirizzo email.",
     split_expense_new_quick: "Nuova spesa veloce",
     split_group_balances_title: "Saldi del gruppo",
     split_group_members_title: "Membri",
@@ -1259,6 +1281,16 @@ const it: Record<string, string> = {
     split_settle_you_receive: "Devi ricevere da",
     split_settle_missing_identity:
         "Impossibile determinare la tua identità Split: crea prima un gruppo o collega un contatto.",
+    split_group_settlements_title: "Storico saldi",
+    split_group_settlements_empty:
+        "Nessun saldo registrato in questo gruppo ancora.",
+    modal_delete_settlement: "Eliminare questo saldo?",
+    split_standalone_expenses_title: "Spese veloci",
+    split_standalone_expenses_empty: "Nessuna spesa veloce ancora.",
+    split_recurring_enable_expired:
+        "Impossibile riattivare questa spesa ricorrente: la data di fine è già passata. Modifica prima la data di fine.",
+    split_error_only_creator_can_remove_members:
+        "Solo chi ha creato il gruppo può rimuovere i membri.",
 };
 
 export default it;

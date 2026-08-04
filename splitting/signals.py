@@ -191,9 +191,7 @@ def remove_split_expense_from_asset(sender, instance, **kwargs):
 
     shadow_qs = AssetTransaction.objects.filter(source_split_expense=instance)
     asset_ids = list(shadow_qs.values_list("asset_id", flat=True).distinct())
-    payer_user_ids = list(
-        shadow_qs.values_list("owner_id", flat=True).distinct()
-    )
+    payer_user_ids = list(shadow_qs.values_list("owner_id", flat=True).distinct())
     deleted_count = shadow_qs.count()
     shadow_qs.delete()
     logger.debug(

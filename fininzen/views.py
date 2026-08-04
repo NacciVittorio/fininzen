@@ -744,6 +744,9 @@ class AccountView(APIView):
 
         user_id = request.user.id
         with transaction.atomic():
+            from splitting.services import anonymize_split_identity_for_user
+
+            anonymize_split_identity_for_user(request.user)
             request.user.delete()
             from portfolio.models import DashboardSummary, FireSettings
 

@@ -43,6 +43,7 @@ export default function SplitSettleUpModal({
         partnerLinksReceived,
         addSplitSettlement,
         settlementsError,
+        setSettlementsError,
     } = useSplit();
 
     const [amountText, setAmountText] = useState("");
@@ -71,7 +72,14 @@ export default function SplitSettleUpModal({
         setDate(todayIso());
         setNotes("");
         setLinkedAsset(null);
-        setError(null);
+        setSettlementsError(null);
+        // piano Batch 4.3: this used to only surface at submit time, after
+        // the user had already filled out the whole form — check upfront on
+        // open instead, so a brand-new account with no groups/partner links
+        // yet sees the explanation immediately.
+        setError(
+            mySplitUserId == null ? T("split_settle_missing_identity") : null,
+        );
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, entry?.user_id, entry?.contact_id, entry?.balance]);
 
@@ -79,6 +87,14 @@ export default function SplitSettleUpModal({
 
     const owedToMe = Number(entry.balance) > 0;
     const otherLabel = splitIdentityLabel(entry, { myEmail: user, T });
+    // Read reactively at render time, not synchronously right after the
+    // await below — addSplitSettlement's setSettlementsError(...) is an
+    // async state update that isn't visible in this same function's closure
+    // until the next render (piano Batch 3.3: the first failed submit in a
+    // session always fell through to the generic error_network fallback
+    // instead of the real server message). SplitExpenseFormModal.tsx's
+    // displayError already does this correctly — same pattern here.
+    const displayError = error ?? settlementsError;
 
     const handleSubmit = async () => {
         if (guardDemo()) return;
@@ -117,8 +133,6 @@ export default function SplitSettleUpModal({
         if (result) {
             onSettled?.();
             onClose();
-        } else {
-            setError(settlementsError ?? T("error_network"));
         }
     };
 
@@ -217,7 +231,7 @@ export default function SplitSettleUpModal({
                             onChange={(event) => setNotes(event.target.value)}
                         />
                     </div>
-                    {error && (
+                    {displayError && (
                         <div
                             data-testid="split-settle-error"
                             style={{
@@ -229,7 +243,7 @@ export default function SplitSettleUpModal({
                                 padding: "8px 10px",
                             }}
                         >
-                            {error}
+                            {displayError}
                         </div>
                     )}
                     <div
@@ -246,7 +260,7 @@ export default function SplitSettleUpModal({
                         <button
                             className="btn btn-p"
                             data-testid="split-settle-submit"
-                            disabled={submitting}
+                            disabled={submitting || mySplitUserId == null}
                             onClick={handleSubmit}
                         >
                             {submitting ? "…" : T("split_settle_up")}

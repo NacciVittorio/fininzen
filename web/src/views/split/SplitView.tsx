@@ -11,6 +11,7 @@ import SplitExpenseFormModal from "./SplitExpenseFormModal";
 import SplitGroupDetailView from "./SplitGroupDetailView";
 import SplitGroupListView from "./SplitGroupListView";
 import SplitSettleUpModal from "./SplitSettleUpModal";
+import SplitStandaloneExpensesSection from "./SplitStandaloneExpensesSection";
 
 type SplitSection = "groups" | "contacts";
 
@@ -27,6 +28,7 @@ export default function SplitView() {
         loadSplitGroups,
         loadSplitOverview,
         loadSplitContacts,
+        loadStandaloneExpenses,
     } = useSplit();
 
     const [section, setSection] = useState<SplitSection>("groups");
@@ -95,6 +97,7 @@ export default function SplitView() {
                 <>
                     <SplitBalancesOverviewView onSettle={setSettleEntry} />
                     <SplitGroupListView />
+                    <SplitStandaloneExpensesSection />
                 </>
             ) : (
                 <SplitContactsSection />
@@ -104,7 +107,10 @@ export default function SplitView() {
                 open={showQuickExpense}
                 group={null}
                 onClose={() => setShowQuickExpense(false)}
-                onSaved={() => loadSplitOverview()}
+                onSaved={() => {
+                    loadSplitOverview();
+                    loadStandaloneExpenses();
+                }}
             />
             <SplitSettleUpModal
                 open={settleEntry != null}

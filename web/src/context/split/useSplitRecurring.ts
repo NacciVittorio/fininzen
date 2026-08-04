@@ -174,19 +174,40 @@ export function useSplitRecurring({
         ): Promise<boolean> => {
             if (guardDemo()) return false;
             try {
-                if (enable) await enableSplitRecurring(apiFetch, recurringId);
-                else await disableSplitRecurring(apiFetch, recurringId);
+                // piano Batch 4.4: enable's response now reports the
+                // template's ACTUAL resulting status — an already-expired
+                // template (end_date in the past) gets disabled again
+                // server-side in the same request, so blindly assuming
+                // success here used to show "enabled" in the UI for a row
+                // that silently stayed disabled.
+                let resultStatus: "ACTIVE" | "DISABLED" = "DISABLED";
+                if (enable) {
+                    const res = await enableSplitRecurring(
+                        apiFetch,
+                        recurringId,
+                    );
+                    resultStatus =
+                        res.status === "ACTIVE" ? "ACTIVE" : "DISABLED";
+                } else {
+                    await disableSplitRecurring(apiFetch, recurringId);
+                }
                 setRecurrings((prev) =>
                     prev.map((r) =>
                         r.id === recurringId
                             ? {
                                   ...r,
-                                  is_active: enable,
-                                  status: enable ? "ACTIVE" : "DISABLED",
+                                  is_active: enable
+                                      ? resultStatus === "ACTIVE"
+                                      : false,
+                                  status: enable ? resultStatus : "DISABLED",
                               }
                             : r,
                     ),
                 );
+                if (enable && resultStatus !== "ACTIVE") {
+                    setRecurringError(T("split_recurring_enable_expired"));
+                    return false;
+                }
                 setRecurringError(null);
                 return true;
             } catch (error) {

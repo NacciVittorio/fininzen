@@ -3536,7 +3536,7 @@ export interface components {
             category?: number | null;
             linked_asset?: number | null;
             notes?: string;
-            readonly created_by: number;
+            readonly created_by: number | null;
             /** Format: date-time */
             readonly created_at: string;
             readonly shares: components["schemas"]["SplitExpenseShareOutput"][];
@@ -3586,7 +3586,7 @@ export interface components {
             name: string;
             icon?: string;
             is_archived?: boolean;
-            readonly created_by: number;
+            readonly created_by: number | null;
             /** Format: date-time */
             readonly created_at: string;
             readonly members: string;
@@ -3662,7 +3662,7 @@ export interface components {
             readonly deleted_at: string | null;
             /** Format: date-time */
             readonly created_at: string;
-            readonly created_by: number;
+            readonly created_by: number | null;
             readonly participant_templates: components["schemas"]["SplitRecurringExpenseParticipantOutput"][];
         };
         SplitRecurringExpenseParticipantOutput: {
@@ -3722,7 +3722,7 @@ export interface components {
             date: string;
             notes?: string;
             linked_asset?: number | null;
-            readonly created_by: number;
+            readonly created_by: number | null;
             /** Format: date-time */
             readonly created_at: string;
         };

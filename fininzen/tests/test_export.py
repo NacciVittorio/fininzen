@@ -32,6 +32,15 @@ from portfolio.models import (
     InvestmentType,
     RecurringInvestmentPlan,
 )
+from splitting.models import (
+    SplitContact,
+    SplitExpense,
+    SplitExpenseShare,
+    SplitGroup,
+    SplitParticipant,
+    SplitRecurringExpense,
+    SplitSettlement,
+)
 
 
 def _response_body(response):
@@ -250,6 +259,9 @@ def test_export_all_returns_zip_with_every_kind(
     bank_cash_in_tx,
     lunch_expense,
     price_point,
+    split_expense,
+    split_settlement,
+    split_recurring,
 ):
     res = client.get("/api/export/?type=all")
     assert res.status_code == 200
@@ -274,6 +286,12 @@ def test_export_all_returns_zip_with_every_kind(
             "contribution_sources",
             "profile",
             "sharing",
+            "split_contacts",
+            "split_groups",
+            "split_expenses",
+            "split_expense_shares",
+            "split_settlements",
+            "split_recurring_expenses",
         ):
             assert any(
                 n.startswith(f"fininzen_{kind}_") and n.endswith(".csv") for n in names
@@ -339,6 +357,80 @@ def allocation_target(test_user, itype_etf):
 @pytest.fixture
 def fire_settings(test_user):
     return FireSettings.objects.create(owner=test_user, user_age=35, retirement_age=60)
+
+
+@pytest.fixture
+def split_second_user(db):
+    return User.objects.create_user(
+        username="splitpartner@test.com",
+        email="splitpartner@test.com",
+        password="pw12345!",
+    )
+
+
+@pytest.fixture
+def split_group(test_user):
+    group = SplitGroup.objects.create(name="Trip", icon="🏖️", created_by=test_user)
+    SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+    return group
+
+
+@pytest.fixture
+def split_contact(test_user):
+    return SplitContact.objects.create(owner=test_user, display_name="Mario")
+
+
+@pytest.fixture
+def split_expense(split_group, split_contact, test_user, cat_food):
+    expense = SplitExpense.objects.create(
+        group=split_group,
+        description="Dinner",
+        amount=Decimal("40.00"),
+        date=date(2026, 6, 1),
+        split_method=SplitExpense.EQUAL,
+        category=cat_food,
+        created_by=test_user,
+    )
+    contact_participant = SplitParticipant.objects.create(
+        group=split_group, contact=split_contact, added_by=test_user
+    )
+    owner_participant = SplitParticipant.objects.get(group=split_group, user=test_user)
+    SplitExpenseShare.objects.create(
+        expense=expense,
+        participant=owner_participant,
+        share_amount=Decimal("20.00"),
+        is_payer=True,
+    )
+    SplitExpenseShare.objects.create(
+        expense=expense,
+        participant=contact_participant,
+        share_amount=Decimal("20.00"),
+    )
+    return expense
+
+
+@pytest.fixture
+def split_settlement(split_group, split_contact, test_user):
+    return SplitSettlement.objects.create(
+        group=split_group,
+        payer_user=test_user,
+        payee_contact=split_contact,
+        amount=Decimal("20.00"),
+        date=date(2026, 6, 2),
+        created_by=test_user,
+    )
+
+
+@pytest.fixture
+def split_recurring(split_group, test_user):
+    return SplitRecurringExpense.objects.create(
+        group=split_group,
+        description="Rent split",
+        amount=Decimal("500.00"),
+        split_method=SplitRecurringExpense.EQUAL,
+        start_date=date(2026, 1, 1),
+        created_by=test_user,
+    )
 
 
 @pytest.fixture
@@ -500,6 +592,135 @@ def test_export_sharing_returns_only_grants_given(client, test_user, sharing_gra
     grantees = [r[1] for r in rows[1:]]
     assert "grantee2@test.com" in grantees
     assert other.username not in grantees
+
+
+# ── Split (piano QA-fix Batch 3.4) ───────────────────────────────────────────
+
+
+def test_export_split_contacts_returns_csv(client, split_contact):
+    res = client.get("/api/export/?type=split_contacts")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "display_name",
+        "color",
+        "linked_user",
+        "is_archived",
+        "created_at",
+    ]
+    assert any(r[1] == "Mario" for r in rows[1:])
+
+
+def test_export_split_groups_returns_csv(client, split_group):
+    res = client.get("/api/export/?type=split_groups")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == ["id", "name", "icon", "is_archived", "created_at"]
+    assert any(r[1] == "Trip" for r in rows[1:])
+
+
+def test_export_split_groups_does_not_leak_other_users_groups(
+    client, split_group, split_second_user
+):
+    other_group = SplitGroup.objects.create(
+        name="Not mine", created_by=split_second_user
+    )
+    SplitParticipant.objects.create(
+        group=other_group, user=split_second_user, added_by=split_second_user
+    )
+    res = client.get("/api/export/?type=split_groups")
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    names = [r[1] for r in rows[1:]]
+    assert "Not mine" not in names
+    assert "Trip" in names
+
+
+def test_export_split_expenses_returns_csv(client, split_expense):
+    res = client.get("/api/export/?type=split_expenses")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "group",
+        "description",
+        "amount",
+        "date",
+        "split_method",
+        "category",
+        "linked_asset",
+        "notes",
+        "created_at",
+    ]
+    assert any(
+        r[1] == "Trip" and r[2] == "Dinner" and r[3] == "40.00" and r[6] == "Food"
+        for r in rows[1:]
+    )
+
+
+def test_export_split_expense_shares_returns_csv(client, split_expense, test_user):
+    res = client.get("/api/export/?type=split_expense_shares")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "expense",
+        "participant",
+        "share_amount",
+        "raw_input",
+        "is_payer",
+    ]
+    by_participant = {r[2]: r for r in rows[1:]}
+    assert by_participant[test_user.email][3] == "20.00"
+    assert by_participant[test_user.email][5] == "True"
+    assert by_participant["Mario"][3] == "20.00"
+    assert by_participant["Mario"][5] == "False"
+
+
+def test_export_split_settlements_returns_csv(client, split_settlement, test_user):
+    res = client.get("/api/export/?type=split_settlements")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "group",
+        "payer",
+        "payee",
+        "amount",
+        "date",
+        "notes",
+        "linked_asset",
+        "created_at",
+    ]
+    assert any(
+        r[1] == "Trip"
+        and r[2] == test_user.email
+        and r[3] == "Mario"
+        and r[4] == "20.00"
+        for r in rows[1:]
+    )
+
+
+def test_export_split_recurring_expenses_returns_csv(client, split_recurring):
+    res = client.get("/api/export/?type=split_recurring_expenses")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    assert rows[0] == [
+        "id",
+        "group",
+        "description",
+        "amount",
+        "split_method",
+        "frequency",
+        "day_of_month",
+        "month_of_year",
+        "start_date",
+        "end_date",
+        "status",
+    ]
+    assert any(
+        r[1] == "Trip" and r[2] == "Rent split" and r[3] == "500.00" for r in rows[1:]
+    )
 
 
 def test_export_categories_sanitizes_formulas(client, test_user):
@@ -708,6 +929,22 @@ def dangerous_price_point(test_user, dangerous_etf):
         close=Decimal("1.0000"),
         owner=test_user,
     )
+
+
+@pytest.fixture
+def dangerous_split_contact(test_user):
+    return SplitContact.objects.create(
+        owner=test_user, display_name='=HYPERLINK("http://attacker","click")'
+    )
+
+
+def test_export_split_contacts_sanitizes_formulas(client, dangerous_split_contact):
+    res = client.get("/api/export/?type=split_contacts")
+    assert res.status_code == 200
+    rows = list(csv.reader(io.StringIO(_response_body(res).decode())))
+    _assert_no_unescaped_formula(rows[1:])
+    names = [r[1] for r in rows[1:]]
+    assert any(n.startswith("'=") for n in names)
 
 
 def test_export_accounts_sanitizes_formulas(client, dangerous_bank):

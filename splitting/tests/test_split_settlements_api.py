@@ -214,3 +214,62 @@ class TestListAndDelete:
             content_type="application/json",
         )
         assert res.status_code == 405
+
+    def test_removed_member_who_is_a_direct_party_keeps_access(
+        self, client, second_client, test_user, second_user
+    ):
+        """Piano Batch 4.5: unlike a bare created_by shortcut, being a direct
+        party (payer/payee) is a fact about the transaction itself and must
+        survive removal from the group — this must NOT regress."""
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        member_p = SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        settlement = SplitSettlement.objects.create(
+            group=group,
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("10.00"),
+            date="2026-07-14",
+            created_by=second_user,
+        )
+
+        client.delete(f"/api/split/groups/{group.id}/members/{member_p.id}/")
+
+        res = second_client.get(f"/api/split/settlements/{settlement.id}/")
+        assert res.status_code == 200
+
+    def test_removed_member_loses_created_by_only_access_to_group_settlement(
+        self, client, second_client, test_user, second_user, third_user
+    ):
+        """A group settlement recorded by someone who is neither payer nor
+        payee (not reachable through the normal create flow — the serializer
+        already requires created_by to be one of the two — but the
+        permission function's created_by branch must still respect
+        membership on its own, defense in depth)."""
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        third_p = SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+        settlement = SplitSettlement.objects.create(
+            group=group,
+            payer_user=test_user,
+            payee_user=second_user,
+            amount=Decimal("10.00"),
+            date="2026-07-14",
+            created_by=third_user,
+        )
+
+        client.delete(f"/api/split/groups/{group.id}/members/{third_p.id}/")
+
+        from django.test import Client
+
+        third_client = Client()
+        third_client.force_login(third_user)
+        res = third_client.get(f"/api/split/settlements/{settlement.id}/")
+        assert res.status_code == 404

@@ -118,12 +118,15 @@ install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.service /et
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.timer   /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-recurring.service /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-recurring.timer   /etc/systemd/system/
+install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-split-recurring.service /etc/systemd/system/
+install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-split-recurring.timer   /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable --now fininzen              # gunicorn su 127.0.0.1:8001
 systemctl enable --now fininzen-web          # next start su 127.0.0.1:3000
 systemctl enable --now fininzen-refresh-prices.timer   # refresh prezzi orario
 systemctl enable --now fininzen-generate-recurring.timer   # genera spese ricorrenti giornaliero
+systemctl enable --now fininzen-generate-split-recurring.timer   # genera spese Split ricorrenti giornaliero
 
 systemctl status fininzen fininzen-web --no-pager
 ```
@@ -137,6 +140,10 @@ systemctl status fininzen fininzen-web --no-pager
 - `fininzen-generate-recurring.{service,timer}` — `manage.py generate_recurring_expenses`
   una volta al giorno (`Persistent=true`, recupera l'esecuzione mancata se il VPS
   era spento); genera le `Expense` mancanti per tutte le `RecurringExpense` attive.
+- `fininzen-generate-split-recurring.{service,timer}` — `manage.py generate_split_recurring_expenses`,
+  stesso schema del timer sopra ma per le `SplitRecurringExpense` (Split/SplitWise);
+  prima di questo timer l'unico modo di generarle era `POST /api/split/recurring/generate/`
+  quando un utente apriva la tab Split.
 
 ## 8. Caddy (site-block sull'host)
 
