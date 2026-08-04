@@ -315,12 +315,16 @@ export default function ExpensesView() {
 
     // Day dividers carry the day's signed net. Transfers and adjustments move
     // money between accounts rather than in or out, so they count as zero.
+    // "split" is a shared expense's net personal quota — real outcome money,
+    // same convention as CfTransactionRow's isOutcome. "split_reimbursement"
+    // stays neutral like transfer/adjustment: it's a settle-up, not a spend.
     const cfDecoratedItems = useMemo(
         () =>
             decorateDatedItems(cfItems, MONTHS, T, undefined, (row) => {
                 const amount = Number.parseFloat(String(row.amount ?? 0)) || 0;
                 if (row.type === "income") return amount;
-                if (row.type === "outcome") return -amount;
+                if (row.type === "outcome" || row.type === "split")
+                    return -amount;
                 return 0;
             }),
         [cfItems, MONTHS, T],

@@ -152,6 +152,8 @@ const en: Record<string, string> = {
         "Different type — row not added to the selection",
     cf_bulk_adjustment_locked:
         "Adjustments cannot be bulk-edited — only deleted",
+    cf_bulk_split_locked:
+        "Shared expenses are managed in Split — open the individual row",
     cf_bulk_filter_to_select_all: "Filter by a single type to select all",
     cf_bulk_field_from_account: "From account",
     cf_bulk_field_to_account: "To account",

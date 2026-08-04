@@ -124,27 +124,46 @@ export default function CashflowBulkToolbar({
                 </span>
             )}
 
-            <button
-                data-testid="cf-bulk-delete-open"
-                className="btn btn-sm"
-                disabled={cfBulkLoading}
-                onClick={() => setBulkDeleteConfirm(true)}
-                aria-label={T("cf_bulk_delete")}
-                title={T("cf_bulk_delete")}
-                style={{
-                    background: "transparent",
-                    color: "var(--danger)",
-                    border: "1px solid var(--danger)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: isBulkCompact ? "6px 10px" : "6px 12px",
-                    gap: 6,
-                }}
-            >
-                <Icon name="trash" size={16} aria-hidden="true" />
-                {!isBulkCompact && <span>{T("cf_bulk_delete")}</span>}
-            </button>
+            {(cfSelectionKind === "split" ||
+                cfSelectionKind === "split_reimbursement") && (
+                <span
+                    data-testid="cf-bulk-split-hint"
+                    style={{
+                        marginLeft: "auto",
+                        fontSize: 11,
+                        color: "var(--fg-soft)",
+                        fontStyle: "italic",
+                        maxWidth: 220,
+                        lineHeight: 1.2,
+                    }}
+                >
+                    {T("cf_bulk_split_locked")}
+                </span>
+            )}
+
+            {bulkActionsAllowed.delete && (
+                <button
+                    data-testid="cf-bulk-delete-open"
+                    className="btn btn-sm"
+                    disabled={cfBulkLoading}
+                    onClick={() => setBulkDeleteConfirm(true)}
+                    aria-label={T("cf_bulk_delete")}
+                    title={T("cf_bulk_delete")}
+                    style={{
+                        background: "transparent",
+                        color: "var(--danger)",
+                        border: "1px solid var(--danger)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: isBulkCompact ? "6px 10px" : "6px 12px",
+                        gap: 6,
+                    }}
+                >
+                    <Icon name="trash" size={16} aria-hidden="true" />
+                    {!isBulkCompact && <span>{T("cf_bulk_delete")}</span>}
+                </button>
+            )}
 
             {isBulkCompact && bulkActionsAllowed.verify && (
                 <CashflowBulkOverflowMenu

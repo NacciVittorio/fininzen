@@ -45,6 +45,13 @@ export const getCfBulkActionsAllowed = (
     if (selectionKind === "adjustment") {
         return { verify: false, edit: false, delete: true };
     }
+    // Split feed ids ("split_{id}" / "split_reimbursement_{id}") have no
+    // matching prefix in expenses/bulk.py::_FEED_ID_PREFIXES — any bulk
+    // request built from a split-only selection resolves to zero rows on the
+    // backend. Route the user to the per-row "Apri in Split" action instead.
+    if (selectionKind === "split" || selectionKind === "split_reimbursement") {
+        return { verify: false, edit: false, delete: false };
+    }
     return { verify: true, edit: true, delete: true };
 };
 

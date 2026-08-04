@@ -150,6 +150,8 @@ const it: Record<string, string> = {
         "Tipo diverso — riga non aggiunta alla selezione",
     cf_bulk_adjustment_locked:
         "Gli aggiustamenti non sono modificabili in blocco — solo eliminabili",
+    cf_bulk_split_locked:
+        "Le spese condivise si gestiscono da Split — apri la singola riga",
     cf_bulk_filter_to_select_all:
         "Filtra per un solo tipo per selezionare tutti i risultati",
     cf_bulk_field_from_account: "Account da",
