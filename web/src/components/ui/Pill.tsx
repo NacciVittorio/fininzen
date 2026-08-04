@@ -7,6 +7,7 @@ type PillProps = {
     className?: string;
     style?: CSSProperties;
     children?: ReactNode;
+    testId?: string;
 };
 
 export default function Pill({
@@ -14,10 +15,11 @@ export default function Pill({
     className = "",
     style,
     children,
+    testId,
 }: PillProps) {
     const cls = [`pill-${tone}`, className].filter(Boolean).join(" ");
     return (
-        <span className={cls} style={style}>
+        <span className={cls} style={style} data-testid={testId}>
             {children}
         </span>
     );

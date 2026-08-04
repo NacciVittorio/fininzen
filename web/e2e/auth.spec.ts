@@ -45,8 +45,11 @@ test.describe('Authentication', () => {
     await page.getByTestId('settings-root-logout').click();
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 5000 });
 
+    // caches.delete() runs fire-and-forget from logout() (see
+    // appContextHelpers.ts), unsynchronized with the login-form render this
+    // test waits on above — give it real room instead of the 5s default.
     await expect
-      .poll(() => page.evaluate(() => caches.keys()))
+      .poll(() => page.evaluate(() => caches.keys()), { timeout: 15000 })
       .not.toContain('fn-api-cache-v2');
     expect(
       await page.evaluate(() => localStorage.getItem('fn_query_cache')),

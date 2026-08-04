@@ -42,6 +42,8 @@ test.describe("Changelog", () => {
         // useAppVersion reads GET /api/health/, which reports the same VERSION
         // file; the matching release entry is then flagged as the current one.
         await expect(page.getByText(`v${APP_VERSION}`)).toBeVisible();
-        await expect(page.getByText(/In uso|In use/i)).toBeVisible();
+        await expect(page.getByTestId("changelog-current-pill")).toHaveText(
+            /In uso|In use/i,
+        );
     });
 });
