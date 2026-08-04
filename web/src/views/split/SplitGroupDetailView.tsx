@@ -537,94 +537,74 @@ export default function SplitGroupDetailView() {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-                <div className="grouped-list__title">
-                    {T("split_group_settlements_title")}
-                </div>
                 {groupSettlements.length === 0 ? (
-                    <Card
-                        style={{
-                            padding: 20,
-                            textAlign: "center",
-                            color: "var(--fg-soft)",
-                        }}
-                        data-testid="split-group-settlements-empty"
-                    >
-                        {T("split_group_settlements_empty")}
-                    </Card>
+                    <>
+                        <div className="grouped-list__title">
+                            {T("split_group_settlements_title")}
+                        </div>
+                        <Card
+                            style={{
+                                padding: 20,
+                                textAlign: "center",
+                                color: "var(--fg-soft)",
+                            }}
+                            data-testid="split-group-settlements-empty"
+                        >
+                            {T("split_group_settlements_empty")}
+                        </Card>
+                    </>
                 ) : (
-                    <div className="grouped-list">
+                    <GroupedList title={T("split_group_settlements_title")}>
                         {groupSettlements.map((settlement) => (
-                            <div
+                            <GroupedList.Item
                                 key={settlement.id}
-                                className="grouped-list__item"
-                                data-testid={`split-settlement-row-${settlement.id}`}
-                                style={{ alignItems: "center", gap: 10 }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 10,
-                                        flex: 1,
-                                        minWidth: 0,
-                                    }}
-                                >
-                                    <span style={{ fontSize: 18 }}>💸</span>
-                                    <div style={{ minWidth: 0 }}>
-                                        <div
-                                            style={{
-                                                fontSize: 14,
-                                                fontWeight: 500,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                            }}
-                                        >
-                                            {settlementPartyLabel(
-                                                settlement,
-                                                "payer",
-                                            )}{" "}
-                                            →{" "}
-                                            {settlementPartyLabel(
-                                                settlement,
-                                                "payee",
-                                            )}
-                                        </div>
-                                        <div
-                                            style={{
-                                                fontSize: 11,
-                                                color: "var(--fg-soft)",
-                                            }}
-                                        >
-                                            {settlement.date}
-                                        </div>
-                                    </div>
-                                </div>
-                                <span
-                                    style={{
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        fontFamily: "var(--font-mono)",
-                                        color: settlementAmountColor(
+                                testId={`split-settlement-row-${settlement.id}`}
+                                icon="💸"
+                                label={
+                                    <>
+                                        {settlementPartyLabel(
                                             settlement,
-                                        ),
-                                    }}
-                                >
-                                    {formatEur(settlement.amount)}
-                                </span>
-                                <button
-                                    type="button"
-                                    className="btn btn-r btn-sm"
-                                    data-testid={`split-settlement-delete-${settlement.id}`}
-                                    onClick={() =>
-                                        setDeleteSettlementTarget(settlement)
-                                    }
-                                >
-                                    {T("btn_delete")}
-                                </button>
-                            </div>
+                                            "payer",
+                                        )}{" "}
+                                        →{" "}
+                                        {settlementPartyLabel(
+                                            settlement,
+                                            "payee",
+                                        )}
+                                    </>
+                                }
+                                subtitle={settlement.date}
+                                value={
+                                    <span
+                                        style={{
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            fontFamily: "var(--font-mono)",
+                                            color: settlementAmountColor(
+                                                settlement,
+                                            ),
+                                        }}
+                                    >
+                                        {formatEur(settlement.amount)}
+                                    </span>
+                                }
+                                action={
+                                    <button
+                                        type="button"
+                                        className="btn btn-r btn-sm"
+                                        data-testid={`split-settlement-delete-${settlement.id}`}
+                                        onClick={() =>
+                                            setDeleteSettlementTarget(
+                                                settlement,
+                                            )
+                                        }
+                                    >
+                                        {T("btn_delete")}
+                                    </button>
+                                }
+                            />
                         ))}
-                    </div>
+                    </GroupedList>
                 )}
             </div>
 
