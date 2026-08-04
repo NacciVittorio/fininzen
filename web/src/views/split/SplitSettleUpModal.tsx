@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { BottomSheet } from "../../components/ui";
+import { BottomSheet, Card } from "../../components/ui";
 import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
 import AmountCalculator from "../../components/AmountCalculator";
@@ -232,19 +232,17 @@ export default function SplitSettleUpModal({
                         />
                     </div>
                     {displayError && (
-                        <div
+                        <Card
+                            tone="danger"
                             data-testid="split-settle-error"
                             style={{
+                                padding: "8px 10px",
                                 fontSize: 12,
                                 color: "var(--danger)",
-                                background: "#ff6b6b11",
-                                border: "1px solid #ff6b6b33",
-                                borderRadius: 8,
-                                padding: "8px 10px",
                             }}
                         >
                             {displayError}
-                        </div>
+                        </Card>
                     )}
                     <div
                         className="row"

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { Card, PageHeader } from "../../components/ui";
+import { Card, GroupedList, PageHeader } from "../../components/ui";
 import Modal from "../../components/Modal";
 import Select from "../../components/Select";
 import { useFormatters } from "../../utils/useFormatters";
@@ -470,98 +470,69 @@ export default function SplitGroupDetailView() {
             </Card>
 
             <div style={{ marginBottom: 16 }}>
-                <div className="grouped-list__title">
-                    {T("split_group_expenses_title")}
-                </div>
                 {groupExpenses.length === 0 ? (
-                    <Card
-                        style={{
-                            padding: 20,
-                            textAlign: "center",
-                            color: "var(--fg-soft)",
-                        }}
-                        data-testid="split-group-expenses-empty"
-                    >
-                        {T("split_group_expenses_empty")}
-                    </Card>
+                    <>
+                        <div className="grouped-list__title">
+                            {T("split_group_expenses_title")}
+                        </div>
+                        <Card
+                            style={{
+                                padding: 20,
+                                textAlign: "center",
+                                color: "var(--fg-soft)",
+                            }}
+                            data-testid="split-group-expenses-empty"
+                        >
+                            {T("split_group_expenses_empty")}
+                        </Card>
+                    </>
                 ) : (
-                    <div className="grouped-list">
+                    <GroupedList title={T("split_group_expenses_title")}>
                         {groupExpenses.map((expense) => {
                             const category = categories.find(
                                 (c) => c.id === expense.category,
                             );
                             return (
-                                <div
+                                <GroupedList.Item
                                     key={expense.id}
-                                    className="grouped-list__item"
-                                    data-testid={`split-expense-row-${expense.id}`}
-                                    style={{ alignItems: "center", gap: 10 }}
-                                >
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 10,
-                                            flex: 1,
-                                            minWidth: 0,
-                                        }}
-                                    >
-                                        <span style={{ fontSize: 18 }}>
-                                            {category?.icon ?? "🧾"}
-                                        </span>
-                                        <div style={{ minWidth: 0 }}>
-                                            <div
-                                                style={{
-                                                    fontSize: 14,
-                                                    fontWeight: 500,
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
+                                    testId={`split-expense-row-${expense.id}`}
+                                    icon={category?.icon ?? "🧾"}
+                                    label={expense.description}
+                                    subtitle={expense.date}
+                                    value={formatEur(expense.amount)}
+                                    action={
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                className="btn btn-g btn-sm"
+                                                onClick={() => {
+                                                    setEditingExpense(expense);
+                                                    setShowExpenseModal(true);
                                                 }}
                                             >
-                                                {expense.description}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: "var(--fg-soft)",
-                                                }}
+                                                {T("btn_edit")}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-r btn-sm"
+                                                data-testid={`split-expense-delete-${expense.id}`}
+                                                onClick={() =>
+                                                    setDeleteTarget(expense)
+                                                }
                                             >
-                                                {expense.date}
-                                            </div>
+                                                {T("btn_delete")}
+                                            </button>
                                         </div>
-                                    </div>
-                                    <span
-                                        style={{
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            fontFamily: "var(--font-mono)",
-                                        }}
-                                    >
-                                        {formatEur(expense.amount)}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className="btn btn-g btn-sm"
-                                        onClick={() => {
-                                            setEditingExpense(expense);
-                                            setShowExpenseModal(true);
-                                        }}
-                                    >
-                                        {T("btn_edit")}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-r btn-sm"
-                                        data-testid={`split-expense-delete-${expense.id}`}
-                                        onClick={() => setDeleteTarget(expense)}
-                                    >
-                                        {T("btn_delete")}
-                                    </button>
-                                </div>
+                                    }
+                                />
                             );
                         })}
-                    </div>
+                    </GroupedList>
                 )}
             </div>
 

@@ -205,6 +205,7 @@ export default function SplitContactsSection() {
                                 key={choice}
                                 type="button"
                                 aria-pressed={contactColor === choice}
+                                aria-label={`${T("split_contact_color_choice_label")} ${choice}`}
                                 onClick={() => setContactColor(choice)}
                                 style={{
                                     width: 22,

@@ -546,7 +546,11 @@ export default function SplitRecurringSection({
                 <BottomSheet
                     open
                     onClose={() => setShowForm(false)}
-                    ariaLabel={T("split_recurring_title")}
+                    ariaLabel={
+                        form.id
+                            ? T("modal_edit_recurring")
+                            : T("modal_add_recurring")
+                    }
                 >
                     <div style={{ padding: "0 18px" }}>
                         <div
@@ -569,8 +573,12 @@ export default function SplitRecurringSection({
                             }}
                         >
                             <div>
-                                <FieldLabel text={T("label_description")} />
+                                <FieldLabel
+                                    text={T("label_description")}
+                                    htmlFor="split-recurring-description"
+                                />
                                 <input
+                                    id="split-recurring-description"
                                     className="inp"
                                     data-testid="split-recurring-description"
                                     placeholder={T("placeholder_description")}
@@ -584,8 +592,12 @@ export default function SplitRecurringSection({
                                 />
                             </div>
                             <div>
-                                <FieldLabel text={T("label_amount")} />
+                                <FieldLabel
+                                    text={T("label_amount")}
+                                    htmlFor="split-recurring-amount"
+                                />
                                 <input
+                                    id="split-recurring-amount"
                                     className="inp"
                                     type="text"
                                     inputMode="decimal"
@@ -607,8 +619,12 @@ export default function SplitRecurringSection({
                                 />
                             </div>
                             <div>
-                                <FieldLabel text={T("split_method_label")} />
+                                <FieldLabel
+                                    text={T("split_method_label")}
+                                    htmlFor="split-recurring-method"
+                                />
                                 <Select
+                                    id="split-recurring-method"
                                     data-testid="split-recurring-method"
                                     value={form.splitMethod}
                                     onChange={(value) =>
@@ -629,8 +645,12 @@ export default function SplitRecurringSection({
                                 />
                             </div>
                             <div>
-                                <FieldLabel text={T("recurring_frequency")} />
+                                <FieldLabel
+                                    text={T("recurring_frequency")}
+                                    htmlFor="split-recurring-frequency"
+                                />
                                 <Select
+                                    id="split-recurring-frequency"
                                     value={form.frequency}
                                     onChange={(value) =>
                                         setForm((prev) => ({
@@ -656,8 +676,12 @@ export default function SplitRecurringSection({
                             </div>
                             {form.frequency === "YEARLY" && (
                                 <div>
-                                    <FieldLabel text={T("recurring_month")} />
+                                    <FieldLabel
+                                        text={T("recurring_month")}
+                                        htmlFor="split-recurring-month"
+                                    />
                                     <input
+                                        id="split-recurring-month"
                                         className="inp"
                                         type="number"
                                         min="1"
@@ -673,8 +697,12 @@ export default function SplitRecurringSection({
                                 </div>
                             )}
                             <div>
-                                <FieldLabel text={T("recurring_day")} />
+                                <FieldLabel
+                                    text={T("recurring_day")}
+                                    htmlFor="split-recurring-day"
+                                />
                                 <input
+                                    id="split-recurring-day"
                                     className="inp"
                                     type="number"
                                     min="1"
@@ -689,8 +717,12 @@ export default function SplitRecurringSection({
                                 />
                             </div>
                             <div>
-                                <FieldLabel text={T("recurring_start_date")} />
+                                <FieldLabel
+                                    text={T("recurring_start_date")}
+                                    htmlFor="split-recurring-start-date"
+                                />
                                 <input
+                                    id="split-recurring-start-date"
                                     className="inp"
                                     type="date"
                                     value={form.startDate}
@@ -703,8 +735,12 @@ export default function SplitRecurringSection({
                                 />
                             </div>
                             <div>
-                                <FieldLabel text={T("recurring_end_date")} />
+                                <FieldLabel
+                                    text={T("recurring_end_date")}
+                                    htmlFor="split-recurring-end-date"
+                                />
                                 <input
+                                    id="split-recurring-end-date"
                                     className="inp"
                                     type="date"
                                     value={form.endDate}
@@ -930,8 +966,10 @@ export default function SplitRecurringSection({
                                     <div>
                                         <FieldLabel
                                             text={T("label_category")}
+                                            htmlFor="split-recurring-category"
                                         />
                                         <CategorySelect
+                                            id="split-recurring-category"
                                             value={form.category ?? ""}
                                             onChange={(value) =>
                                                 setForm((prev) => ({
@@ -949,8 +987,10 @@ export default function SplitRecurringSection({
                                     <div>
                                         <FieldLabel
                                             text={T("label_linked_asset")}
+                                            htmlFor="split-recurring-linked-asset"
                                         />
                                         <Select
+                                            id="split-recurring-linked-asset"
                                             value={
                                                 form.linkedAsset != null
                                                     ? String(form.linkedAsset)
@@ -977,18 +1017,17 @@ export default function SplitRecurringSection({
                             )}
 
                             {displayFormError && (
-                                <div
+                                <Card
+                                    tone="danger"
+                                    data-testid="split-recurring-error"
                                     style={{
+                                        padding: "8px 10px",
                                         fontSize: 12,
                                         color: "var(--danger)",
-                                        background: "#ff6b6b11",
-                                        border: "1px solid #ff6b6b33",
-                                        borderRadius: 8,
-                                        padding: "8px 10px",
                                     }}
                                 >
                                     {displayFormError}
-                                </div>
+                                </Card>
                             )}
 
                             <div

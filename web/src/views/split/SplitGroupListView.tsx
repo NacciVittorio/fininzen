@@ -85,6 +85,7 @@ export default function SplitGroupListView() {
                                     type="button"
                                     onClick={() => setIcon(choice)}
                                     aria-pressed={icon === choice}
+                                    aria-label={`${T("split_group_icon_choice_label")} ${choice}`}
                                     style={{
                                         fontSize: 18,
                                         width: 34,

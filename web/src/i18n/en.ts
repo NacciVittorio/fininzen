@@ -1222,6 +1222,8 @@ const en: Record<string, string> = {
     split_group_name_placeholder: "Group name",
     split_contact_name_placeholder: "Contact name",
     split_contact_local: "Local contact",
+    split_group_icon_choice_label: "Icon",
+    split_contact_color_choice_label: "Color",
     split_partner_requests_title: "Partner requests",
     split_partner_requests_received: "Received",
     split_partner_requests_sent: "Sent",
