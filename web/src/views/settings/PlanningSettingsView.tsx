@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
     InvestmentType,
     RecurringExpense,
@@ -226,6 +227,16 @@ export default function PlanningSettingsView() {
     };
 
     const activeItem = items.find((item) => item.key === planningMenu);
+
+    const router = useRouter();
+    const hasVisibleItems = items.length > 0;
+    useEffect(() => {
+        if (!hasVisibleItems) {
+            router.replace("/settings");
+        }
+    }, [hasVisibleItems, router]);
+
+    if (!hasVisibleItems) return null;
 
     return (
         <div className="page-narrow">
