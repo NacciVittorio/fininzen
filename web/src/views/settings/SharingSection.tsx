@@ -90,9 +90,7 @@ export function SharingSection({ T }: { T: Translator }) {
                         className="inp"
                         value={permission}
                         onChange={(event) =>
-                            setPermission(
-                                event.target.value as GrantPermission,
-                            )
+                            setPermission(event.target.value as GrantPermission)
                         }
                         style={{ minWidth: 140 }}
                     >

@@ -1534,9 +1534,7 @@ def invalidate_dashboard_summary(reason: str, user=None, user_id=None) -> None:
         summary.invalidated_at = timezone.now()
         summary.last_invalidation_reason = reason
         summary.save(update_fields=["invalidated_at", "last_invalidation_reason"])
-        logger.debug(
-            "invalidate_dashboard_summary: reason=%s user=%s", reason, user.id
-        )
+        logger.debug("invalidate_dashboard_summary: reason=%s user=%s", reason, user.id)
     except Exception:
         logger.exception(
             "invalidate_dashboard_summary: errore reason=%s user=%s", reason, user.id
