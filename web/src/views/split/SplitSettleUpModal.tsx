@@ -9,6 +9,11 @@ import FieldLabel from "../../components/FieldLabel";
 import AmountCalculator from "../../components/AmountCalculator";
 import { parseMoneyToString } from "../../utils/formatters";
 import { resolveMySplitUserId, splitIdentityLabel } from "./splitIdentity";
+import {
+    openSplitExpensesBetween,
+    suggestSettleAccount,
+} from "../../context/split/suggestSettleAccount";
+import { fetchSplitExpensesList } from "../../api/split";
 import type {
     SplitBalanceEntry,
     SplitGroup,
@@ -36,9 +41,11 @@ export default function SplitSettleUpModal({
     onClose: () => void;
     onSettled?: () => void;
 }) {
-    const { T, user, bankAccounts, decimalSeparator, guardDemo } = useApp();
+    const { T, user, bankAccounts, decimalSeparator, guardDemo, apiFetch } =
+        useApp();
     const {
         groups,
+        groupExpenses,
         partnerLinksSent,
         partnerLinksReceived,
         addSplitSettlement,
@@ -71,7 +78,6 @@ export default function SplitSettleUpModal({
         );
         setDate(todayIso());
         setNotes("");
-        setLinkedAsset(null);
         setSettlementsError(null);
         // piano Batch 4.3: this used to only surface at submit time, after
         // the user had already filled out the whole form — check upfront on
@@ -80,6 +86,50 @@ export default function SplitSettleUpModal({
         setError(
             mySplitUserId == null ? T("split_settle_missing_identity") : null,
         );
+
+        // piano Batch 4.4: pre-select the account only when every open
+        // expense between the two identities agrees on the same one — this
+        // always starts from null (same as before) and only *upgrades* to a
+        // suggestion once resolved, so an ambiguous/empty case is never
+        // worse than today's always-blank field. `groupExpenses` already
+        // covers the group-scoped caller (SplitGroupDetailView.tsx, loaded
+        // fresh alongside the balance this `entry` came from); the
+        // cross-group overview caller (SplitView.tsx, `group` is null) has
+        // no single already-loaded list spanning every group, so it fetches
+        // its own — same "no `?group=` filter, fetch-all" shape
+        // useSplitGroupDetail.ts already relies on (see api/split.ts docblock).
+        setLinkedAsset(null);
+        if (mySplitUserId != null) {
+            const me = { user_id: mySplitUserId, contact_id: null };
+            const other = {
+                user_id: entry.user_id,
+                contact_id: entry.contact_id,
+            };
+            if (group) {
+                const openExpenses = openSplitExpensesBetween(
+                    groupExpenses,
+                    me,
+                    other,
+                );
+                setLinkedAsset(suggestSettleAccount(openExpenses));
+            } else {
+                let cancelled = false;
+                fetchSplitExpensesList(apiFetch)
+                    .then((expenses) => {
+                        if (cancelled) return;
+                        const openExpenses = openSplitExpensesBetween(
+                            expenses,
+                            me,
+                            other,
+                        );
+                        setLinkedAsset(suggestSettleAccount(openExpenses));
+                    })
+                    .catch(() => {});
+                return () => {
+                    cancelled = true;
+                };
+            }
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, entry?.user_id, entry?.contact_id, entry?.balance]);
 
@@ -216,6 +266,15 @@ export default function SplitSettleUpModal({
                                 label: `${account.investment_type_detail?.icon || ""} ${account.name}`.trim(),
                             }))}
                         />
+                        <div
+                            style={{
+                                fontSize: 11,
+                                color: "var(--fg-soft)",
+                                marginTop: 4,
+                            }}
+                        >
+                            {T("split_settle_account_hint")}
+                        </div>
                     </div>
                     <div>
                         <FieldLabel

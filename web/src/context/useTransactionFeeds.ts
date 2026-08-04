@@ -161,6 +161,27 @@ export function useTransactionFeeds({
         [apiFetch, guardDemo],
     );
 
+    // Cross-group settlement (group === null, piano Batch 1): Split has no
+    // dedicated list to land the user on there (see
+    // SplitBalancesOverviewView.tsx — the overview only lists live balances,
+    // not settlement history), so unlike every other split row this one
+    // deletes in place instead of routing through "Apri in Split".
+    // Settlements have no update endpoint (splitting/views/settlements.py),
+    // so there is no matching editCfSplitSettlement.
+    const deleteCfSplitSettlement = useCallback(
+        async (item: CashflowFeedItem) => {
+            if (guardDemo()) return;
+            if (!item.source_id) return;
+            const res = await apiFetch(
+                `${API}/split/settlements/${item.source_id}/`,
+                { method: "DELETE" },
+            );
+            if (!res.ok) return;
+            setCfItems((prev) => prev.filter((i) => i.id !== item.id));
+        },
+        [apiFetch, guardDemo],
+    );
+
     const buildCashflowQueryParams = useCallback(
         (filters: CashflowFilters, options?: CashflowQueryOptions) =>
             createCashflowQueryParams(filters, { ...options, categories }),
@@ -414,6 +435,7 @@ export function useTransactionFeeds({
         toggleCfType,
         deleteCfExpense,
         deleteCfTx,
+        deleteCfSplitSettlement,
         openCfEditTransfer,
         closeCfEditTransfer,
         submitCfEditTransfer,

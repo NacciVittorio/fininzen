@@ -60,7 +60,6 @@ export type SplitContactPayload = Schemas["SplitContactRequest"];
 export type SplitContactPatchPayload = Schemas["PatchedSplitContactRequest"];
 
 export type SplitExpenseShare = Schemas["SplitExpenseShareOutput"];
-export type SplitExpense = Schemas["SplitExpense"];
 export type SplitExpensePayload = Schemas["SplitExpenseRequest"];
 export type SplitExpensePatchPayload = Schemas["PatchedSplitExpenseRequest"];
 export type SplitExpenseParticipantInput =
@@ -88,6 +87,23 @@ export type SplitGroup = Omit<Schemas["SplitGroup"], "members"> & {
 };
 export type SplitGroupPayload = Schemas["SplitGroupRequest"];
 export type SplitGroupPatchPayload = Schemas["PatchedSplitGroupRequest"];
+
+// `SplitExpense.settlement_progress` is another `SerializerMethodField` with
+// no type hint (`SplitExpenseSerializer.get_settlement_progress()`,
+// splitting/serializers.py, piano Batch 3), so it fell back to `string` too
+// even though it always returns `{total_owed, total_settled, percentage}` —
+// re-typed here the same way as `SplitGroup.members` above.
+export type SplitSettlementProgress = {
+    total_owed: string;
+    total_settled: string;
+    percentage: number;
+};
+export type SplitExpense = Omit<
+    Schemas["SplitExpense"],
+    "settlement_progress"
+> & {
+    settlement_progress: SplitSettlementProgress;
+};
 
 export type SplitRecurringExpense = Omit<
     Schemas["SplitRecurringExpense"],
@@ -408,7 +424,7 @@ export const deleteSplitExpense = (
         method: "DELETE",
     });
 
-// ── Settlements (list/create/delete only — no update, see SplitSettlementViewSet) ──
+// ── Settlements (list/create/retrieve/delete — no update, see SplitSettlementViewSet) ──
 
 export const fetchSplitSettlementsList = (
     fetcher: ApiFetcher,
@@ -417,6 +433,17 @@ export const fetchSplitSettlementsList = (
     fetchAllPagesWithFetcher<SplitSettlement>(fetcher, "/split/settlements/", {
         signal,
     });
+
+export const fetchSplitSettlement = (
+    fetcher: ApiFetcher,
+    settlementId: number | string,
+    signal?: AbortSignal,
+): Promise<SplitSettlement> =>
+    requestJsonWithFetcher<SplitSettlement>(
+        fetcher,
+        `/split/settlements/${settlementId}/`,
+        { signal },
+    );
 
 export const createSplitSettlement = (
     fetcher: ApiFetcher,

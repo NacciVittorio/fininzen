@@ -3540,6 +3540,7 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
             readonly shares: components["schemas"]["SplitExpenseShareOutput"][];
+            readonly settlement_progress: string;
         };
         SplitExpenseParticipantInput: {
             user_id?: number | null;

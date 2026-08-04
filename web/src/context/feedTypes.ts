@@ -38,6 +38,15 @@ export type CashflowFeedItem = {
     from_account?: CashflowAccountRef | null;
     to_account?: CashflowAccountRef | null;
     is_verified: boolean;
+    // Additive fields for "split"/"split_reimbursement" rows only (see
+    // expenses/cashflow.py::_split_expense_to_item /
+    // _split_reimbursement_to_item). `gross_amount` is the full expense
+    // charged to the account (`amount` above stays the payer's net personal
+    // quota); `group_id` is the settlement's Split group, null for a
+    // cross-group settlement — used to decide between navigating to Split
+    // and an in-place delete (see CfDetailSheet/CashflowDeleteConfirmModal).
+    gross_amount?: string;
+    group_id?: EntityId | null;
 };
 
 export type CashflowSummary = {

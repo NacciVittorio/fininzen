@@ -30,10 +30,12 @@
 import type {
     SplitBalanceEntry,
     SplitContact,
+    SplitExpense,
     SplitGroup,
     SplitIdentity,
     SplitParticipant,
     SplitPartnerLink,
+    SplitSettlement,
     SplitSimplifiedTransaction,
 } from "../../api/split";
 import type { Translator } from "../../types";
@@ -143,4 +145,37 @@ export function simplifiedTransactionToSettleEntry(
     const other = meIsDebtor ? tx.to : tx.from;
     const sign = meIsDebtor ? -1 : 1;
     return { ...other, balance: String(sign * Number(tx.amount)) };
+}
+
+// Mirrors splitting/permissions.py::user_can_modify_expense (piano A4b) so
+// "Modifica"/"Elimina" never show for someone the API would 403 anyway —
+// without this a non-payer member would click through to a raw error.
+// Payer id comes off the `is_payer` share (`participant_user_id`, same field
+// SplitExpenseShareOutputSerializer exposes), not `expense.created_by`: the
+// two only coincide when whoever logged the expense also paid it.
+export function canModifyExpense(
+    expense: Pick<SplitExpense, "linked_asset" | "created_by" | "shares">,
+    context: { mySplitUserId: number | null },
+): boolean {
+    if (expense.linked_asset == null) return true;
+    const payerUserId =
+        expense.shares.find((share) => share.is_payer)?.participant_user_id ??
+        null;
+    if (payerUserId != null && payerUserId === context.mySplitUserId) {
+        return true;
+    }
+    return expense.created_by === context.mySplitUserId;
+}
+
+// Mirrors splitting/permissions.py::user_can_modify_settlement — deliberately
+// keyed on `created_by`, not payer_user/payee_user generically, same reason
+// as the backend: created_by is guaranteed to be whichever of the two the
+// linked account's shadow-tx direction is computed against.
+export function canModifySettlement(
+    settlement: Pick<SplitSettlement, "linked_asset" | "created_by">,
+    context: { mySplitUserId: number | null },
+): boolean {
+    if (settlement.linked_asset == null) return true;
+    if (settlement.created_by == null) return true;
+    return settlement.created_by === context.mySplitUserId;
 }

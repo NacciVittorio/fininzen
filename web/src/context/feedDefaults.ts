@@ -9,11 +9,18 @@ export const ALL_ASSET_TX_TYPES: AssetTransactionFilterType[] = [
     "adjustment",
 ];
 
+// BUG FIX (piano Batch 1): the backend feed accepts/returns "split" and
+// "split_reimbursement" too (expenses/cashflow.py::_ALL_TYPES) — omitting
+// them here meant a filter reset ("Tutti") silently excluded both types from
+// every request, and the "Tipo" filter sheet never showed them as options
+// (CfFiltersSheet.tsx maps over this exact array).
 export const ALL_CASHFLOW_TYPES: CashflowItemType[] = [
     "income",
     "outcome",
     "transfer",
     "adjustment",
+    "split",
+    "split_reimbursement",
 ];
 
 export interface CashflowFilters {

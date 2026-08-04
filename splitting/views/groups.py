@@ -1,5 +1,6 @@
 import logging
 
+from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -10,6 +11,10 @@ from rest_framework.response import Response
 
 from fininzen.permissions import IsNotDemoUser
 
+from ..allocations import (
+    _identity_pairs_for_share,
+    rebuild_allocations_for_directed_pair,
+)
 from ..balances import (
     compute_balances,
     serialize_balances,
@@ -67,6 +72,31 @@ class SplitGroupViewSet(viewsets.ModelViewSet):
         SplitParticipant.objects.create(
             group=group, user=self.request.user, added_by=self.request.user
         )
+
+    def perform_destroy(self, instance):
+        """Piano Batch 3 (modello A2): la cascata Django standard (group →
+        expenses → shares → allocations, tutta CASCADE) NON passa da
+        `delete_split_expense` — cattura qui, esplicitamente, tutte le
+        coppie direzionali coinvolte da tutte le spese del gruppo PRIMA della
+        cancellazione, e ricostruisce le loro allocazioni DOPO (sulle spese
+        rimaste altrove, es. occasionali o di altri gruppi della stessa
+        coppia)."""
+        with transaction.atomic():
+            pairs = {
+                pair
+                for pair in (
+                    _identity_pairs_for_share(share)
+                    for share in SplitExpenseShare.objects.filter(
+                        expense__group=instance, is_payer=False
+                    ).select_related("expense", "participant")
+                )
+                if pair is not None
+            }
+
+            instance.delete()
+
+            for debtor_key, creditor_key in pairs:
+                rebuild_allocations_for_directed_pair(debtor_key, creditor_key)
 
     @action(detail=True, methods=["get", "post"], url_path="members")
     def members(self, request, pk=None):

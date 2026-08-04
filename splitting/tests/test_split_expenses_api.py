@@ -2,7 +2,8 @@
 condivise (`/api/split/expenses/`, piano sez. 1.5/6/8.1): i 4 metodi di
 divisione via HTTP, arrotondamento 100€/3, validazioni (percentuali ≠ 100,
 importi esatti che non sommano al totale, vincolo un solo pagatore,
-categoria/conto di un altro utente), scoping/permessi in lettura.
+categoria/conto di un altro utente), scoping/permessi in lettura, e (piano
+A4b) la restrizione di scrittura quando la spesa ha un conto collegato.
 """
 
 from decimal import Decimal
@@ -622,3 +623,199 @@ class TestVisibilityAndAccess:
             content_type="application/json",
         )
         assert res_patch.status_code == 404
+
+
+class TestModifyRestrictedWhenLinkedAsset:
+    """Piano A4b: la lettura resta invariata per qualunque membro attivo del
+    gruppo — solo update/partial_update/destroy si restringono, e SOLO
+    quando la spesa ha un `linked_asset`."""
+
+    def _group_with_three_members(self, test_user, second_user, third_user):
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+        return group
+
+    def _create_linked_expense(
+        self, client, group, test_user, second_user, third_user, account
+    ):
+        """`test_user` è sia creatore che pagatore — l'unica combinazione
+        possibile in create() quando `linked_asset` è valorizzato (il campo è
+        scoped alle risorse di request.user, e validate() impone
+        linked_asset.owner_id == payer_user_id)."""
+        res = client.post(
+            "/api/split/expenses/",
+            data={
+                "group": group.id,
+                "description": "Cena",
+                "amount": "30.00",
+                "date": "2026-07-01",
+                "split_method": "equal",
+                "linked_asset": account.id,
+                "participants": [
+                    {"user_id": test_user.id, "is_payer": True},
+                    {"user_id": second_user.id},
+                    {"user_id": third_user.id},
+                ],
+            },
+            content_type="application/json",
+        )
+        assert res.status_code == 201, res.content
+        return res.json()["id"]
+
+    def test_non_payer_active_member_gets_403_on_patch(
+        self, client, third_client, test_user, second_user, third_user, account
+    ):
+        group = self._group_with_three_members(test_user, second_user, third_user)
+        expense_id = self._create_linked_expense(
+            client, group, test_user, second_user, third_user, account
+        )
+
+        res = third_client.patch(
+            f"/api/split/expenses/{expense_id}/",
+            data={"description": "Should not work"},
+            content_type="application/json",
+        )
+
+        assert res.status_code == 403
+        assert res.json()["code"] == "linked_expense_modify_restricted"
+        assert SplitExpense.objects.get(id=expense_id).description == "Cena"
+
+    def test_non_payer_active_member_gets_403_on_delete(
+        self, client, third_client, test_user, second_user, third_user, account
+    ):
+        group = self._group_with_three_members(test_user, second_user, third_user)
+        expense_id = self._create_linked_expense(
+            client, group, test_user, second_user, third_user, account
+        )
+
+        res = third_client.delete(f"/api/split/expenses/{expense_id}/")
+
+        assert res.status_code == 403
+        assert res.json()["code"] == "linked_expense_modify_restricted"
+        assert SplitExpense.objects.filter(id=expense_id).exists()
+
+    def test_non_payer_active_member_keeps_read_access(
+        self, client, third_client, test_user, second_user, third_user, account
+    ):
+        group = self._group_with_three_members(test_user, second_user, third_user)
+        expense_id = self._create_linked_expense(
+            client, group, test_user, second_user, third_user, account
+        )
+
+        res = third_client.get(f"/api/split/expenses/{expense_id}/")
+        assert res.status_code == 200
+
+    def test_payer_can_patch_and_delete(
+        self, client, test_user, second_user, third_user, account
+    ):
+        group = self._group_with_three_members(test_user, second_user, third_user)
+        expense_id = self._create_linked_expense(
+            client, group, test_user, second_user, third_user, account
+        )
+
+        res_patch = client.patch(
+            f"/api/split/expenses/{expense_id}/",
+            data={"description": "Cena aggiornata"},
+            content_type="application/json",
+        )
+        assert res_patch.status_code == 200, res_patch.content
+
+        res_delete = client.delete(f"/api/split/expenses/{expense_id}/")
+        assert res_delete.status_code == 204
+
+    def test_creator_can_patch_and_delete_when_no_longer_payer(
+        self, client, second_client, test_user, second_user, third_user, second_account
+    ):
+        """created_by ≠ pagatore corrente: l'unico modo per ottenerlo è
+        creare SENZA linked_asset (pagatore = test_user, il creatore) e far
+        subentrare `second_user` come pagatore — con il proprio conto — in un
+        PATCH successivo, che oggi (prima del wiring get_object) qualunque
+        membro attivo può ancora fare perché al momento di QUEL PATCH la
+        spesa non ha ancora un linked_asset."""
+        group = self._group_with_three_members(test_user, second_user, third_user)
+        create_res = client.post(
+            "/api/split/expenses/",
+            data={
+                "group": group.id,
+                "description": "Cena",
+                "amount": "30.00",
+                "date": "2026-07-01",
+                "split_method": "equal",
+                "participants": [
+                    {"user_id": test_user.id, "is_payer": True},
+                    {"user_id": second_user.id},
+                    {"user_id": third_user.id},
+                ],
+            },
+            content_type="application/json",
+        )
+        assert create_res.status_code == 201, create_res.content
+        expense_id = create_res.json()["id"]
+
+        handoff_res = second_client.patch(
+            f"/api/split/expenses/{expense_id}/",
+            data={
+                "linked_asset": second_account.id,
+                "participants": [
+                    {"user_id": second_user.id, "is_payer": True},
+                    {"user_id": test_user.id},
+                    {"user_id": third_user.id},
+                ],
+            },
+            content_type="application/json",
+        )
+        assert handoff_res.status_code == 200, handoff_res.content
+        assert SplitExpense.objects.get(id=expense_id).created_by_id == test_user.id
+
+        # test_user: created_by, ma non più pagatore — deve comunque poter
+        # modificare/cancellare (fallback created_by di user_can_modify_expense).
+        res_patch = client.patch(
+            f"/api/split/expenses/{expense_id}/",
+            data={"description": "Cena (nota aggiornata dal creatore)"},
+            content_type="application/json",
+        )
+        assert res_patch.status_code == 200, res_patch.content
+
+        res_delete = client.delete(f"/api/split/expenses/{expense_id}/")
+        assert res_delete.status_code == 204
+
+    def test_no_linked_asset_any_active_member_can_still_modify(
+        self, client, third_client, test_user, second_user, third_user
+    ):
+        """Non-regressione: senza linked_asset il comportamento resta quello
+        di sempre — qualunque membro attivo può modificare/cancellare."""
+        group = self._group_with_three_members(test_user, second_user, third_user)
+        create_res = client.post(
+            "/api/split/expenses/",
+            data={
+                "group": group.id,
+                "description": "Cena",
+                "amount": "30.00",
+                "date": "2026-07-01",
+                "split_method": "equal",
+                "participants": [
+                    {"user_id": test_user.id, "is_payer": True},
+                    {"user_id": second_user.id},
+                    {"user_id": third_user.id},
+                ],
+            },
+            content_type="application/json",
+        )
+        assert create_res.status_code == 201, create_res.content
+        expense_id = create_res.json()["id"]
+
+        res_patch = third_client.patch(
+            f"/api/split/expenses/{expense_id}/",
+            data={"description": "Modificata da un non pagatore"},
+            content_type="application/json",
+        )
+        assert res_patch.status_code == 200, res_patch.content
+
+        res_delete = third_client.delete(f"/api/split/expenses/{expense_id}/")
+        assert res_delete.status_code == 204

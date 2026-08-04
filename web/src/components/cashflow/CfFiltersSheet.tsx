@@ -6,11 +6,25 @@ import {
     ALL_CASHFLOW_TYPES,
     nextTypeSelection,
 } from "../../context/feedDefaults";
+import type { CashflowItemType } from "../../context/feedTypes";
 import CategorySelect from "../CategorySelect";
 import { BottomSheet } from "../ui";
 import FilterSheetFooter from "../filters/FilterSheetFooter";
 import PeriodFilterSection from "../filters/PeriodFilterSection";
 import { useFilterDraft } from "../filters/useFilterDraft";
+
+// "split"/"split_reimbursement" don't follow the "cf_" + type naming the
+// other four types use (piano Batch 1) — their labels were already
+// translated (cashflow_type_split*) but never wired to this sheet, since
+// ALL_CASHFLOW_TYPES itself never included the two types until now.
+const TYPE_LABEL_KEYS: Record<CashflowItemType, string> = {
+    income: "cf_income",
+    outcome: "cf_outcome",
+    transfer: "cf_transfer",
+    adjustment: "cf_adjustment",
+    split: "cashflow_type_split",
+    split_reimbursement: "cashflow_type_split_reimbursement",
+};
 
 const SORT_OPTIONS = ["-date", "date", "-amount", "amount"];
 
@@ -228,7 +242,7 @@ export default function CfFiltersSheet({
                                 }))
                             }
                         >
-                            {T("cf_" + type)}
+                            {T(TYPE_LABEL_KEYS[type])}
                         </Chip>
                     ))}
                 </Section>

@@ -22,7 +22,7 @@ from django.contrib.auth.models import User
 from expenses.cashflow import get_cashflow_ids, get_cashflow_summary
 from expenses.models import Category
 from portfolio.models import Asset, InvestmentType
-from splitting.models import SplitContact, SplitExpense, SplitSettlement
+from splitting.models import SplitContact, SplitExpense, SplitGroup, SplitSettlement
 from splitting.services import apply_split_shares
 
 
@@ -161,6 +161,27 @@ class TestSplitFeedNetQuota:
         item = res.json()["results"][0]
         assert item["amount"] == "100.00"
         assert item["amount"] != "200.00"
+
+    def test_split_item_gross_amount_is_the_full_expense_amount(
+        self, client, test_user, second_user, third_user
+    ):
+        # Additive field (piano Batch 1, frontend CfDetailSheet): `amount`
+        # stays the net personal quota (see the two tests above) —
+        # `gross_amount` is the new field that carries the full expense so
+        # the detail sheet can show both.
+        _make_split_expense(
+            description="Cena di gruppo",
+            amount="90.00",
+            d=date(2026, 5, 1),
+            payer=test_user,
+            others=[second_user, third_user],
+        )
+
+        res = client.get("/api/expenses/cashflow/?types=split")
+
+        item = res.json()["results"][0]
+        assert item["amount"] == "30.00"
+        assert item["gross_amount"] == "90.00"
 
     def test_split_item_not_visible_for_non_payer_participant(
         self, client, test_user, second_user
@@ -453,3 +474,49 @@ class TestSplitCashflowIds:
 
         assert ids["split"] == [expense.id]
         assert ids["split_reimbursement"] == [settlement.id]
+
+
+# ── split_reimbursement group_id (Apri in Split vs. in-place delete) ────────
+
+
+class TestSplitReimbursementGroupId:
+    """Additive field (piano Batch 1): the CashFlow row/detail actions need to
+    know a settlement's group *before* navigating, to choose between "Apri in
+    Split" (group known — SplitGroupDetailView has a settlement list to land
+    on) and an in-place delete (group None — no dedicated list exists in
+    Split, see SplitBalancesOverviewView.tsx)."""
+
+    def test_group_settlement_exposes_its_group_id(
+        self, client, test_user, second_user
+    ):
+        group = SplitGroup.objects.create(name="Roommates", created_by=test_user)
+        SplitSettlement.objects.create(
+            group=group,
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("30.00"),
+            date=date(2026, 5, 1),
+            created_by=second_user,
+        )
+
+        res = client.get("/api/expenses/cashflow/?types=split_reimbursement")
+
+        item = res.json()["results"][0]
+        assert item["group_id"] == group.id
+
+    def test_cross_group_settlement_exposes_null_group_id(
+        self, client, test_user, second_user
+    ):
+        SplitSettlement.objects.create(
+            group=None,
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("30.00"),
+            date=date(2026, 5, 1),
+            created_by=second_user,
+        )
+
+        res = client.get("/api/expenses/cashflow/?types=split_reimbursement")
+
+        item = res.json()["results"][0]
+        assert item["group_id"] is None

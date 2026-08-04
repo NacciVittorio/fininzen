@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
 import { Card, GroupedList, ModalError, PageHeader } from "../../components/ui";
@@ -16,6 +16,8 @@ import type {
     SplitSettlement,
 } from "../../api/split";
 import {
+    canModifyExpense,
+    canModifySettlement,
     resolveMySplitUserId,
     simplifiedTransactionToSettleEntry,
     splitIdentityIsMe,
@@ -26,6 +28,7 @@ import {
 import SplitExpenseFormModal from "./SplitExpenseFormModal";
 import SplitSettleUpModal from "./SplitSettleUpModal";
 import SplitRecurringSection from "./SplitRecurringSection";
+import SplitSettlementBadge from "./SplitSettlementBadge";
 
 // One group's full picture (piano sez. 7.5): expense history, per-member net
 // balance, "Semplifica debiti" suggestions with a "Salda" CTA on the ones
@@ -34,8 +37,17 @@ import SplitRecurringSection from "./SplitRecurringSection";
 // (SplitGroupListView/SplitGroupCard) is what triggers
 // `loadSplitGroupDetail`, so this view only ever reads already-loading /
 // already-loaded context state, it never kicks off the fetch itself.
-export default function SplitGroupDetailView() {
-    const { T, apiFetch, guardDemo, user, categories } = useApp();
+export default function SplitGroupDetailView({
+    autoOpenExpense,
+    onAutoOpenExpenseConsumed,
+}: {
+    // Set by SplitView when a CashFlow "Apri in Split" deep link
+    // (?openExpense=, piano Batch 1) resolved to an expense in *this* group —
+    // opens straight into edit mode instead of the empty create form.
+    autoOpenExpense?: SplitExpense | null;
+    onAutoOpenExpenseConsumed?: () => void;
+}) {
+    const { T, apiFetch, guardDemo, user, categories, bankAccounts } = useApp();
     const { formatEur } = useFormatters();
     const {
         contacts,
@@ -81,6 +93,19 @@ export default function SplitGroupDetailView() {
     const [removeMemberTarget, setRemoveMemberTarget] =
         useState<SplitParticipant | null>(null);
     const [removingMember, setRemovingMember] = useState(false);
+
+    // Consumes the deep-linked expense once this is really *its* group (not
+    // just *a* group mid-transition while loadSplitGroupDetail is still
+    // fetching a different one) — hooks must run before the early returns
+    // below, so this sits ahead of them like the other useState calls.
+    useEffect(() => {
+        if (!autoOpenExpense) return;
+        if (!groupDetail) return;
+        if (String(groupDetail.id) !== String(autoOpenExpense.group)) return;
+        setEditingExpense(autoOpenExpense);
+        setShowExpenseModal(true);
+        onAutoOpenExpenseConsumed?.();
+    }, [autoOpenExpense, groupDetail, onAutoOpenExpenseConsumed]);
 
     if (!selectedGroupId) return null;
 
@@ -513,6 +538,14 @@ export default function SplitGroupDetailView() {
                             const category = categories.find(
                                 (c) => c.id === expense.category,
                             );
+                            // Piano A4b: hides Modifica/Elimina instead of
+                            // letting a non-payer/non-creator click through
+                            // to the 403 the API now returns for a
+                            // linked_asset expense (splitting/permissions.py
+                            // ::user_can_modify_expense).
+                            const editable = canModifyExpense(expense, {
+                                mySplitUserId,
+                            });
                             return (
                                 <GroupedList.Item
                                     key={expense.id}
@@ -520,35 +553,62 @@ export default function SplitGroupDetailView() {
                                     icon={category?.icon ?? "🧾"}
                                     label={expense.description}
                                     subtitle={expense.date}
-                                    value={formatEur(expense.amount)}
-                                    action={
+                                    value={
                                         <div
                                             style={{
                                                 display: "flex",
-                                                gap: 8,
+                                                flexDirection: "column",
+                                                alignItems: "flex-end",
+                                                gap: 4,
                                             }}
                                         >
-                                            <button
-                                                type="button"
-                                                className="btn btn-g btn-sm"
-                                                onClick={() => {
-                                                    setEditingExpense(expense);
-                                                    setShowExpenseModal(true);
+                                            <span>
+                                                {formatEur(expense.amount)}
+                                            </span>
+                                            <SplitSettlementBadge
+                                                percentage={
+                                                    expense.settlement_progress
+                                                        .percentage
+                                                }
+                                                T={T}
+                                                testId={`split-expense-settlement-badge-${expense.id}`}
+                                            />
+                                        </div>
+                                    }
+                                    action={
+                                        editable ? (
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: 8,
                                                 }}
                                             >
-                                                {T("btn_edit")}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="btn btn-r btn-sm"
-                                                data-testid={`split-expense-delete-${expense.id}`}
-                                                onClick={() =>
-                                                    setDeleteTarget(expense)
-                                                }
-                                            >
-                                                {T("btn_delete")}
-                                            </button>
-                                        </div>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-g btn-sm"
+                                                    onClick={() => {
+                                                        setEditingExpense(
+                                                            expense,
+                                                        );
+                                                        setShowExpenseModal(
+                                                            true,
+                                                        );
+                                                    }}
+                                                >
+                                                    {T("btn_edit")}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-r btn-sm"
+                                                    data-testid={`split-expense-delete-${expense.id}`}
+                                                    onClick={() =>
+                                                        setDeleteTarget(expense)
+                                                    }
+                                                >
+                                                    {T("btn_delete")}
+                                                </button>
+                                            </div>
+                                        ) : undefined
                                     }
                                 />
                             );
@@ -610,18 +670,27 @@ export default function SplitGroupDetailView() {
                                     </span>
                                 }
                                 action={
-                                    <button
-                                        type="button"
-                                        className="btn btn-r btn-sm"
-                                        data-testid={`split-settlement-delete-${settlement.id}`}
-                                        onClick={() =>
-                                            setDeleteSettlementTarget(
-                                                settlement,
-                                            )
-                                        }
-                                    >
-                                        {T("btn_delete")}
-                                    </button>
+                                    // Piano A4b: same rationale as the
+                                    // expense row above — hides Elimina
+                                    // instead of letting a non-creator click
+                                    // through to a 403 for a linked_asset
+                                    // settlement.
+                                    canModifySettlement(settlement, {
+                                        mySplitUserId,
+                                    }) ? (
+                                        <button
+                                            type="button"
+                                            className="btn btn-r btn-sm"
+                                            data-testid={`split-settlement-delete-${settlement.id}`}
+                                            onClick={() =>
+                                                setDeleteSettlementTarget(
+                                                    settlement,
+                                                )
+                                            }
+                                        >
+                                            {T("btn_delete")}
+                                        </button>
+                                    ) : undefined
                                 }
                             />
                         ))}
@@ -671,6 +740,25 @@ export default function SplitGroupDetailView() {
                             {deleteTarget.description} —{" "}
                             {formatEur(deleteTarget.amount)}
                         </div>
+                        {deleteTarget.linked_asset != null && (
+                            <div
+                                style={{ fontSize: 13, color: "var(--danger)" }}
+                            >
+                                {T("split_delete_expense_linked_asset_warning")
+                                    .replace(
+                                        "{account}",
+                                        bankAccounts.find(
+                                            (account) =>
+                                                account.id ===
+                                                deleteTarget.linked_asset,
+                                        )?.name ?? "",
+                                    )
+                                    .replace(
+                                        "{amount}",
+                                        formatEur(deleteTarget.amount),
+                                    )}
+                            </div>
+                        )}
                         <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
                             {T("action_cannot_be_undone")}
                         </div>
@@ -726,6 +814,29 @@ export default function SplitGroupDetailView() {
                             )}{" "}
                             — {formatEur(deleteSettlementTarget.amount)}
                         </div>
+                        {deleteSettlementTarget.linked_asset != null && (
+                            <div
+                                style={{ fontSize: 13, color: "var(--danger)" }}
+                            >
+                                {T(
+                                    "split_delete_settlement_linked_asset_warning",
+                                )
+                                    .replace(
+                                        "{account}",
+                                        bankAccounts.find(
+                                            (account) =>
+                                                account.id ===
+                                                deleteSettlementTarget.linked_asset,
+                                        )?.name ?? "",
+                                    )
+                                    .replace(
+                                        "{amount}",
+                                        formatEur(
+                                            deleteSettlementTarget.amount,
+                                        ),
+                                    )}
+                            </div>
+                        )}
                         <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
                             {T("action_cannot_be_undone")}
                         </div>

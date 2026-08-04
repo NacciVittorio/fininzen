@@ -322,6 +322,26 @@ def apply_split_shares(expense, participants_payload, split_method, *, added_by)
         # has no scalar fields mutated here, so re-pointing every subsequent
         # use at the locked copy is enough — no mirror-back needed.
         expense = SplitExpense.objects.select_for_update().get(pk=expense.pk)
+
+        # Piano Batch 3 (modello A2): cattura le coppie direzionali PRIMA
+        # della cancellazione — dopo, le shares (e le loro allocazioni,
+        # CASCADE) sono già sparite e non c'è più nulla da leggere.
+        from .allocations import (
+            _identity_pairs_for_share,
+            rebuild_allocations_for_directed_pair,
+        )
+
+        old_pairs = {
+            pair
+            for pair in (
+                _identity_pairs_for_share(share)
+                for share in expense.shares.filter(is_payer=False).select_related(
+                    "expense", "participant"
+                )
+            )
+            if pair is not None
+        }
+
         expense.shares.all().delete()
 
         resolved = [
@@ -351,6 +371,18 @@ def apply_split_shares(expense, participants_payload, split_method, *, added_by)
         ]
         SplitExpenseShare.objects.bulk_create(shares)
 
+        new_pairs = {
+            pair
+            for pair in (
+                _identity_pairs_for_share(share)
+                for share in shares
+                if not share.is_payer
+            )
+            if pair is not None
+        }
+        for debtor_key, creditor_key in old_pairs | new_pairs:
+            rebuild_allocations_for_directed_pair(debtor_key, creditor_key)
+
         if expense.group_id is None:
             kept_ids = {participant.id for participant, _ in resolved}
             SplitParticipant.objects.filter(standalone_expense=expense).exclude(
@@ -368,6 +400,44 @@ def apply_split_shares(expense, participants_payload, split_method, *, added_by)
         _sync_shadow_for_expense(expense)
 
     return shares
+
+
+def delete_split_expense(expense):
+    """Cancella `expense` e ricostruisce le allocazioni A2 delle coppie
+    direzionali coinvolte (piano Batch 3).
+
+    Funzione di servizio esplicita, NON un signal pre_delete puro — stesso
+    motivo di fragilità già documentato in splitting/signals.py per
+    SplitExpense (un post_save/pre_delete da solo non è sempre sufficiente a
+    catturare lo stato "giusto" nel momento giusto; qui serve leggere le
+    coppie PRIMA della cancellazione e ricostruire DOPO, nello stesso posto,
+    non affidato all'ordine implicito dei signal). Va chiamata al posto di
+    `expense.delete()` ovunque una SplitExpense debba essere rimossa
+    singolarmente (SplitExpenseViewSet.perform_destroy) — la cancellazione a
+    cascata di un intero SplitGroup passa invece da
+    SplitGroupViewSet.destroy(), che non transita da qui.
+    """
+    with transaction.atomic():
+        from .allocations import (
+            _identity_pairs_for_share,
+            rebuild_allocations_for_directed_pair,
+        )
+
+        pairs = {
+            pair
+            for pair in (
+                _identity_pairs_for_share(share)
+                for share in expense.shares.filter(is_payer=False).select_related(
+                    "expense", "participant"
+                )
+            )
+            if pair is not None
+        }
+
+        expense.delete()
+
+        for debtor_key, creditor_key in pairs:
+            rebuild_allocations_for_directed_pair(debtor_key, creditor_key)
 
 
 # ── Ricorrenze (piano sez. 1.7/3.4) — mirror di expenses/services.py ────────

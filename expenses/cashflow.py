@@ -174,6 +174,13 @@ def _split_expense_to_item(share):
         "date": exp.date,
         "description": exp.description,
         "amount": str(_q2(net_amount)),
+        # Additive field (frontend CfDetailSheet, piano Batch 1): the payer's
+        # account was actually charged the full expense, not just their own
+        # quota — `amount` above stays the net quota for backward
+        # compatibility, `gross_amount` lets the detail sheet show both and
+        # explain the difference instead of leaving it (previously) only
+        # documented here in a comment no user ever sees.
+        "gross_amount": str(_q2(exp.amount)),
         "category": cat_data,
         "account": account_data,
         # SplitExpense has no is_verified field (plan sez. 5): a split
@@ -204,6 +211,14 @@ def _split_reimbursement_to_item(settlement, user):
         "amount": str(_q2(settlement.amount)),
         "direction": direction,
         "account": account_data,
+        # Additive field (frontend CashFlow row/detail actions, piano Batch
+        # 1): a settlement's `group` is optional (None for a cross-group
+        # settlement registered from the overall balances overview, see
+        # SplitSettlement docstring) — the CashFlow UI needs to know which
+        # case it is *before* navigating, to decide between "Apri in Split"
+        # (group known — there's a group page to land on) and an in-place
+        # delete (group None — no dedicated list exists in Split today).
+        "group_id": settlement.group_id,
         "is_verified": True,
     }
 

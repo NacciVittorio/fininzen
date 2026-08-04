@@ -44,6 +44,7 @@ export default function CashflowFeed({
     setCfFilters,
     activeFilterCount,
     setFiltersSheetOpen,
+    viewToggle,
     cfSelectionMode,
     enterCfSelectionMode,
     unverifiedCount,
@@ -83,6 +84,10 @@ export default function CashflowFeed({
     setCfFilters: Dispatch<SetStateAction<CashflowFilters>>;
     activeFilterCount: number;
     setFiltersSheetOpen: (value: boolean) => void;
+    // Built by the caller (ExpensesView) — the "Personale | Condivise |
+    // Tutte" preset toggle (piano B6 Fase 1), rendered here next to the
+    // existing filter controls since it drives the same cfFilters.types.
+    viewToggle?: ReactNode;
     cfSelectionMode: boolean;
     enterCfSelectionMode: () => void;
     unverifiedCount: number;
@@ -219,6 +224,7 @@ export default function CashflowFeed({
             </aside>
 
             <div className="cf-layout__main">
+                {!cfSelectionMode && viewToggle}
                 {!cfSelectionMode && (
                     <CashflowFeedControls
                         T={T}
@@ -308,8 +314,17 @@ export default function CashflowFeed({
                                     onDelete={(row) =>
                                         setDeleteCfTarget({ item: row })
                                     }
+                                    // Split rows are always is_verified=True from
+                                    // creation (no "pending" concept in the Split
+                                    // domain, see splitting/signals.py) and the
+                                    // bulk endpoint's _parse_feed_id doesn't
+                                    // recognize split_*/split_reimbursement_* ids
+                                    // anyway (expenses/bulk.py) — hide the toggle
+                                    // rather than wire it to a dead endpoint.
                                     canVerify={
-                                        item.source_type !== "adjustment"
+                                        item.source_type !== "adjustment" &&
+                                        item.source_type !== "split_expense" &&
+                                        item.source_type !== "split_settlement"
                                     }
                                 />
                             </div>

@@ -6,6 +6,8 @@ splitting/permissions.py e piano sez. 0.2): qui il contesto utente è sempre
 `request.user` reale, mai una delega View As.
 """
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -27,6 +29,7 @@ from .models import (
 from .permissions import user_can_access_group
 from .services import (
     SplitServiceError,
+    _q2,
     apply_split_recurring_participants,
     apply_split_shares,
 )
@@ -236,6 +239,7 @@ class SplitExpenseParticipantInputSerializer(serializers.Serializer):
 class SplitExpenseSerializer(serializers.ModelSerializer):
     participants = SplitExpenseParticipantInputSerializer(many=True, write_only=True)
     shares = SplitExpenseShareOutputSerializer(many=True, read_only=True)
+    settlement_progress = serializers.SerializerMethodField()
 
     class Meta:
         model = SplitExpense
@@ -253,8 +257,45 @@ class SplitExpenseSerializer(serializers.ModelSerializer):
             "created_at",
             "participants",
             "shares",
+            "settlement_progress",
         ]
         read_only_fields = ["created_by", "created_at"]
+
+    def get_settlement_progress(self, obj):
+        """{"total_owed", "total_settled", "percentage"} sulle shares
+        NON-payer della spesa (piano Batch 3, modello A2) — reporting
+        DERIVATO dalle SplitSettlementAllocation, mai usato per calcoli di
+        saldo (quella resta splitting/balances.py::compute_balances). Legge
+        `obj.shares`/`share.allocations` già prefetched dal queryset della
+        ViewSet (shares__allocations) per evitare N+1."""
+        shares = [share for share in obj.shares.all() if not share.is_payer]
+        total_owed = _q2(sum((share.share_amount for share in shares), Decimal("0")))
+        total_settled = _q2(
+            sum(
+                (
+                    allocation.amount
+                    for share in shares
+                    for allocation in share.allocations.all()
+                ),
+                Decimal("0"),
+            )
+        )
+        if total_owed > 0:
+            percentage = int(
+                (total_settled * 100 / total_owed).quantize(
+                    Decimal("1"), rounding=ROUND_HALF_UP
+                )
+            )
+        else:
+            # Nessuna quota altrui da saldare (es. spesa a un solo
+            # partecipante, che è anche il pagatore): nulla è dovuto, quindi
+            # "saldata" per definizione.
+            percentage = 100
+        return {
+            "total_owed": str(total_owed),
+            "total_settled": str(total_settled),
+            "percentage": percentage,
+        }
 
     def get_fields(self):
         fields = super().get_fields()
@@ -581,7 +622,19 @@ class SplitSettlementSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        return SplitSettlement.objects.create(created_by=request.user, **validated_data)
+        # Piano Batch 3 (modello A2): a differenza di apply_split_shares (che
+        # gira già dentro transaction.atomic() nel proprio chiamante), questo
+        # create() non aveva un blocco atomico proprio — aggiunto qui perché
+        # settlement + passo di allocazione devono commitare insieme o
+        # niente.
+        with transaction.atomic():
+            settlement = SplitSettlement.objects.create(
+                created_by=request.user, **validated_data
+            )
+            from .allocations import allocate_new_settlement
+
+            allocate_new_settlement(settlement)
+        return settlement
 
 
 # ── Recurring expenses (piano sez. 1.7/3.4) ─────────────────────────────────

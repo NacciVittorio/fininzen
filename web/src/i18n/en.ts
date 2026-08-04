@@ -74,6 +74,15 @@ const en: Record<string, string> = {
     cf_unverified: "Unverified",
     cf_no_transactions_period: "No transactions for this period",
     cf_all_directions: "All",
+    cf_split_badge: "Shared",
+    cf_open_in_split: "Open in Split",
+    cf_split_gross_amount_label: "Total expense amount",
+    cf_split_net_quota_hint:
+        "Only your personal share counts in Cash Flow: the rest was paid on behalf of the other participants and is tracked as a credit in Split until it's settled.",
+    // View toggle (piano B6 Fase 1) — preset over the existing "types" filter
+    cf_view_toggle_personal: "Personal",
+    cf_view_toggle_shared: "Shared",
+    cf_view_toggle_all: "All",
     // Bulk selection (K-3.7)
     cf_bulk_select: "Select",
     cf_bulk_done: "Done",
@@ -1292,6 +1301,17 @@ const en: Record<string, string> = {
         "Couldn't re-enable this recurring expense: its end date has already passed. Edit the end date first.",
     split_error_only_creator_can_remove_members:
         "Only the group's creator can remove members.",
+    split_expense_account_hint:
+        "The full amount of {amount} will be debited, not just your share of {share}.",
+    split_expense_account_hint_generic:
+        "The full amount of {amount} will be debited from the linked account, not just the part that's yours.",
+    split_settle_account_hint:
+        "This debt's balance is tracked separately from this payment: only link an account if this repayment actually went through one of your bank accounts.",
+    split_delete_expense_linked_asset_warning:
+        "This expense is linked to account {account}: deleting it will change that account's tracked balance by {amount}.",
+    split_delete_settlement_linked_asset_warning:
+        "This settlement is linked to account {account}: deleting it will change that account's tracked balance by {amount}.",
+    split_expense_settlement_badge: "Settled {percentage}%",
 };
 
 export default en;

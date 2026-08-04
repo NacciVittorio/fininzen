@@ -3,12 +3,13 @@ import logging
 from django.db.models import Q
 from django.http import Http404
 from rest_framework import mixins, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
 from fininzen.permissions import IsNotDemoUser
 
 from ..models import SplitSettlement
-from ..permissions import user_can_access_settlement
+from ..permissions import user_can_access_settlement, user_can_modify_settlement
 from ..serializers import SplitSettlementSerializer
 
 logger = logging.getLogger(__name__)
@@ -61,4 +62,19 @@ class SplitSettlementViewSet(
         obj = super().get_object()
         if not user_can_access_settlement(self.request.user, obj):
             raise Http404
+        # Piano A4b: niente update per i settlement (vedi docstring di
+        # classe) — solo destroy va ristretto a chi ha creato il settlement
+        # quando ha un conto collegato.
+        if self.action == "destroy" and not user_can_modify_settlement(
+            self.request.user, obj
+        ):
+            raise PermissionDenied(
+                {
+                    "detail": (
+                        "Solo chi ha creato il settlement può cancellarlo "
+                        "quando è collegato a un conto."
+                    ),
+                    "code": "linked_settlement_modify_restricted",
+                }
+            )
         return obj

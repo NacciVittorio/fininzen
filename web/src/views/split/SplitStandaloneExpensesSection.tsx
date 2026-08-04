@@ -8,7 +8,9 @@ import Modal from "../../components/Modal";
 import { useFormatters } from "../../utils/useFormatters";
 import { deleteSplitExpense } from "../../api/split";
 import type { SplitExpense } from "../../api/split";
+import { canModifyExpense, resolveMySplitUserId } from "./splitIdentity";
 import SplitExpenseFormModal from "./SplitExpenseFormModal";
+import SplitSettlementBadge from "./SplitSettlementBadge";
 
 // Standalone ("quick") expenses — group=null (piano Batch 2.2/QA finding:
 // creating one from SplitView's "+ Nuova spesa veloce" CTA left it
@@ -17,14 +19,29 @@ import SplitExpenseFormModal from "./SplitExpenseFormModal";
 // flow via SplitExpenseFormModal/deleteSplitExpense — scoped to
 // `standaloneExpenses` (useSplitOverview) instead of a group's own list.
 export default function SplitStandaloneExpensesSection() {
-    const { T, apiFetch, guardDemo, categories } = useApp();
+    const { T, apiFetch, guardDemo, user, categories, bankAccounts } = useApp();
     const { formatEur } = useFormatters();
     const {
+        groups,
+        groupMembers,
+        partnerLinksSent,
+        partnerLinksReceived,
         standaloneExpenses,
         standaloneExpensesLoading,
         standaloneExpensesError,
         loadStandaloneExpenses,
     } = useSplit();
+
+    // Piano A4b: needed by canModifyExpense to hide Modifica/Elimina for a
+    // linked_asset expense we're not the payer/creator of — same resolver
+    // SplitGroupDetailView uses (see splitIdentity.ts docblock).
+    const mySplitUserId = resolveMySplitUserId({
+        myEmail: user,
+        groups,
+        groupMembers,
+        partnerLinksSent,
+        partnerLinksReceived,
+    });
 
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [editingExpense, setEditingExpense] = useState<SplitExpense | null>(
@@ -82,6 +99,13 @@ export default function SplitStandaloneExpensesSection() {
                         const category = categories.find(
                             (c) => c.id === expense.category,
                         );
+                        // Piano A4b: same rationale as
+                        // SplitGroupDetailView — hides Modifica/Elimina
+                        // instead of letting a non-payer/non-creator click
+                        // through to a 403.
+                        const editable = canModifyExpense(expense, {
+                            mySplitUserId,
+                        });
                         return (
                             <GroupedList.Item
                                 key={expense.id}
@@ -89,30 +113,56 @@ export default function SplitStandaloneExpensesSection() {
                                 icon={category?.icon ?? "🧾"}
                                 label={expense.description}
                                 subtitle={expense.date}
-                                value={formatEur(expense.amount)}
+                                value={
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "flex-end",
+                                            gap: 4,
+                                        }}
+                                    >
+                                        <span>{formatEur(expense.amount)}</span>
+                                        <SplitSettlementBadge
+                                            percentage={
+                                                expense.settlement_progress
+                                                    .percentage
+                                            }
+                                            T={T}
+                                            testId={`split-standalone-expense-settlement-badge-${expense.id}`}
+                                        />
+                                    </div>
+                                }
                                 action={
-                                    <div style={{ display: "flex", gap: 8 }}>
-                                        <button
-                                            type="button"
-                                            className="btn btn-g btn-sm"
-                                            onClick={() => {
-                                                setEditingExpense(expense);
-                                                setShowExpenseModal(true);
+                                    editable ? (
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: 8,
                                             }}
                                         >
-                                            {T("btn_edit")}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-r btn-sm"
-                                            data-testid={`split-standalone-expense-delete-${expense.id}`}
-                                            onClick={() =>
-                                                setDeleteTarget(expense)
-                                            }
-                                        >
-                                            {T("btn_delete")}
-                                        </button>
-                                    </div>
+                                            <button
+                                                type="button"
+                                                className="btn btn-g btn-sm"
+                                                onClick={() => {
+                                                    setEditingExpense(expense);
+                                                    setShowExpenseModal(true);
+                                                }}
+                                            >
+                                                {T("btn_edit")}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-r btn-sm"
+                                                data-testid={`split-standalone-expense-delete-${expense.id}`}
+                                                onClick={() =>
+                                                    setDeleteTarget(expense)
+                                                }
+                                            >
+                                                {T("btn_delete")}
+                                            </button>
+                                        </div>
+                                    ) : undefined
                                 }
                             />
                         );
@@ -144,6 +194,25 @@ export default function SplitStandaloneExpensesSection() {
                             {deleteTarget.description} —{" "}
                             {formatEur(deleteTarget.amount)}
                         </div>
+                        {deleteTarget.linked_asset != null && (
+                            <div
+                                style={{ fontSize: 13, color: "var(--danger)" }}
+                            >
+                                {T("split_delete_expense_linked_asset_warning")
+                                    .replace(
+                                        "{account}",
+                                        bankAccounts.find(
+                                            (account) =>
+                                                account.id ===
+                                                deleteTarget.linked_asset,
+                                        )?.name ?? "",
+                                    )
+                                    .replace(
+                                        "{amount}",
+                                        formatEur(deleteTarget.amount),
+                                    )}
+                            </div>
+                        )}
                         <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
                             {T("action_cannot_be_undone")}
                         </div>

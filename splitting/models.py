@@ -12,6 +12,10 @@ campi `recurring_source`/`recurring_occurrence_date` e il relativo
 UniqueConstraint `uniq_split_rec_occ` su SplitExpense sotto, aggiunti solo ora
 che SplitRecurringExpense esiste da referenziare (stesso pattern con cui
 `expenses.Expense.recurring_source` referenzia `RecurringExpense`).
+
+Batch 3 (piano di consolidamento): SplitSettlementAllocation, subito dopo
+SplitSettlement — layer di reporting derivato "questa spesa è saldata al
+Y%?" (vedi il suo docstring e splitting/allocations.py).
 """
 
 from django.conf import settings
@@ -475,6 +479,56 @@ class SplitSettlement(models.Model):
 
     def __str__(self):
         return f"SplitSettlement<{self.pk}: {self.amount}>"
+
+
+class SplitSettlementAllocation(models.Model):
+    """Allocazione di (parte di) un SplitSettlement su una specifica
+    SplitExpenseShare (piano Batch 3, modello A2: "questa spesa è saldata al
+    Y%?").
+
+    Layer di REPORTING DERIVATO — MAI fonte di verità sul saldo netto: quella
+    resta `splitting/balances.py::compute_balances`, calcolato direttamente
+    da SplitExpenseShare/SplitSettlement senza passare da qui. Un
+    SplitSettlement salda il debito NETTO aggregato tra due identità, non una
+    spesa specifica (nessuna FK diretta spesa↔settlement — vincolo
+    architetturale voluto, stile Splitwise, non un buco da colmare). Ogni
+    riga qui è quindi una stima "a posteriori" di quale spesa un dato
+    pagamento ha verosimilmente coperto, ricostruita interamente da
+    `splitting/allocations.py::rebuild_allocations_for_directed_pair` — mai
+    scritta a mano altrove.
+
+    Due invarianti garantiti dall'algoritmo, non esprimibili come
+    CheckConstraint DB: (a) `share.is_payer` è sempre False — non ha senso
+    "saldare" la quota di chi ha già anticipato l'intera spesa; (b) la somma
+    delle allocazioni di una share non supera mai `share.share_amount`.
+    """
+
+    settlement = models.ForeignKey(
+        SplitSettlement, on_delete=models.CASCADE, related_name="allocations"
+    )
+    share = models.ForeignKey(
+        SplitExpenseShare, on_delete=models.CASCADE, related_name="allocations"
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["settlement", "share"],
+                name="uniq_split_settlement_allocation_settlement_share",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name="split_settlement_allocation_amount_positive",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"SplitSettlementAllocation<{self.settlement_id}:"
+            f"{self.share_id}={self.amount}>"
+        )
 
 
 class SplitRecurringExpense(models.Model):

@@ -9560,6 +9560,10 @@
                             "$ref": "#/components/schemas/SplitExpenseShareOutput"
                         },
                         "readOnly": true
+                    },
+                    "settlement_progress": {
+                        "type": "string",
+                        "readOnly": true
                     }
                 },
                 "required": [
@@ -9569,6 +9573,7 @@
                     "date",
                     "description",
                     "id",
+                    "settlement_progress",
                     "shares"
                 ]
             },

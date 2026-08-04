@@ -1,3 +1,4 @@
+import { ALL_CASHFLOW_TYPES } from "./feedDefaults";
 import type { AssetTransactionFilters, CashflowFilters } from "./feedDefaults";
 
 const PORTFOLIO_TX_TYPES = ["buy", "sell", "adjustment"] as const;
@@ -105,7 +106,14 @@ export const buildCfBulkSelectionPayload = ({
         string,
         string | boolean | Array<string | number> | number[]
     > = {};
-    if (filters.types && filters.types.length > 0 && filters.types.length < 4) {
+    // BUG FIX (piano Batch 1): same `< 4` magic number as
+    // feedQueryModel.ts::buildCashflowQueryParams — now compares against the
+    // real type count instead of the pre-split value.
+    if (
+        filters.types &&
+        filters.types.length > 0 &&
+        filters.types.length < ALL_CASHFLOW_TYPES.length
+    ) {
         backendFilters.types = filters.types;
     }
     if (filters.date_from) backendFilters.date_from = filters.date_from;

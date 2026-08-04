@@ -12,6 +12,7 @@ type CfCategory = { icon?: ReactNode; color?: string; name?: string };
 export type CfItem = {
     id: number | string;
     source_type?: string;
+    source_id?: number | string;
     is_verified?: boolean;
     type?: string;
     date?: string;
@@ -21,6 +22,13 @@ export type CfItem = {
     account?: CfAccount | null;
     description?: string | null;
     amount: number | string;
+    // split_settlement only — null for a cross-group settlement (see
+    // expenses/cashflow.py::_split_reimbursement_to_item). Decides whether
+    // Edit/Delete route to Split or fall back to an in-place delete here.
+    group_id?: number | string | null;
+    // split_expense only — the full amount charged to the account, shown
+    // alongside the net personal quota in CfDetailSheet.
+    gross_amount?: string;
 };
 
 type CfTransactionRowProps = {
@@ -104,24 +112,51 @@ export default function CfTransactionRow({
         categoryText ||
         "—";
 
+    // Neither a shared expense nor a settlement can be edited in place here
+    // (a split expense's real edit form lives in Split; a settlement has no
+    // update endpoint at all, splitting/views/settlements.py) and only a
+    // settlement with a known group has anywhere to land in Split — for the
+    // rest (a cross-group settlement), the swipe/detail actions fall back to
+    // deleting it in place instead of offering a dead-end navigation.
+    const isSplitExpense = item.source_type === "split_expense";
+    const isSplitSettlement = item.source_type === "split_settlement";
+    const splitSettlementHasGroup = isSplitSettlement && item.group_id != null;
+    const openInSplit = isSplitExpense || splitSettlementHasGroup;
+    const showEditAction = !isSplitSettlement || splitSettlementHasGroup;
+    const showDeleteAction = !openInSplit;
+    const editLabel = openInSplit ? T("cf_open_in_split") : T("cf_bulk_edit");
+
     // Left-swipe (finger right→left) → Edit + Delete (right edge).
     const editDeleteActions: SwipeAction[] = [
-        {
-            key: "edit",
-            label: T("cf_bulk_edit"),
-            icon: <Icon name="edit" size={16} />,
-            background: "var(--accent)",
-            onPress: () => onEdit(item),
-            testId: `cf-row-swipe-edit-${item.id}`,
-        },
-        {
-            key: "delete",
-            label: T("cf_bulk_delete"),
-            icon: <Icon name="trash" size={16} />,
-            background: "var(--danger)",
-            onPress: () => onDelete(item),
-            testId: `cf-row-swipe-delete-${item.id}`,
-        },
+        ...(showEditAction
+            ? [
+                  {
+                      key: "edit",
+                      label: editLabel,
+                      icon: (
+                          <Icon
+                              name={openInSplit ? "split" : "edit"}
+                              size={16}
+                          />
+                      ),
+                      background: "var(--accent)",
+                      onPress: () => onEdit(item),
+                      testId: `cf-row-swipe-edit-${item.id}`,
+                  },
+              ]
+            : []),
+        ...(showDeleteAction
+            ? [
+                  {
+                      key: "delete",
+                      label: T("cf_bulk_delete"),
+                      icon: <Icon name="trash" size={16} />,
+                      background: "var(--danger)",
+                      onPress: () => onDelete(item),
+                      testId: `cf-row-swipe-delete-${item.id}`,
+                  },
+              ]
+            : []),
     ];
 
     // Right-swipe (finger left→right) → Verify (left edge).
@@ -232,6 +267,23 @@ export default function CfTransactionRow({
                     >
                         {title}
                     </span>
+                    {(item.type === "split" ||
+                        item.type === "split_reimbursement") && (
+                        <span
+                            data-testid={`cf-row-split-badge-${item.id}`}
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: "2px 7px",
+                                borderRadius: 999,
+                                background: "var(--accent-soft)",
+                                color: "var(--accent-deep)",
+                                flexShrink: 0,
+                            }}
+                        >
+                            {T("cf_split_badge")}
+                        </span>
+                    )}
                     {!isVerified && (
                         <span
                             data-testid={`cf-row-unverified-${item.id}`}

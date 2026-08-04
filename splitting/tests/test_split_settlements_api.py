@@ -1,7 +1,9 @@
 """splitting/tests/test_split_settlements_api.py — API dei pagamenti di saldo
 (`/api/split/settlements/`, piano sez. 1.6/6/8.1): create/list/delete,
 vincolo "created_by deve essere una delle due parti", divieto
-pagatore==beneficiario, importo non positivo, scoping in lettura/cancellazione.
+pagatore==beneficiario, importo non positivo, scoping in lettura/cancellazione,
+e (piano A4b) la restrizione di cancellazione a created_by quando il
+settlement ha un conto collegato.
 """
 
 from decimal import Decimal
@@ -273,3 +275,112 @@ class TestListAndDelete:
         third_client.force_login(third_user)
         res = third_client.get(f"/api/split/settlements/{settlement.id}/")
         assert res.status_code == 404
+
+
+class TestModifyRestrictedWhenLinkedAsset:
+    """Piano A4b: SplitSettlementViewSet non ha update (solo destroy) — la
+    restrizione si applica lì, a created_by, e SOLO quando il settlement ha
+    un `linked_asset`."""
+
+    def test_payer_who_is_not_creator_gets_403_on_delete(
+        self,
+        client,
+        second_client,
+        test_user,
+        second_user,
+        account,
+        split_contact_linked,
+    ):
+        """test_user registra il saldo (created_by=test_user) come
+        BENEFICIARIO, sul proprio conto — second_user è il pagatore ma non
+        created_by: non deve poter cancellare un settlement con conto
+        collegato (splitting/permissions.py::user_can_modify_settlement,
+        deliberatamente created_by-only, non payer_user genericamente)."""
+        res = client.post(
+            "/api/split/settlements/",
+            data={
+                "payer_user": second_user.id,
+                "payee_user": test_user.id,
+                "amount": "25.00",
+                "date": "2026-07-13",
+                "linked_asset": account.id,
+            },
+            content_type="application/json",
+        )
+        assert res.status_code == 201, res.content
+        assert res.json()["created_by"] == test_user.id
+        settlement_id = res.json()["id"]
+
+        res_delete = second_client.delete(f"/api/split/settlements/{settlement_id}/")
+
+        assert res_delete.status_code == 403
+        assert res_delete.json()["code"] == "linked_settlement_modify_restricted"
+        assert SplitSettlement.objects.filter(id=settlement_id).exists()
+
+    def test_payer_who_is_not_creator_keeps_read_access(
+        self,
+        client,
+        second_client,
+        test_user,
+        second_user,
+        account,
+        split_contact_linked,
+    ):
+        res = client.post(
+            "/api/split/settlements/",
+            data={
+                "payer_user": second_user.id,
+                "payee_user": test_user.id,
+                "amount": "25.00",
+                "date": "2026-07-13",
+                "linked_asset": account.id,
+            },
+            content_type="application/json",
+        )
+        assert res.status_code == 201, res.content
+        settlement_id = res.json()["id"]
+
+        res_get = second_client.get(f"/api/split/settlements/{settlement_id}/")
+        assert res_get.status_code == 200
+
+    def test_creator_can_delete_own_linked_settlement(
+        self, client, test_user, second_user, account, split_contact_linked
+    ):
+        res = client.post(
+            "/api/split/settlements/",
+            data={
+                "payer_user": second_user.id,
+                "payee_user": test_user.id,
+                "amount": "25.00",
+                "date": "2026-07-13",
+                "linked_asset": account.id,
+            },
+            content_type="application/json",
+        )
+        assert res.status_code == 201, res.content
+        settlement_id = res.json()["id"]
+
+        res_delete = client.delete(f"/api/split/settlements/{settlement_id}/")
+        assert res_delete.status_code == 204
+
+    def test_no_linked_asset_payer_can_still_delete(
+        self, client, second_client, test_user, second_user, split_contact_linked
+    ):
+        """Non-regressione: senza linked_asset qualunque parte diretta
+        (payer/payee) può ancora cancellare, indipendentemente da
+        created_by."""
+        res = client.post(
+            "/api/split/settlements/",
+            data={
+                "payer_user": second_user.id,
+                "payee_user": test_user.id,
+                "amount": "25.00",
+                "date": "2026-07-13",
+            },
+            content_type="application/json",
+        )
+        assert res.status_code == 201, res.content
+        settlement_id = res.json()["id"]
+
+        res_delete = second_client.delete(f"/api/split/settlements/{settlement_id}/")
+        assert res_delete.status_code == 204

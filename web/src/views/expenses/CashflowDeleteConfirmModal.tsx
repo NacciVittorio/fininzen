@@ -11,6 +11,7 @@ export default function CashflowDeleteConfirmModal({
     setDeleteCfTarget,
     deleteCfExpense,
     deleteCfTx,
+    deleteCfSplitSettlement,
     T,
     formatEur,
 }: {
@@ -18,6 +19,9 @@ export default function CashflowDeleteConfirmModal({
     setDeleteCfTarget: (value: DeleteCfTarget | null) => void;
     deleteCfExpense: (sourceId?: EntityId) => void | Promise<unknown>;
     deleteCfTx: (item: CashflowFeedItem) => void | Promise<unknown>;
+    deleteCfSplitSettlement: (
+        item: CashflowFeedItem,
+    ) => void | Promise<unknown>;
     T: Translator;
     formatEur: (value: NumericValue) => string;
 }) {
@@ -81,6 +85,14 @@ export default function CashflowDeleteConfirmModal({
                             setDeleteCfTarget(null);
                             if (item.source_type === "expense") {
                                 await deleteCfExpense(item.source_id);
+                            } else if (
+                                item.source_type === "split_settlement"
+                            ) {
+                                // Only ever reaches here for a cross-group
+                                // settlement (group === null) — the detail
+                                // sheet/row hide this button in favor of
+                                // "Apri in Split" otherwise (piano Batch 1).
+                                await deleteCfSplitSettlement(item);
                             } else {
                                 await deleteCfTx(item);
                             }

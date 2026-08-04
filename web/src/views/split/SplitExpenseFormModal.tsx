@@ -9,7 +9,11 @@ import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
 import AmountCalculator from "../../components/AmountCalculator";
 import { useFormatters } from "../../utils/useFormatters";
-import { filterAmountInput } from "../../utils/formatters";
+import {
+    filterAmountInput,
+    isValidAmount,
+    parseAmount,
+} from "../../utils/formatters";
 import {
     resolveMySplitUserId,
     splitIdentityKey,
@@ -286,6 +290,38 @@ export default function SplitExpenseFormModal({
         : null;
     const displayError =
         splitExpenseFormError ?? (hasComputeError ? computeErrorText : null);
+
+    // Linked account debits the FULL expense amount, not whatever this payer
+    // personally consumes (splitting/services.py credits the payer's account
+    // for `amount`, never for a per-participant share) — the "equal" method
+    // is the one case where "your share" reads unambiguously; every other
+    // method already overloads "quota" as the raw per-participant input unit
+    // (see split_method_shares_unit), so naming it here would confuse rather
+    // than clarify.
+    const totalAmount = isValidAmount(
+        splitExpenseForm.amountText,
+        decimalSeparator,
+    )
+        ? parseAmount(splitExpenseForm.amountText, decimalSeparator)
+        : null;
+    const payerShareAmount =
+        payer != null
+            ? (splitExpenseComputedShares?.find(
+                  (share) => share.key === payer.key,
+              )?.amount ?? null)
+            : null;
+    const linkedAssetHint =
+        totalAmount == null
+            ? null
+            : splitExpenseForm.splitMethod === "equal" &&
+                payerShareAmount != null
+              ? T("split_expense_account_hint")
+                    .replace("{amount}", formatEur(totalAmount))
+                    .replace("{share}", formatEur(payerShareAmount))
+              : T("split_expense_account_hint_generic").replace(
+                    "{amount}",
+                    formatEur(totalAmount),
+                );
 
     const handleSubmit = async () => {
         const result = await submitSplitExpenseForm();
@@ -670,6 +706,17 @@ export default function SplitExpenseFormModal({
                                         label: `${account.investment_type_detail?.icon || ""} ${account.name}`.trim(),
                                     }))}
                                 />
+                                {linkedAssetHint && (
+                                    <div
+                                        style={{
+                                            fontSize: 11,
+                                            color: "var(--fg-soft)",
+                                            marginTop: 4,
+                                        }}
+                                    >
+                                        {linkedAssetHint}
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}

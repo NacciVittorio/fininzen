@@ -72,6 +72,15 @@ const it: Record<string, string> = {
     cf_unverified: "Non verificata",
     cf_no_transactions_period: "Nessun movimento in questo periodo",
     cf_all_directions: "Tutte",
+    cf_split_badge: "Condivisa",
+    cf_open_in_split: "Apri in Split",
+    cf_split_gross_amount_label: "Importo totale della spesa",
+    cf_split_net_quota_hint:
+        "In Cash Flow conta solo la tua quota personale: il resto è stato anticipato per gli altri partecipanti ed è tracciato come credito nella sezione Split, finché non viene saldato.",
+    // View toggle (piano B6 Fase 1) — preset del filtro "types" esistente
+    cf_view_toggle_personal: "Personale",
+    cf_view_toggle_shared: "Condivise",
+    cf_view_toggle_all: "Tutte",
     // Bulk selection (K-3.7)
     cf_bulk_select: "Seleziona",
     cf_bulk_done: "Fatto",
@@ -1305,6 +1314,17 @@ const it: Record<string, string> = {
         "Impossibile riattivare questa spesa ricorrente: la data di fine è già passata. Modifica prima la data di fine.",
     split_error_only_creator_can_remove_members:
         "Solo chi ha creato il gruppo può rimuovere i membri.",
+    split_expense_account_hint:
+        "Verrà scalato l'intero importo di {amount}, non la tua quota di {share}.",
+    split_expense_account_hint_generic:
+        "Verrà scalato l'intero importo di {amount} dal conto collegato, non solo la parte che ti spetta.",
+    split_settle_account_hint:
+        "Il saldo di questo debito è tracciato separatamente da questo pagamento: collega un conto solo se questo rimborso è passato realmente su un tuo conto bancario.",
+    split_delete_expense_linked_asset_warning:
+        "Questa spesa è collegata al conto {account}: cancellandola, il saldo tracciato di quel conto cambierà di {amount}.",
+    split_delete_settlement_linked_asset_warning:
+        "Questo saldo è collegato al conto {account}: cancellandolo, il saldo tracciato di quel conto cambierà di {amount}.",
+    split_expense_settlement_badge: "Saldata al {percentage}%",
 };
 
 export default it;
