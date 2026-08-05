@@ -14,7 +14,10 @@ import TermsGateScreen from "./TermsGateScreen";
 export function TermsGate({ children }: { children: React.ReactNode }) {
     const { profile, isDemo, bootstrapReady } = useApp();
     const mustAcceptTerms =
-        bootstrapReady && !isDemo && !!profile.email && !profile.terms_accepted_at;
+        bootstrapReady &&
+        !isDemo &&
+        !!profile.email &&
+        !profile.terms_accepted_at;
     if (mustAcceptTerms) return <TermsGateScreen />;
     return <>{children}</>;
 }

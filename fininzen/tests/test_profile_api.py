@@ -379,7 +379,9 @@ def test_profile_patch_allows_clearing_last_seen_release(client, test_user):
     assert UserProfile.objects.get(user=test_user).last_seen_release == ""
 
 
-def test_profile_get_returns_terms_accepted_at_null_for_legacy_profile(client, test_user):
+def test_profile_get_returns_terms_accepted_at_null_for_legacy_profile(
+    client, test_user
+):
     res = client.get("/api/auth/profile/")
 
     assert res.status_code == 200
@@ -401,7 +403,9 @@ def test_profile_patch_accepts_terms_stamps_timestamp(client, test_user):
     assert profile.terms_rejected_at is None
 
 
-def test_profile_patch_rejects_terms_stamps_rejected_at_without_accepting(client, test_user):
+def test_profile_patch_rejects_terms_stamps_rejected_at_without_accepting(
+    client, test_user
+):
     res = client.patch(
         "/api/auth/profile/",
         data={"terms_accepted": False},

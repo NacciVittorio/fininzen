@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fininzen", "0019_userprofile_terms_accepted_at"),
     ]
