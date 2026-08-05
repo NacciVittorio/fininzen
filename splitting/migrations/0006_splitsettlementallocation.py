@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("splitting", "0005_relax_created_by_and_added_by_to_set_null"),
     ]

@@ -10,7 +10,11 @@ I test a livello di endpoint HTTP (`/groups/{id}/balances/`, `/simplify/`,
 
 from decimal import Decimal
 
-from splitting.balances import compute_balances, compute_relative_balances, simplify_debts
+from splitting.balances import (
+    compute_balances,
+    compute_relative_balances,
+    simplify_debts,
+)
 from splitting.models import (
     SplitExpense,
     SplitExpenseShare,
