@@ -5418,7 +5418,7 @@
         "/api/split/balances/overview/": {
             "get": {
                 "operationId": "split_balances_overview_retrieve",
-                "description": "GET /api/split/balances/overview/\n\nSaldo complessivo per persona dell'utente autenticato, calcolato sulle\nshares di TUTTE le spese a cui ha accesso — gruppi di cui è\ncreatore/membro attivo + spese occasionali proprie o di cui è\npartecipante ad-hoc (stesso perimetro di `user_can_access_expense`,\nespresso qui come queryset invece che come check per-oggetto) — più i\nsettlement di cui è parte diretta (payer/payee) o che appartengono a un\ngruppo a cui ha accesso. Riusa `compute_balances` esteso invece che\nfiltrato su un singolo gruppo (piano sez. 3.2).",
+                "description": "GET /api/split/balances/overview/\n\nSaldo complessivo per persona dell'utente autenticato, calcolato sulle\nshares di TUTTE le spese a cui ha accesso — gruppi di cui è\ncreatore/membro attivo + spese occasionali proprie o di cui è\npartecipante ad-hoc (stesso perimetro di `user_can_access_expense`,\nespresso qui come queryset invece che come check per-oggetto) — più i\nsettlement di cui è parte diretta (payer/payee) o che appartengono a un\ngruppo a cui ha accesso. Usa `compute_relative_balances` (saldo pairwise\nrelativo al richiedente, non il saldo assoluto per identità di\n`compute_balances` usato invece per il saldo di un singolo gruppo) —\npiano \"fix overview cross-gruppo\".",
                 "tags": [
                     "split"
                 ],
@@ -7329,6 +7329,18 @@
                     "webauthn_credential_count": {
                         "type": "string",
                         "readOnly": true
+                    },
+                    "terms_accepted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "terms_rejected_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -7342,6 +7354,8 @@
                     "name",
                     "role",
                     "status",
+                    "terms_accepted_at",
+                    "terms_rejected_at",
                     "user_id",
                     "webauthn_credential_count"
                 ]

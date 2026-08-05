@@ -2097,8 +2097,10 @@ export interface paths {
          *     partecipante ad-hoc (stesso perimetro di `user_can_access_expense`,
          *     espresso qui come queryset invece che come check per-oggetto) — più i
          *     settlement di cui è parte diretta (payer/payee) o che appartengono a un
-         *     gruppo a cui ha accesso. Riusa `compute_balances` esteso invece che
-         *     filtrato su un singolo gruppo (piano sez. 3.2).
+         *     gruppo a cui ha accesso. Usa `compute_relative_balances` (saldo pairwise
+         *     relativo al richiedente, non il saldo assoluto per identità di
+         *     `compute_balances` usato invece per il saldo di un singolo gruppo) —
+         *     piano "fix overview cross-gruppo".
          */
         get: operations["split_balances_overview_retrieve"];
         put?: never;
@@ -2778,6 +2780,10 @@ export interface components {
             readonly last_activity_at: string | null;
             readonly mfa_enabled: boolean;
             readonly webauthn_credential_count: string;
+            /** Format: date-time */
+            readonly terms_accepted_at: string | null;
+            /** Format: date-time */
+            readonly terms_rejected_at: string | null;
         };
         /**
          * @description * `pending` - Pending
