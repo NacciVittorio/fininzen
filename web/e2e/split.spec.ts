@@ -78,15 +78,24 @@ async function waitForApi(
     urlIncludes: string,
     action: () => Promise<void>,
 ): Promise<void> {
-    await Promise.all([
+    // Matches on method+URL only — NOT `r.ok()` — so an error response still
+    // resolves this wait. Gating the predicate on `r.ok()` would leave a
+    // non-2xx response invisible to `waitForResponse`, which then hangs until
+    // the surrounding test's full timeout instead of failing fast with the
+    // actual status/body.
+    const [response] = await Promise.all([
         page.waitForResponse(
             (r) =>
                 r.request().method() === method &&
-                r.url().includes(urlIncludes) &&
-                r.ok(),
+                r.url().includes(urlIncludes),
         ),
         action(),
     ]);
+    if (!response.ok()) {
+        throw new Error(
+            `${method} ${urlIncludes} failed: ${response.status()} — ${await response.text()}`,
+        );
+    }
 }
 
 // Last "-<digits>" segment of a `data-testid` (every Split row is
