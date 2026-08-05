@@ -322,6 +322,13 @@ const it: Record<string, string> = {
     legal_last_updated: "Ultimo aggiornamento",
     legal_italian_only_notice:
         "Questo documento è disponibile solo in italiano.",
+    terms_gate_title: "Aggiornamento privacy e termini",
+    terms_gate_body:
+        "Abbiamo introdotto un consenso esplicito a Privacy Policy e Termini di Servizio dopo la creazione del tuo account. Per continuare ad usare l'app devi accettarli.",
+    terms_gate_accept: "Accetto e continuo",
+    terms_gate_reject: "Rifiuta",
+    terms_gate_reject_notice:
+        "Se rifiuti verrai disconnesso. Dovrai accettare al prossimo accesso per continuare ad usare l'app.",
     about_title: "About",
     about_version: "Versione applicazione",
     about_released_on: "Data di rilascio",

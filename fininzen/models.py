@@ -131,6 +131,11 @@ class UserProfile(models.Model):
     # Policy/Terms of Service checkbox. Not re-stamped on later policy
     # revisions (no versioning) — null means the account predates this field.
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    # Stamped when the user explicitly declines the post-login terms gate
+    # (legacy accounts with terms_accepted_at still null — see TermsGate on
+    # the frontend). Audit trail only: the gate itself blocks purely on
+    # terms_accepted_at being null, so accepting later clears this again.
+    terms_rejected_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Profile<{self.user_id}>"

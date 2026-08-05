@@ -289,6 +289,10 @@ class DemoLoginView(APIView):
                 username=DEMO_EMAIL,
                 defaults={"email": DEMO_EMAIL},
             )
+            # Pre-accepted so the demo account never hits the legacy terms gate.
+            UserProfile.objects.get_or_create(
+                user=demo_user, defaults={"terms_accepted_at": timezone.now()}
+            )
             should_seed, _ = ensure_demo_seed(demo_user, Asset, InvestmentType)
             if should_seed:
                 logger.info(
@@ -458,6 +462,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     dashboard_config = serializers.JSONField(required=False)
     dashboard_preferences = serializers.JSONField(required=False)
     transaction_preferences = serializers.JSONField(required=False)
+    # Write-only accept/decline for the post-login terms gate (legacy
+    # accounts with terms_accepted_at still null). Not a model field itself —
+    # it drives terms_accepted_at/terms_rejected_at in update() below, mirroring
+    # UserRegisterSerializer.terms_accepted at registration time.
+    terms_accepted = serializers.BooleanField(write_only=True, required=False)
 
     class Meta:
         model = UserProfile
@@ -475,16 +484,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "status",
             "role",
             "mfa_enabled",
+            "terms_accepted_at",
+            "terms_rejected_at",
+            "terms_accepted",
         ]
         # status/role are informational here — actual writes only happen
         # through AdminUserViewSet.approve/reject/set_role (fininzen/admin_views.py).
         # mfa_enabled is likewise informational — actual writes only happen
         # through MfaEnableView/MfaDisableView (fininzen/mfa_views.py).
+        # terms_accepted_at/terms_rejected_at are likewise informational —
+        # actual writes only happen through the write-only terms_accepted
+        # field, handled in update() below.
         extra_kwargs = {
             "status": {"read_only": True},
             "role": {"read_only": True},
             "mfa_enabled": {"read_only": True},
+            "terms_accepted_at": {"read_only": True},
+            "terms_rejected_at": {"read_only": True},
         }
+
+    def update(self, instance, validated_data):
+        terms_accepted = validated_data.pop("terms_accepted", None)
+        if terms_accepted is True:
+            instance.terms_accepted_at = timezone.now()
+            instance.terms_rejected_at = None
+        elif terms_accepted is False:
+            instance.terms_rejected_at = timezone.now()
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

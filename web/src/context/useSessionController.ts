@@ -86,6 +86,7 @@ type UserProfile = {
     status: "pending" | "approved" | "rejected";
     role: "user" | "admin";
     mfa_enabled: boolean;
+    terms_accepted_at: string | null;
 };
 
 type ProfileApplyResult = {
@@ -361,6 +362,7 @@ export function useSessionController(providerState: AppProviderState) {
         status: "approved",
         role: "user",
         mfa_enabled: false,
+        terms_accepted_at: null,
     });
     const [privacyPreferences, setPrivacyPreferences] =
         useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
@@ -419,6 +421,10 @@ export function useSessionController(providerState: AppProviderState) {
                         : "approved",
                 role: data.role === "admin" ? "admin" : "user",
                 mfa_enabled: !!data.mfa_enabled,
+                terms_accepted_at:
+                    typeof data.terms_accepted_at === "string"
+                        ? data.terms_accepted_at
+                        : null,
             });
             setPrivacyPreferences(
                 normalizePrivacyPreferences(data.privacy_preferences),
@@ -532,6 +538,7 @@ export function useSessionController(providerState: AppProviderState) {
             status: "approved",
             role: "user",
             mfa_enabled: false,
+            terms_accepted_at: null,
         });
         setPrivacyPreferences(DEFAULT_PRIVACY_PREFERENCES);
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);

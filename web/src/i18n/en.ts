@@ -321,6 +321,13 @@ const en: Record<string, string> = {
     legal_link_terms: "Terms of Service",
     legal_last_updated: "Last updated",
     legal_italian_only_notice: "This document is only available in Italian.",
+    terms_gate_title: "Privacy & Terms update",
+    terms_gate_body:
+        "We introduced explicit consent to our Privacy Policy and Terms of Service after your account was created. You need to accept them to keep using the app.",
+    terms_gate_accept: "Accept and continue",
+    terms_gate_reject: "Decline",
+    terms_gate_reject_notice:
+        "Declining signs you out. You'll need to accept on your next sign-in to keep using the app.",
     about_title: "About",
     about_version: "Application version",
     about_released_on: "Release date",

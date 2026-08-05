@@ -379,6 +379,71 @@ def test_profile_patch_allows_clearing_last_seen_release(client, test_user):
     assert UserProfile.objects.get(user=test_user).last_seen_release == ""
 
 
+def test_profile_get_returns_terms_accepted_at_null_for_legacy_profile(client, test_user):
+    res = client.get("/api/auth/profile/")
+
+    assert res.status_code == 200
+    assert res.json()["terms_accepted_at"] is None
+    assert res.json()["terms_rejected_at"] is None
+
+
+def test_profile_patch_accepts_terms_stamps_timestamp(client, test_user):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": True},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert res.json()["terms_accepted_at"] is not None
+    profile = UserProfile.objects.get(user=test_user)
+    assert profile.terms_accepted_at is not None
+    assert profile.terms_rejected_at is None
+
+
+def test_profile_patch_rejects_terms_stamps_rejected_at_without_accepting(client, test_user):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": False},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    profile = UserProfile.objects.get(user=test_user)
+    assert profile.terms_rejected_at is not None
+    assert profile.terms_accepted_at is None
+
+
+def test_profile_patch_accept_after_reject_clears_rejected_at(client, test_user):
+    client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": False},
+        content_type="application/json",
+    )
+
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": True},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    profile = UserProfile.objects.get(user=test_user)
+    assert profile.terms_accepted_at is not None
+    assert profile.terms_rejected_at is None
+
+
+def test_profile_patch_terms_accepted_at_is_read_only(client, test_user):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted_at": "2020-01-01T00:00:00Z"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert UserProfile.objects.get(user=test_user).terms_accepted_at is None
+
+
 @pytest.mark.parametrize("value", ["pippo", "1.2", "0.6.0-beta", "0.6.0 OR 1=1"])
 def test_profile_patch_rejects_invalid_last_seen_release(client, value):
     res = client.patch(

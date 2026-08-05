@@ -104,6 +104,8 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "last_activity_at",
             "mfa_enabled",
             "webauthn_credential_count",
+            "terms_accepted_at",
+            "terms_rejected_at",
         ]
         read_only_fields = fields
 
