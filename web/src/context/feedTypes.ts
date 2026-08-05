@@ -24,7 +24,7 @@ export type CashflowFeedItem = {
     paired_id?: EntityId | null;
     type: CashflowItemType;
     date: string;
-    description: string;
+    description: string | null;
     amount: string;
     category?: {
         id: EntityId;

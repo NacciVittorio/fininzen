@@ -3,6 +3,7 @@
 import Modal from "../../components/Modal";
 import type { NumericValue, Translator } from "../../types";
 import type { CashflowFeedItem, EntityId } from "../../context/feedTypes";
+import { getCashflowItemTitle } from "../../components/cashflow/transactionTypeLabels";
 
 export type DeleteCfTarget = { item: CashflowFeedItem };
 
@@ -47,7 +48,7 @@ export default function CashflowDeleteConfirmModal({
                             marginBottom: 4,
                         }}
                     >
-                        {deleteCfTarget.item.description}
+                        {getCashflowItemTitle(deleteCfTarget.item, T)}
                     </div>
                     <div
                         style={{

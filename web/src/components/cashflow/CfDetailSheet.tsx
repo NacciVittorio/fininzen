@@ -12,6 +12,7 @@ import {
 } from "../../utils/cashflowItemKind";
 import { BottomSheet, ToggleSwitch } from "../ui";
 import type { CfItem } from "./CfTransactionRow";
+import { getCashflowItemTitle } from "./transactionTypeLabels";
 
 function Field({ label, value }: { label: ReactNode; value: ReactNode }) {
     return (
@@ -114,17 +115,7 @@ export default function CfDetailSheet({
             : isAdjustment && data?.account
               ? data.account.name
               : data?.account?.name || null;
-    const title =
-        data?.description ||
-        (data?.type === "adjustment" ? T("cf_adjustment_default") : null) ||
-        (data?.type === "transfer"
-            ? T("cf_transfer_default_in").replace(
-                  "{account}",
-                  data?.from_account?.name ?? "",
-              )
-            : null) ||
-        categoryText ||
-        "—";
+    const title = data ? getCashflowItemTitle(data, T) : "";
 
     return (
         <BottomSheet open={open} onClose={onClose} ariaLabel={title}>

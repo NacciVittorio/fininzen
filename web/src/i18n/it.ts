@@ -67,6 +67,7 @@ const it: Record<string, string> = {
     cf_adjustment: "Rettifica",
     cf_adjustment_default: "Rettifica manuale saldo",
     cf_transfer_default_in: "Trasferimento ← {account}",
+    cf_settlement_default: "Saldo",
     cf_opening_balance: "Saldo iniziale",
     cf_verified: "Verificata",
     cf_unverified: "Non verificata",

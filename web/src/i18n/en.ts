@@ -69,6 +69,7 @@ const en: Record<string, string> = {
     cf_adjustment: "Adjustment",
     cf_adjustment_default: "Manual balance adjustment",
     cf_transfer_default_in: "Transfer ← {account}",
+    cf_settlement_default: "Settlement",
     cf_opening_balance: "Opening balance",
     cf_verified: "Verified",
     cf_unverified: "Unverified",

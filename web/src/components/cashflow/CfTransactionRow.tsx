@@ -6,6 +6,7 @@ import { useFormatters } from "../../utils/useFormatters";
 import { isOutcomeMoney, splitRowActions } from "../../utils/cashflowItemKind";
 import { Icon, SwipeRow } from "../ui";
 import type { SwipeAction } from "../ui/SwipeRow";
+import { getCashflowItemTitle } from "./transactionTypeLabels";
 
 type CfAccount = { name?: string };
 type CfCategory = { icon?: ReactNode; color?: string; name?: string };
@@ -96,17 +97,7 @@ export default function CfTransactionRow({
               ? item.account.name
               : item.account?.name || null;
     const categoryText = item.category?.name || null;
-    const title =
-        item.description ||
-        (item.type === "adjustment" ? T("cf_adjustment_default") : null) ||
-        (item.type === "transfer"
-            ? T("cf_transfer_default_in").replace(
-                  "{account}",
-                  item.from_account?.name ?? "",
-              )
-            : null) ||
-        categoryText ||
-        "—";
+    const title = getCashflowItemTitle(item, T);
 
     const { openInSplit, showEditAction, showDeleteAction } =
         splitRowActions(item);
