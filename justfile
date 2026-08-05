@@ -56,13 +56,13 @@ clear:
 # ── Start ────────────────────────────────────────────────────────────────────
 
 backend:
-    DJANGO_DEBUG=1 {{venv_python}} manage.py runserver
+    DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ {{venv_python}} manage.py runserver
 
 web:
     npm run dev --prefix {{web_dir}}
 
 start:
-    DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
+    DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
 
 # ── Bare-metal production (systemd, no Docker) ───────────────────────────────
 # Da eseguire sul VPS come utente fininzen dentro /opt/fininzen. La produzione
