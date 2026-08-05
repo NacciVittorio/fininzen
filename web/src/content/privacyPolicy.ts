@@ -23,7 +23,7 @@ export const PRIVACY_POLICY_SECTIONS: PolicySection[] = [
         id: "titolare",
         heading: "1. Titolare del trattamento",
         body: [
-            "Il titolare del trattamento è Vittorio Nacci, che sviluppa e gestisce Fininzen come progetto personale, utilizzato da lui stesso e da un piccolo gruppo di conoscenti su loro richiesta.",
+            "Il titolare del trattamento è Vittorio Nacci, che sviluppa e gestisce Fininzen come progetto personale.",
             "Per qualsiasi richiesta relativa ai tuoi dati puoi scrivere a vittorionacci@icloud.com.",
             "Non è nominato un Responsabile della Protezione dei Dati (DPO): non è un obbligo per un servizio di queste dimensioni, che non tratta dati su larga scala.",
         ],

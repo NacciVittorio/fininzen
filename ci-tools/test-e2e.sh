@@ -4,6 +4,10 @@
 # webServer (web/playwright.config.ts) — in CI that means a production build
 # (next build && next start) rather than `next dev`, to avoid the HMR traffic
 # that keeps page.waitForLoadState("networkidle") from ever settling.
+#
+# Any arguments given to this script are forwarded to `npm run test:e2e`
+# (i.e. to `playwright test`) after `--`, e.g.:
+#   bash ci-tools/test-e2e.sh --project=mobile-viewport
 set -euo pipefail
 
 export DJANGO_DEBUG=1
@@ -50,7 +54,7 @@ done
 
 echo "==> playwright test"
 set +e
-npm run test:e2e --prefix web
+npm run test:e2e --prefix web -- "$@"
 PW_STATUS=$?
 set -e
 

@@ -58,6 +58,15 @@ clear:
 backend:
     DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ {{venv_python}} manage.py runserver
 
+# E2E-only server: identico a `backend`, ma con E2E_RELAX_THROTTLES=1 (rate
+# limit login/register alzati a 100000/minute) e E2E_AUTO_APPROVE_REGISTRATION=1
+# (salta il gate di approvazione admin per i nuovi signup). Usalo SOLO per far
+# girare `just test-e2e` in un altro terminale senza rimigrare/reinstallare a
+# ogni run. Non è sicuro: MAI per demo, staging o produzione, dove sia i rate
+# limit sia il gate di approvazione devono restare attivi.
+backend-e2e:
+    DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ E2E_RELAX_THROTTLES=1 E2E_AUTO_APPROVE_REGISTRATION=1 {{venv_python}} manage.py runserver
+
 web:
     npm run dev --prefix {{web_dir}}
 
@@ -132,8 +141,26 @@ production-backup:
 test-backend:
     {{venv_python}} -m pytest -c pytest.ini --cov-fail-under=75
 
-test-e2e:
-    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then npm run test:e2e --prefix {{web_dir}}; else echo "Django not running on :8000 — skipping E2E."; fi
+# Runs the Playwright e2e suite (~130 tests across the two playwright.config.ts
+# projects). With nothing listening on :8000, boots a throwaway Django server
+# via ci-tools/test-e2e.sh — the same script CI uses, with
+# E2E_RELAX_THROTTLES/E2E_AUTO_APPROVE_REGISTRATION set — and tears it down
+# afterwards. If something is already listening on :8000 (e.g. `just
+# backend-e2e` running in another terminal for fast iteration), reuses it
+# as-is instead. Extra args are forwarded to Playwright, e.g.:
+#   just test-e2e -- --project=mobile-viewport
+test-e2e *ARGS:
+    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then \
+    echo "⚠️  Reusing the server already listening on :8000 for e2e tests."; \
+    echo "    If it was NOT started with 'just backend-e2e', E2E_RELAX_THROTTLES /"; \
+    echo "    E2E_AUTO_APPROVE_REGISTRATION are unset and most specs will fail with"; \
+    echo "    429 (throttled) / 403 (account_pending). Either stop it and run"; \
+    echo "    'just backend-e2e' in another terminal, or free :8000 so this target"; \
+    echo "    can boot its own throwaway server via ci-tools/test-e2e.sh."; \
+    npm run test:e2e --prefix {{web_dir}} -- {{ARGS}}; \
+    else \
+    PATH="venv/bin:$PATH" bash ci-tools/test-e2e.sh {{ARGS}}; \
+    fi
 
 test: test-backend test-e2e
 
