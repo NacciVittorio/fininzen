@@ -1,5 +1,6 @@
 import { ALL_CASHFLOW_TYPES } from "./feedDefaults";
 import type { CashflowItemType } from "./feedTypes";
+import { SPLIT_TYPES } from "../utils/cashflowItemKind";
 
 export type CashflowViewPresetKey = "personal" | "shared" | "all";
 
@@ -12,7 +13,7 @@ export const CASHFLOW_VIEW_PRESETS: Record<
     CashflowItemType[]
 > = {
     personal: ["income", "outcome", "transfer", "adjustment"],
-    shared: ["split", "split_reimbursement"],
+    shared: [...SPLIT_TYPES],
     all: [...ALL_CASHFLOW_TYPES],
 };
 

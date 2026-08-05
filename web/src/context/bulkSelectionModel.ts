@@ -45,12 +45,22 @@ export const getCfBulkActionsAllowed = (
     if (selectionKind === "adjustment") {
         return { verify: false, edit: false, delete: true };
     }
-    // Split feed ids ("split_{id}" / "split_reimbursement_{id}") have no
-    // matching prefix in expenses/bulk.py::_FEED_ID_PREFIXES — any bulk
-    // request built from a split-only selection resolves to zero rows on the
-    // backend. Route the user to the per-row "Apri in Split" action instead.
-    if (selectionKind === "split" || selectionKind === "split_reimbursement") {
+    // A split expense's real edit/delete flow lives in the Split app (see
+    // expenses/bulk.py: kind=="split" is rejected with split_requires_split_app
+    // for both actions) — route to the per-row "Apri in Split" action instead.
+    if (selectionKind === "split") {
         return { verify: false, edit: false, delete: false };
+    }
+    // Settlements have no editable fields (split_reimbursement_not_editable),
+    // but bulk delete IS supported backend-side for the ungrouped/
+    // permission-eligible subset of the selection (expenses/bulk.py,
+    // _partition_split_reimbursement_deletes) — grouped or restricted rows
+    // come back in the response's `rejected_rows` rather than blocking the
+    // whole request, same as e.g. category_direction_mismatch already does
+    // for expense edits. The button stays enabled; the backend's partial
+    // outcome is what actually gates each row.
+    if (selectionKind === "split_reimbursement") {
+        return { verify: false, edit: false, delete: true };
     }
     return { verify: true, edit: true, delete: true };
 };

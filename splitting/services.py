@@ -16,6 +16,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from fininzen.utils import next_month_start as _next_month
+
 from .models import (
     SplitContact,
     SplitExpense,
@@ -479,12 +481,6 @@ def _split_recurring_already_generated(
     return SplitExpense.objects.filter(
         recurring_source=rec, recurring_occurrence_date=occurrence_date
     ).exists()
-
-
-def _next_month(current: date_cls) -> date_cls:
-    if current.month == 12:
-        return date_cls(current.year + 1, 1, 1)
-    return date_cls(current.year, current.month + 1, 1)
 
 
 def disable_expired_split_recurrings(user) -> int:

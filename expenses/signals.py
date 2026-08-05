@@ -2,49 +2,23 @@
 expenses/signals.py — Sincronizzazione spese/entrate con gli asset del portfolio.
 
 Quando una spesa o entrata ha un linked_asset, crea/aggiorna/elimina una
-AssetTransaction "ombra" corrispondente per mantenere il saldo dell'asset aggiornato.
+AssetTransaction "ombra" corrispondente per mantenere il saldo dell'asset
+aggiornato. Il plumbing di sync/cleanup/recompute (update_or_create,
+cleanup della shadow stale, recompute sotto skip_recompute) è condiviso con
+splitting/signals.py via portfolio.ledger_sync — qui resta solo la logica
+di dominio specifica a Expense: il sign-flip per mappare l'importo (che può
+essere negativo, es. un rimborso) su una direzione CASH_IN/CASH_OUT, e
+l'invalidazione del dashboard summary che deve scattare ad ogni save/delete
+di Expense a prescindere dal linked_asset.
 """
 
 import logging
 from decimal import Decimal
 
-from django.db import transaction
-from django.db.models.signals import pre_delete, post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
-
-
-def _recompute_and_rebuild_asset(asset):
-    """Recompute the asset under a row lock, then rebuild its manual history.
-
-    NEW-LOW-02: delegates to ``portfolio.services._refresh_manual_asset`` (the
-    canonical recompute-locked + rebuild-history helper, CRIT-01) instead of
-    re-implementing it. ``_refresh_manual_asset`` already swallows rebuild
-    failures; we keep an outer guard so that a failure in the *recompute* step
-    (which it lets propagate) still never poisons the surrounding Expense save —
-    the signal must stay best-effort.
-    """
-    from portfolio.services import _refresh_manual_asset
-
-    try:
-        _refresh_manual_asset(asset)
-    except Exception:
-        logger.exception(
-            "_recompute_and_rebuild_asset: asset=%s refresh failed",
-            getattr(asset, "pk", "?"),
-        )
-
-
-def _refresh_assets_by_id(asset_ids):
-    from portfolio.models import Asset
-
-    for asset_id in asset_ids:
-        try:
-            asset = Asset.objects.get(pk=asset_id)
-            _recompute_and_rebuild_asset(asset)
-        except Asset.DoesNotExist:
-            pass
 
 
 def _invalidate_expense_summary(owner, reason):
@@ -55,9 +29,8 @@ def _invalidate_expense_summary(owner, reason):
 
 @receiver(post_save, sender="expenses.Expense")
 def sync_expense_to_asset(sender, instance, **kwargs):
-    from portfolio.models import Asset, AssetTransaction
-    from portfolio.models import DashboardSummary
-    from portfolio.signals import _bulk_state
+    from portfolio.ledger_sync import ShadowTxSpec, sync_shadow_tx
+    from portfolio.models import AssetTransaction, DashboardSummary
 
     reason = (
         DashboardSummary.REASON_EXPENSE_UPDATED
@@ -66,118 +39,68 @@ def sync_expense_to_asset(sender, instance, **kwargs):
     )
     _invalidate_expense_summary(instance.owner, reason)
 
-    # MED-11: the old-shadow cleanup (delete + refresh) and the new-shadow upsert
-    # must commit or roll back together. Otherwise changing an expense's
-    # linked_asset would delete the previous account's shadow tx and could then
-    # fail to write the replacement, silently inflating the old account's balance.
-    with transaction.atomic():
-        _cleanup_old_shadow_tx(instance, AssetTransaction)
-
-        if not instance.linked_asset_id:
-            return
-
-        try:
-            asset = Asset.objects.get(
-                pk=instance.linked_asset_id,
-                owner=instance.owner,
-                tracking_type=Asset.MANUAL,
-                investment_type__is_bank_account=True,
+    if not instance.linked_asset_id:
+        # Nessun asset collegato ora: sync_shadow_tx ripulisce comunque
+        # un'eventuale shadow rimasta da un linked_asset precedente
+        # (rimosso in questo save) e ritorna prima di calcolare l'importo.
+        sync_shadow_tx(
+            ShadowTxSpec(
+                source_field="source_expense",
+                source_instance=instance,
+                asset_id=None,
+                owner_id=instance.owner_id,
             )
-        except Asset.DoesNotExist:
-            logger.warning(
-                "sync_expense_to_asset: linked_asset_id=%s not found for expense=%s",
-                instance.linked_asset_id,
-                instance.pk,
-            )
-            return
-
-        cat = instance.category
-        is_expense = not cat or cat.category_type == "expense"
-        # LOW-07: map the (possibly negative) expense amount to a cash direction.
-        # An expense removes money, income adds it; a negative amount flips the
-        # direction (a refunded expense returns money). The shadow tx must keep a
-        # positive price_per_share (assettransaction_amount_valid), so the sign is
-        # encoded in the transaction TYPE, not the amount.
-        # instance.amount may still be the raw value assigned on create (e.g. a
-        # str via Model.objects.create(amount="10.00")) — coerce before arithmetic.
-        amount = Decimal(str(instance.amount))
-        signed_inflow = -amount if is_expense else amount
-        if signed_inflow >= 0:
-            tx_type = AssetTransaction.CASH_IN
-            shadow_amount = signed_inflow
-        else:
-            tx_type = AssetTransaction.CASH_OUT
-            shadow_amount = -signed_inflow
-
-        logger.debug(
-            "sync_expense_to_asset: expense=%s amount=%s → %s %s on asset=%s",
-            instance.pk,
-            instance.amount,
-            tx_type,
-            shadow_amount,
-            asset.name,
         )
-        AssetTransaction.objects.update_or_create(
-            source_expense=instance,
-            defaults={
-                "asset": asset,
-                "transaction_type": tx_type,
-                "date": instance.date,
-                "shares": Decimal("1"),
-                "price_per_share": shadow_amount,
-                "is_verified": instance.is_verified,
-                "owner": instance.owner,
-            },
+        return
+
+    cat = instance.category
+    is_expense = not cat or cat.category_type == "expense"
+    # LOW-07: map the (possibly negative) expense amount to a cash direction.
+    # An expense removes money, income adds it; a negative amount flips the
+    # direction (a refunded expense returns money). The shadow tx must keep a
+    # positive price_per_share (assettransaction_amount_valid), so the sign is
+    # encoded in the transaction TYPE, not the amount.
+    # instance.amount may still be the raw value assigned on create (e.g. a
+    # str via Model.objects.create(amount="10.00")) — coerce before arithmetic.
+    amount = Decimal(str(instance.amount))
+    signed_inflow = -amount if is_expense else amount
+    if signed_inflow >= 0:
+        tx_type = AssetTransaction.CASH_IN
+        shadow_amount = signed_inflow
+    else:
+        tx_type = AssetTransaction.CASH_OUT
+        shadow_amount = -signed_inflow
+
+    logger.debug(
+        "sync_expense_to_asset: expense=%s amount=%s → %s %s on linked_asset=%s",
+        instance.pk,
+        instance.amount,
+        tx_type,
+        shadow_amount,
+        instance.linked_asset_id,
+    )
+    # sync_shadow_tx risolve l'asset (owner=instance.owner, MANUAL,
+    # is_bank_account) internamente e logga+ritorna se non lo trova —
+    # comportamento invariato rispetto alla versione precedente, che faceva
+    # la stessa Asset.objects.get() qui prima di costruire la shadow-tx.
+    sync_shadow_tx(
+        ShadowTxSpec(
+            source_field="source_expense",
+            source_instance=instance,
+            asset_id=instance.linked_asset_id,
+            owner_id=instance.owner_id,
+            transaction_type=tx_type,
+            date=instance.date,
+            amount=shadow_amount,
+            is_verified=instance.is_verified,
         )
-        # skip_recompute (bulk EDIT): difference il recompute a un'unica pass
-        # finale _refresh_assets_strict. CRIT-01/02: quando il recompute parte,
-        # è atomico via _recompute_asset_locked (select_for_update) dentro
-        # _recompute_and_rebuild_asset, nello stesso atomic block del save.
-        if not getattr(_bulk_state, "skip_recompute", False):
-            asset.refresh_from_db()
-            _recompute_and_rebuild_asset(asset)
+    )
 
 
 @receiver(pre_delete, sender="expenses.Expense")
 def remove_expense_from_asset(sender, instance, **kwargs):
+    from portfolio.ledger_sync import remove_shadow_tx
     from portfolio.models import DashboardSummary
-    from portfolio.signals import _bulk_state
 
     _invalidate_expense_summary(instance.owner, DashboardSummary.REASON_EXPENSE_DELETED)
-    from portfolio.models import AssetTransaction
-
-    shadow_qs = AssetTransaction.objects.filter(source_expense=instance)
-    asset_ids = list(shadow_qs.values_list("asset_id", flat=True).distinct())
-    deleted_count = shadow_qs.count()
-    shadow_qs.delete()
-    logger.debug(
-        "remove_expense_from_asset: expense=%s → deleted %d shadow tx on assets=%s",
-        instance.pk,
-        deleted_count,
-        asset_ids,
-    )
-
-    # skip_recompute (bulk DELETE): refresh differito a _refresh_assets_strict.
-    if getattr(_bulk_state, "skip_recompute", False):
-        return
-
-    # Recompute sotto select_for_update (CRIT-01/02) via _refresh_assets_by_id →
-    # _recompute_and_rebuild_asset; l'atomic del caller annulla anche il save
-    # dell'asset se il delete viene rollbackato.
-    _refresh_assets_by_id(asset_ids)
-
-
-def _cleanup_old_shadow_tx(expense, AssetTransaction):
-    """Rimuove transazioni ombra di una spesa che hanno asset diverso dall'attuale linked_asset.
-    Necessario quando l'utente cambia il linked_asset di una spesa esistente.
-    """
-    wrong_txs = AssetTransaction.objects.filter(source_expense=expense).exclude(
-        asset_id=expense.linked_asset_id
-    )
-    affected_ids = list(wrong_txs.values_list("asset_id", flat=True).distinct())
-    wrong_txs.delete()
-
-    if not affected_ids:
-        return
-
-    _refresh_assets_by_id(affected_ids)
+    remove_shadow_tx("source_expense", instance)

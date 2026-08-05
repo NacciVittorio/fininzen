@@ -16,7 +16,9 @@ class TestBalancesOverviewEndpoint:
         self, client, test_user, second_user, split_contact_linked
     ):
         """Spesa occasionale (senza gruppo) tra test_user e second_user: deve
-        comparire nell'overview cross-gruppo dell'utente autenticato.
+        comparire nell'overview cross-gruppo dell'utente autenticato, come
+        saldo relativo a test_user (positivo = second_user gli deve soldi) —
+        niente più riga per test_user stesso.
 
         `split_contact_linked` stabilisce il collegamento reciproco
         richiesto (fix di sicurezza fase 9): un partecipante ad-hoc
@@ -42,14 +44,14 @@ class TestBalancesOverviewEndpoint:
         entries = {
             (e["user_id"], e["contact_id"]): Decimal(e["balance"]) for e in res.json()
         }
-        assert entries[(test_user.id, None)] == Decimal("10.00")
-        assert entries[(second_user.id, None)] == Decimal("-10.00")
+        assert entries == {(second_user.id, None): Decimal("10.00")}
 
     def test_aggregates_across_multiple_groups(
         self, client, test_user, second_user, third_user
     ):
-        """Il saldo per identità aggrega più gruppi diversi: lo stesso
-        `second_user` compare in due gruppi, l'overview somma entrambi."""
+        """Il saldo (relativo a test_user) aggrega più gruppi diversi: lo
+        stesso `second_user` compare in due gruppi, l'overview somma
+        entrambi."""
         group_a = SplitGroup.objects.create(name="A", created_by=test_user)
         SplitParticipant.objects.create(
             group=group_a, user=test_user, added_by=test_user
@@ -89,9 +91,8 @@ class TestBalancesOverviewEndpoint:
         entries = {
             (e["user_id"], e["contact_id"]): Decimal(e["balance"]) for e in res.json()
         }
-        # test_user è creditore di 10.00 (gruppo A) + 20.00 (gruppo B) = 30.00
-        assert entries[(test_user.id, None)] == Decimal("30.00")
-        assert entries[(second_user.id, None)] == Decimal("-30.00")
+        # second_user deve a test_user 10.00 (gruppo A) + 20.00 (gruppo B) = 30.00
+        assert entries == {(second_user.id, None): Decimal("30.00")}
         assert third_user.id not in {uid for uid, _ in entries}
 
     def test_excludes_groups_user_is_not_part_of(
@@ -134,10 +135,10 @@ class TestBalancesOverviewEndpoint:
     ):
         """Un settlement senza alcuna spesa/debito pregresso a fronte:
         second_user (payer) ha versato 15.00 a test_user (payee) senza
-        alcun obbligo preesistente — dal punto di vista dei saldi questo
-        lascia il payer creditore (+15, "gli è dovuto indietro") e il payee
-        debitore (-15, "deve restituire") esattamente come un pagamento
-        anticipato senza spesa corrispondente."""
+        alcun obbligo preesistente — dal punto di vista di test_user (il
+        richiedente) questo significa che ora è LUI a dover restituire 15.00
+        a second_user, esattamente come un pagamento anticipato senza spesa
+        corrispondente."""
         SplitSettlement.objects.create(
             payer_user=second_user,
             payee_user=test_user,
@@ -151,5 +152,4 @@ class TestBalancesOverviewEndpoint:
         entries = {
             (e["user_id"], e["contact_id"]): Decimal(e["balance"]) for e in res.json()
         }
-        assert entries[(second_user.id, None)] == Decimal("15.00")
-        assert entries[(test_user.id, None)] == Decimal("-15.00")
+        assert entries == {(second_user.id, None): Decimal("-15.00")}

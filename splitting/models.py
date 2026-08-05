@@ -324,6 +324,17 @@ class SplitExpense(models.Model):
     def __str__(self):
         return f"{self.date} — {self.description} ({self.amount}€)"
 
+    @property
+    def is_verified(self) -> bool:
+        """Sempre verified: a differenza di expenses.Expense (riconciliazione
+        con l'estratto conto, può restare in sospeso), una spesa condivisa
+        rappresenta denaro già mosso — nessun concetto di "in sospeso" in
+        Split. Non è un campo DB: dà a `expenses/cashflow.py` una superficie
+        di lettura uniforme (`.is_verified`) invece del `True` hardcoded
+        ripetuto ad ogni call site (mirror della stessa scelta nella
+        shadow-tx, splitting/signals.py::_sync_shadow_for_expense)."""
+        return True
+
 
 class SplitExpenseShare(models.Model):
     """Quota di un singolo partecipante su una SplitExpense.
@@ -479,6 +490,12 @@ class SplitSettlement(models.Model):
 
     def __str__(self):
         return f"SplitSettlement<{self.pk}: {self.amount}>"
+
+    @property
+    def is_verified(self) -> bool:
+        """Sempre verified — vedi SplitExpense.is_verified: un settlement è
+        un pagamento già avvenuto, mai in sospeso."""
+        return True
 
 
 class SplitSettlementAllocation(models.Model):

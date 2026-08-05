@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 
 from fininzen.permissions import IsNotDemoUser
 
-from ..balances import compute_balances, serialize_balances
+from ..balances import compute_relative_balances, serialize_balances
 from ..models import SplitExpenseShare, SplitSettlement
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,10 @@ class SplitBalancesOverviewView(APIView):
     partecipante ad-hoc (stesso perimetro di `user_can_access_expense`,
     espresso qui come queryset invece che come check per-oggetto) — più i
     settlement di cui è parte diretta (payer/payee) o che appartengono a un
-    gruppo a cui ha accesso. Riusa `compute_balances` esteso invece che
-    filtrato su un singolo gruppo (piano sez. 3.2).
+    gruppo a cui ha accesso. Usa `compute_relative_balances` (saldo pairwise
+    relativo al richiedente, non il saldo assoluto per identità di
+    `compute_balances` usato invece per il saldo di un singolo gruppo) —
+    piano "fix overview cross-gruppo".
     """
 
     permission_classes = [IsAuthenticated, IsNotDemoUser]
@@ -60,5 +62,5 @@ class SplitBalancesOverviewView(APIView):
                 group__participants__is_active=True,
             )
         ).distinct()
-        balances = compute_balances(share_qs, settlement_qs)
+        balances = compute_relative_balances(user.id, share_qs, settlement_qs)
         return Response(serialize_balances(balances))

@@ -1,4 +1,17 @@
+from datetime import date
+
 from fininzen.mixins import _effective_user
+
+
+def next_month_start(current: date) -> date:
+    """First day of the month after `current`. Shared by expenses/services.py
+    and splitting/services.py's recurring-generation engines — the two are
+    otherwise independent (owner-scoped vs. group-scoped recurrence), but
+    this one date-math step is pure and identical, so it lives here instead
+    of twice."""
+    if current.month == 12:
+        return date(current.year + 1, 1, 1)
+    return date(current.year, current.month + 1, 1)
 
 
 def serializer_user(serializer):

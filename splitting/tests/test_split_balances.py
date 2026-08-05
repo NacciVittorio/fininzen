@@ -10,10 +10,12 @@ I test a livello di endpoint HTTP (`/groups/{id}/balances/`, `/simplify/`,
 
 from decimal import Decimal
 
-from splitting.balances import compute_balances, simplify_debts
+from splitting.balances import compute_balances, compute_relative_balances, simplify_debts
 from splitting.models import (
     SplitExpense,
     SplitExpenseShare,
+    SplitGroup,
+    SplitParticipant,
     SplitSettlement,
 )
 from splitting.services import apply_split_shares
@@ -208,6 +210,199 @@ class TestComputeBalances:
             share_qs, SplitSettlement.objects.filter(group=group)
         )
         assert balances_after == {}
+
+
+# ── compute_relative_balances: saldo pairwise relativo al richiedente ──────
+
+
+class TestComputeRelativeBalances:
+    def test_two_way_equal_split_where_i_am_payer(
+        self, split_group_with_two_users, test_user, second_user
+    ):
+        group, _owner_p, _member_p = split_group_with_two_users
+        expense = _make_expense(
+            group,
+            "20.00",
+            [
+                {"user_id": test_user.id, "is_payer": True},
+                {"user_id": second_user.id},
+            ],
+            test_user,
+        )
+        share_qs = SplitExpenseShare.objects.filter(expense=expense)
+
+        balances = compute_relative_balances(test_user.id, share_qs)
+
+        assert balances == {("user", second_user.id): Decimal("10.00")}
+
+    def test_three_way_split_where_i_am_payer_no_double_counting(
+        self, test_user, second_user, third_user
+    ):
+        """Io pago 60€ condivisi in 3: ognuno degli altri mi deve la propria
+        quota (20€), non l'intera cifra — verifica che non ci sia doppio
+        conteggio quando ci sono più co-debitori sulla stessa spesa."""
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+        expense = _make_expense(
+            group,
+            "60.00",
+            [
+                {"user_id": test_user.id, "is_payer": True},
+                {"user_id": second_user.id},
+                {"user_id": third_user.id},
+            ],
+            test_user,
+        )
+        share_qs = SplitExpenseShare.objects.filter(expense=expense)
+
+        balances = compute_relative_balances(test_user.id, share_qs)
+
+        assert balances == {
+            ("user", second_user.id): Decimal("20.00"),
+            ("user", third_user.id): Decimal("20.00"),
+        }
+
+    def test_three_way_split_where_someone_else_pays(
+        self, test_user, second_user, third_user
+    ):
+        """second_user paga 30€ condivisi tra me, lui e third_user: io devo
+        10€ a second_user; io e third_user siamo entrambi non-pagatori sulla
+        stessa spesa, quindi non c'è alcuna relazione diretta tra noi da
+        questa spesa — third_user non deve comparire nel mio saldo."""
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+        expense = _make_expense(
+            group,
+            "30.00",
+            [
+                {"user_id": second_user.id, "is_payer": True},
+                {"user_id": test_user.id},
+                {"user_id": third_user.id},
+            ],
+            second_user,
+        )
+        share_qs = SplitExpenseShare.objects.filter(expense=expense)
+
+        balances = compute_relative_balances(test_user.id, share_qs)
+
+        assert balances == {("user", second_user.id): Decimal("-10.00")}
+
+    def test_settlement_between_me_and_other_reduces_balance(
+        self, split_group_with_two_users, test_user, second_user
+    ):
+        group, _owner_p, _member_p = split_group_with_two_users
+        expense = _make_expense(
+            group,
+            "40.00",
+            [
+                {"user_id": test_user.id, "is_payer": True},
+                {"user_id": second_user.id},
+            ],
+            test_user,
+        )
+        share_qs = SplitExpenseShare.objects.filter(expense=expense)
+        SplitSettlement.objects.create(
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("20.00"),
+            date="2026-07-11",
+            created_by=second_user,
+        )
+        settlement_qs = SplitSettlement.objects.filter(
+            payer_user=second_user, payee_user=test_user
+        )
+
+        balances = compute_relative_balances(test_user.id, share_qs, settlement_qs)
+
+        assert balances == {}
+
+    def test_advance_settlement_with_no_prior_debt_flips_who_owes_whom(
+        self, test_user, second_user
+    ):
+        """second_user mi versa 15€ senza alcun debito pregresso: dal mio
+        punto di vista ora sono io a dovergli 15€ (non lui a dovermi
+        qualcosa)."""
+        settlement_qs = SplitSettlement.objects.filter(
+            payer_user=second_user, payee_user=test_user
+        )
+        SplitSettlement.objects.create(
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("15.00"),
+            date="2026-07-06",
+            created_by=second_user,
+        )
+
+        balances = compute_relative_balances(
+            test_user.id, SplitExpenseShare.objects.none(), settlement_qs
+        )
+
+        assert balances == {("user", second_user.id): Decimal("-15.00")}
+
+    def test_settlement_between_other_two_identities_is_ignored(
+        self, test_user, second_user, third_user
+    ):
+        """Un settlement tra second_user e third_user (entrambi diversi da
+        me) non deve influenzare il mio saldo, anche se lo scope della query
+        chiamante lo include (es. perché appartiene a un gruppo a cui ho
+        accesso)."""
+        settlement_qs = SplitSettlement.objects.all()
+        SplitSettlement.objects.create(
+            payer_user=second_user,
+            payee_user=third_user,
+            amount=Decimal("15.00"),
+            date="2026-07-06",
+            created_by=second_user,
+        )
+
+        balances = compute_relative_balances(
+            test_user.id, SplitExpenseShare.objects.none(), settlement_qs
+        )
+
+        assert balances == {}
+
+    def test_sum_of_relative_balances_matches_my_absolute_balance(
+        self, test_user, second_user, third_user
+    ):
+        """Controllo di coerenza incrociata: la somma dei saldi pairwise
+        rispetto a me deve coincidere con il mio saldo assoluto secondo
+        `compute_balances` sullo stesso scope."""
+        group = SplitGroup.objects.create(name="Weekend", created_by=test_user)
+        SplitParticipant.objects.create(group=group, user=test_user, added_by=test_user)
+        SplitParticipant.objects.create(
+            group=group, user=second_user, added_by=test_user
+        )
+        SplitParticipant.objects.create(
+            group=group, user=third_user, added_by=test_user
+        )
+        _make_expense(
+            group,
+            "60.00",
+            [
+                {"user_id": test_user.id, "is_payer": True},
+                {"user_id": second_user.id},
+                {"user_id": third_user.id},
+            ],
+            test_user,
+        )
+        share_qs = SplitExpenseShare.objects.filter(expense__group=group)
+
+        absolute = compute_balances(share_qs)
+        relative = compute_relative_balances(test_user.id, share_qs)
+
+        assert sum(relative.values()) == absolute[("user", test_user.id)]
 
 
 # ── simplify_debts: algoritmo greedy debtor/creditor ────────────────────────

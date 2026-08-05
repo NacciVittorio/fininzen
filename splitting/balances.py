@@ -3,11 +3,18 @@ splitting/balances.py — Calcolo saldi e semplificazione debiti Split (piano
 sez. 3.2/3.3).
 
 `compute_balances` è puro: nessuna query implicita oltre a quelle sui
-queryset passati dal chiamante. Riusata sia per il saldo di UN gruppo
-(`splitting/views/groups.py::SplitGroupViewSet.balances`/`.simplify`) sia per
-il saldo complessivo cross-gruppo di una persona
-(`splitting/views/balances.py::SplitBalancesOverviewView`) — cambia solo lo
-scope di `share_qs`/`settlement_qs` passato, non la funzione.
+queryset passati dal chiamante. Usata per il saldo di UN gruppo
+(`splitting/views/groups.py::SplitGroupViewSet.balances`/`.simplify`) — un
+libro mastro condiviso dove ogni membro vede lo stesso saldo assoluto altrui,
+esattamente come la pagina di un gruppo su Splitwise.
+
+`compute_relative_balances` calcola invece il saldo *pairwise*, relativo a
+UNA identità (positivo = l'altra persona deve soldi a lei; negativo = lei
+deve soldi all'altra persona) — usata solo dal saldo complessivo cross-gruppo
+di una persona (`splitting/views/balances.py::SplitBalancesOverviewView`),
+dove sommare i saldi assoluti di `compute_balances` darebbe sempre zero (è un
+libro mastro a somma zero) e il segno di ciascuna riga non sarebbe comunque
+interpretabile "rispetto a me".
 """
 
 from collections import defaultdict
@@ -60,6 +67,79 @@ def compute_balances(share_qs, settlement_qs=None):
             balances[
                 _identity_key(settlement.payee_user_id, settlement.payee_contact_id)
             ] -= settlement.amount
+    return {k: _q2(v) for k, v in balances.items() if v != 0}
+
+
+def compute_relative_balances(me_user_id, share_qs, settlement_qs=None):
+    """Calcola il saldo pairwise di ogni identità rispetto a `me_user_id`
+    (piano "fix overview cross-gruppo"): positivo = l'altra identità deve
+    soldi a me, negativo = io devo soldi a lei.
+
+    A differenza di `compute_balances` (saldo assoluto per identità, valido
+    per un libro mastro condiviso come un singolo gruppo), qui contano solo
+    le relazioni dirette pagatore↔non-pagatore che coinvolgono `me_user_id`:
+    se il pagatore di una spesa sono io, ogni altro partecipante mi deve la
+    propria quota; se il pagatore è un altro e io ho una quota in quella
+    spesa, devo la mia quota a lui. Due partecipanti entrambi non-pagatori
+    nella stessa spesa (un terzo ha pagato) non hanno alcuna relazione
+    diretta tra loro da quella spesa — stessa logica dei saldi "per amico" di
+    Splitwise. Per questo `share_qs` va raggruppato per spesa invece che
+    processato riga per riga come in `compute_balances`.
+
+    I settlement contano solo se `me_user_id` è payer o payee diretto:
+    `settlement_qs` può includere (per via dello scope "gruppi a cui ho
+    accesso" dei chiamanti) settlement tra due ALTRE identità, che qui
+    vengono ignorati perché non toccano il mio saldo con nessuno.
+    """
+    me_key = ("user", me_user_id)
+    balances = defaultdict(Decimal)
+
+    shares_by_expense = defaultdict(list)
+    for share in share_qs.select_related("participant", "expense"):
+        shares_by_expense[share.expense_id].append(share)
+
+    for shares in shares_by_expense.values():
+        payer_share = next((s for s in shares if s.is_payer), None)
+        if payer_share is None:
+            continue
+        payer_key = _identity_key(
+            payer_share.participant.user_id, payer_share.participant.contact_id
+        )
+        if payer_key == me_key:
+            for share in shares:
+                if share.is_payer:
+                    continue
+                other_key = _identity_key(
+                    share.participant.user_id, share.participant.contact_id
+                )
+                balances[other_key] += share.share_amount
+        else:
+            my_share = next(
+                (
+                    s
+                    for s in shares
+                    if not s.is_payer
+                    and _identity_key(s.participant.user_id, s.participant.contact_id)
+                    == me_key
+                ),
+                None,
+            )
+            if my_share is not None:
+                balances[payer_key] -= my_share.share_amount
+
+    if settlement_qs is not None:
+        for settlement in settlement_qs:
+            payer_key = _identity_key(
+                settlement.payer_user_id, settlement.payer_contact_id
+            )
+            payee_key = _identity_key(
+                settlement.payee_user_id, settlement.payee_contact_id
+            )
+            if payer_key == me_key:
+                balances[payee_key] += settlement.amount
+            elif payee_key == me_key:
+                balances[payer_key] -= settlement.amount
+
     return {k: _q2(v) for k, v in balances.items() if v != 0}
 
 

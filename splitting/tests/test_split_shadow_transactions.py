@@ -254,3 +254,80 @@ class TestSettlementShadowTransaction:
         assert not AssetTransaction.objects.filter(
             source_split_settlement=settlement
         ).exists()
+
+
+# ── _bulk_state.skip_recompute rispettato anche lato Split ──────────────
+#
+# Prima dell'estrazione in portfolio.ledger_sync, solo expenses/signals.py
+# controllava _bulk_state.skip_recompute; splitting/signals.py ricalcolava
+# sempre sincronamente. sync_shadow_tx/remove_shadow_tx lo controllano ora
+# una volta sola, per entrambe le sorgenti — questi test lo verificano
+# esplicitamente lato Split (assente prima, perché il controllo non c'era).
+
+
+class TestSkipRecomputeRespectedForSplit:
+    def test_split_expense_sync_defers_recompute_when_skip_recompute_set(
+        self, split_group_with_two_users, test_user, account
+    ):
+        from portfolio.services import _refresh_manual_asset_strict
+        from portfolio.signals import _bulk_state
+
+        group, owner_p, member_p = split_group_with_two_users
+        expense = _make_expense(group, "50.00", test_user, linked_asset=account)
+        payload = [
+            {"user_id": test_user.id, "is_payer": True},
+            {"user_id": member_p.user_id},
+        ]
+
+        _bulk_state.skip_recompute = True
+        try:
+            apply_split_shares(expense, payload, SplitExpense.EQUAL, added_by=test_user)
+        finally:
+            _bulk_state.skip_recompute = False
+
+        # La shadow-tx viene comunque scritta subito...
+        shadow = AssetTransaction.objects.get(source_split_expense=expense)
+        assert shadow.price_per_share == Decimal("50.00")
+        # ...ma il saldo cache dell'asset non è stato ricalcolato sincronamente.
+        account.refresh_from_db()
+        assert account.current_value == Decimal("1000.00")
+
+        _refresh_manual_asset_strict(account)
+        account.refresh_from_db()
+        assert account.current_value == Decimal("950.00")
+
+    def test_settlement_removal_defers_recompute_when_skip_recompute_set(
+        self, test_user, second_user, account
+    ):
+        from portfolio.services import _refresh_manual_asset_strict
+        from portfolio.signals import _bulk_state
+        from splitting.models import SplitSettlement
+
+        settlement = SplitSettlement.objects.create(
+            payer_user=test_user,
+            payee_user=second_user,
+            amount=Decimal("50.00"),
+            date="2026-07-12",
+            created_by=test_user,
+            linked_asset=account,
+        )
+        account.refresh_from_db()
+        assert account.current_value == Decimal("950.00")
+
+        settlement_id = settlement.id
+        _bulk_state.skip_recompute = True
+        try:
+            settlement.delete()
+        finally:
+            _bulk_state.skip_recompute = False
+
+        assert not AssetTransaction.objects.filter(
+            source_split_settlement_id=settlement_id
+        ).exists()
+        # Shadow-tx già rimossa, ma il saldo cache non è stato ricalcolato.
+        account.refresh_from_db()
+        assert account.current_value == Decimal("950.00")
+
+        _refresh_manual_asset_strict(account)
+        account.refresh_from_db()
+        assert account.current_value == Decimal("1000.00")

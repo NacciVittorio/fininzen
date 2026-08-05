@@ -14,6 +14,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from fininzen import crypto
+from fininzen.utils import next_month_start as _next_month
 
 from .models import (
     Budget,
@@ -224,12 +225,6 @@ def recurring_status(user, year: int, month: int) -> dict:
             "total": total,
         },
     }
-
-
-def _next_month(current: date_cls) -> date_cls:
-    if current.month == 12:
-        return date_cls(current.year + 1, 1, 1)
-    return date_cls(current.year, current.month + 1, 1)
 
 
 def track_description_suggestion(expense: Expense) -> None:

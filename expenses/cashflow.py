@@ -5,7 +5,9 @@ Aggregates Expense rows (income/outcome) and AssetTransaction rows
 (transfer pairs and adjustments) into a single sorted feed.
 """
 
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from typing import Callable
 
 from django.db.models import F, Q, Sum
 from django.db.models.functions import Abs
@@ -15,6 +17,36 @@ from portfolio.models import AssetTransaction
 from splitting.models import SplitExpense, SplitExpenseShare, SplitSettlement
 
 _CENT = Decimal("0.01")
+
+
+@dataclass(frozen=True)
+class FeedSource:
+    """Un tipo di riga del feed CashFlow (expense/transfer/adjustment/split/
+    split_reimbursement), con il gating che stabilisce se è attivo per la
+    richiesta corrente.
+
+    Non unifica le query (restano bespoke per sorgente, 5 implementazioni
+    come prima — le tre tabelle sorgenti sono strutturalmente troppo diverse
+    per una queryset comune) — elimina invece la ripetizione del *controllo
+    esterno* ("questo tipo è attivo? c'è un cat-filter che lo esclude? un
+    verified=False lo esclude del tutto?") che prima era copiata una volta
+    per branch in get_cashflow_feed/get_cashflow_ids.
+    """
+
+    kind: str
+    type_names: frozenset
+    gated_by_cat_filter: bool
+    hidden_when_verified_false: bool
+    build: Callable[[], object]
+
+    def is_active(self, *, types, has_cat_filter, verified) -> bool:
+        if not (self.type_names & types):
+            return False
+        if self.gated_by_cat_filter and has_cat_filter:
+            return False
+        if self.hidden_when_verified_false and verified is False:
+            return False
+        return True
 
 
 def _q2(value):
@@ -167,7 +199,15 @@ def _split_expense_to_item(share):
     net_amount = share.share_amount
 
     return {
-        "id": f"split_{share.id}",
+        # SplitExpense pk, non SplitExpenseShare pk (piano fase "unificazione
+        # astrazione" step 4): allinea lo spazio-id con get_cashflow_ids()
+        # ["split"] (già SplitExpense pk) — sicuro grazie al vincolo DB
+        # uniq_split_expense_single_payer (un solo payer per spesa, quindi
+        # share.id e exp.id sono in corrispondenza 1:1 per l'utente
+        # osservato). Necessario perché expenses/bulk.py risolve una
+        # selezione "filtered" intersecando gli id del feed con quelli di
+        # get_cashflow_ids() — spazi-id diversi non avrebbero mai combaciato.
+        "id": f"split_{exp.id}",
         "source_type": "split_expense",
         "source_id": exp.id,
         "type": "split",
@@ -183,11 +223,11 @@ def _split_expense_to_item(share):
         "gross_amount": str(_q2(exp.amount)),
         "category": cat_data,
         "account": account_data,
-        # SplitExpense has no is_verified field (plan sez. 5): a split
-        # expense always represents money that has already moved, so it is
-        # treated as verified unconditionally (mirrors the shadow-tx in
-        # splitting/signals.py, also always is_verified=True).
-        "is_verified": True,
+        # SplitExpense.is_verified (property, splitting/models.py) is always
+        # True — a split expense always represents money that has already
+        # moved, no "pending" concept in Split (mirrors the shadow-tx in
+        # splitting/signals.py).
+        "is_verified": exp.is_verified,
     }
 
 
@@ -219,7 +259,7 @@ def _split_reimbursement_to_item(settlement, user):
         # (group known — there's a group page to land on) and an in-place
         # delete (group None — no dedicated list exists in Split today).
         "group_id": settlement.group_id,
-        "is_verified": True,
+        "is_verified": settlement.is_verified,
     }
 
 
@@ -496,8 +536,7 @@ def get_cashflow_feed(user, filters=None, *, offset=0, limit=None):
         qs = qs.order_by(*order_fields)
         return qs[:fetch_limit] if fetch_limit is not None else qs
 
-    # ── Expenses (income + outcome) ───────────────────────────────────────────
-    if types & {"income", "outcome"}:
+    def _build_expense_feed_qs():
         qs = (
             Expense.objects.select_related(
                 "category", "category__parent", "linked_asset"
@@ -543,12 +582,9 @@ def get_cashflow_feed(user, filters=None, *, offset=0, limit=None):
             )
 
         qs = _apply_search(qs, search, "description")
+        return qs, expense_order
 
-        items.extend(_expense_to_item(exp) for exp in _bounded(qs, expense_order))
-
-    # ── Transfers (CASH_IN with derived_from = paired CASH_OUT) ──────────────
-    # Transfers have no category, so hide them when a category filter is active.
-    if "transfer" in types and not has_cat_filter:
+    def _build_transfer_feed_qs():
         qs = (
             AssetTransaction.objects.select_related(
                 "asset", "derived_from", "derived_from__asset"
@@ -593,12 +629,9 @@ def get_cashflow_feed(user, filters=None, *, offset=0, limit=None):
 
         if amount_sort:
             qs = qs.annotate(_amt=Abs(F("shares") * F("price_per_share")))
+        return qs, tx_order
 
-        items.extend(_transfer_to_item(tx) for tx in _bounded(qs, tx_order))
-
-    # ── Adjustments ───────────────────────────────────────────────────────────
-    # Adjustments have no category, so hide them when a category filter is active.
-    if "adjustment" in types and not has_cat_filter:
+    def _build_adjustment_feed_qs():
         qs = (
             AssetTransaction.objects.select_related("asset")
             .only(
@@ -630,14 +663,9 @@ def get_cashflow_feed(user, filters=None, *, offset=0, limit=None):
 
         if amount_sort:
             qs = qs.annotate(_amt=Abs(F("shares") * F("price_per_share")))
+        return qs, tx_order
 
-        items.extend(_adjustment_to_item(tx) for tx in _bounded(qs, tx_order))
-
-    # ── Split (payer's own personal quota) ────────────────────────────────────
-    # SplitExpense has no is_verified field (plan sez. 5): treated as always
-    # verified, so an explicit verified=False filter (only unverified rows)
-    # excludes it entirely rather than raising on a missing field.
-    if "split" in types and verified is not False:
+    def _build_split_feed_qs():
         # Filtered at the SplitExpense level (not the share) so the existing
         # `_apply_expense_dimension_filters` — whose field names are
         # `category_id`/`category__parent_id`/`linked_asset_id` — applies
@@ -672,17 +700,9 @@ def get_cashflow_feed(user, filters=None, *, offset=0, limit=None):
 
         if amount_sort:
             qs = qs.annotate(_amt=Abs(F("share_amount")))
+        return qs, split_order
 
-        items.extend(
-            _split_expense_to_item(share) for share in _bounded(qs, split_order)
-        )
-
-    # ── Split reimbursements (settlements involving the user) ────────────────
-    # No category (like transfer/adjustment today), so hidden when a category
-    # filter is active — same rule already applied to those two types.
-    # SplitSettlement also has no is_verified field: same always-verified
-    # treatment as split above.
-    if "split_reimbursement" in types and not has_cat_filter and verified is not False:
+    def _build_split_reimbursement_feed_qs():
         qs = SplitSettlement.objects.select_related("linked_asset").filter(
             Q(payer_user=user) | Q(payee_user=user)
         )
@@ -708,10 +728,70 @@ def get_cashflow_feed(user, filters=None, *, offset=0, limit=None):
 
         if amount_sort:
             qs = qs.annotate(_amt=Abs(F("amount")))
+        return qs, tx_order
 
-        items.extend(
-            _split_reimbursement_to_item(s, user) for s in _bounded(qs, tx_order)
-        )
+    # Un solo loop invece di cinque blocchi quasi identici ("questo tipo è
+    # attivo? c'è un cat-filter che lo esclude? un verified=False lo esclude
+    # del tutto? costruisci la queryset, estendi items") — le query restano
+    # bespoke per sorgente (closures sopra, comportamento invariato), il
+    # guadagno è eliminare la ripetizione del controllo esterno.
+    feed_sources = [
+        FeedSource(
+            "expense",
+            frozenset({"income", "outcome"}),
+            False,
+            False,
+            _build_expense_feed_qs,
+        ),
+        FeedSource(
+            "transfer",
+            frozenset({"transfer"}),
+            True,
+            False,
+            _build_transfer_feed_qs,
+        ),
+        FeedSource(
+            "adjustment",
+            frozenset({"adjustment"}),
+            True,
+            False,
+            _build_adjustment_feed_qs,
+        ),
+        # SplitExpense/SplitSettlement non hanno un campo is_verified reale
+        # (sono sempre verified, vedi SplitExpense.is_verified/
+        # SplitSettlement.is_verified in splitting/models.py): un
+        # verified=False esplicito (solo righe non verificate) le esclude
+        # del tutto invece di sollevare un errore su un campo assente.
+        FeedSource(
+            "split",
+            frozenset({"split"}),
+            False,
+            True,
+            _build_split_feed_qs,
+        ),
+        FeedSource(
+            "split_reimbursement",
+            frozenset({"split_reimbursement"}),
+            True,
+            True,
+            _build_split_reimbursement_feed_qs,
+        ),
+    ]
+    to_item_by_kind = {
+        "expense": _expense_to_item,
+        "transfer": _transfer_to_item,
+        "adjustment": _adjustment_to_item,
+        "split": _split_expense_to_item,
+        "split_reimbursement": lambda s: _split_reimbursement_to_item(s, user),
+    }
+    for source in feed_sources:
+        if not source.is_active(
+            types=types, has_cat_filter=has_cat_filter, verified=verified
+        ):
+            continue
+        qs, order_fields = source.build()
+        to_item = to_item_by_kind[source.kind]
+        items.extend(to_item(obj) for obj in _bounded(qs, order_fields))
 
     # Merge sort the per-type rows. For amount ordering, use abs(amount) so
     # signed adjustments rank by magnitude (matching the UI's natural reading).
@@ -761,7 +841,7 @@ def get_cashflow_ids(user, filters=None):
         "split_reimbursement": [],
     }
 
-    if types & {"income", "outcome"}:
+    def _expense_ids():
         qs = Expense.objects.filter(owner=user)
         qs = _apply_date_verified_filters(
             qs, date_from=date_from, date_to=date_to, verified=verified
@@ -780,9 +860,9 @@ def get_cashflow_ids(user, filters=None):
                 Q(category__category_type=Category.EXPENSE) | Q(category__isnull=True)
             )
         qs = _apply_search(qs, search, "description")
-        out["expense"] = list(qs.values_list("id", flat=True))
+        return list(qs.values_list("id", flat=True))
 
-    if "transfer" in types and not has_cat_filter:
+    def _transfer_ids():
         qs = AssetTransaction.objects.filter(
             owner=user,
             transaction_type=AssetTransaction.CASH_IN,
@@ -797,9 +877,9 @@ def get_cashflow_ids(user, filters=None):
                 | Q(derived_from__asset_id__in=effective_account_ids)
             )
         qs = _apply_search(qs, search, "notes")
-        out["transfer"] = list(qs.values_list("id", flat=True))
+        return list(qs.values_list("id", flat=True))
 
-    if "adjustment" in types and not has_cat_filter:
+    def _adjustment_ids():
         qs = AssetTransaction.objects.filter(
             owner=user, transaction_type=AssetTransaction.ADJUSTMENT
         )
@@ -809,9 +889,9 @@ def get_cashflow_ids(user, filters=None):
         if effective_account_ids:
             qs = qs.filter(asset_id__in=effective_account_ids)
         qs = _apply_search(qs, search, "notes")
-        out["adjustment"] = list(qs.values_list("id", flat=True))
+        return list(qs.values_list("id", flat=True))
 
-    if "split" in types and verified is not False:
+    def _split_ids():
         qs = SplitExpense.objects.filter(
             shares__is_payer=True, shares__participant__user=user
         )
@@ -824,15 +904,38 @@ def get_cashflow_ids(user, filters=None):
             account_no_link=account_no_link,
         )
         qs = _apply_search(qs, search, "description")
-        out["split"] = list(qs.values_list("id", flat=True))
+        return list(qs.values_list("id", flat=True))
 
-    if "split_reimbursement" in types and not has_cat_filter and verified is not False:
+    def _split_reimbursement_ids():
         qs = SplitSettlement.objects.filter(Q(payer_user=user) | Q(payee_user=user))
         qs = _apply_date_verified_filters(qs, date_from=date_from, date_to=date_to)
         if effective_account_ids:
             qs = qs.filter(linked_asset_id__in=effective_account_ids)
         # See get_cashflow_feed's split_reimbursement branch: notes is an
         # EncryptedTextField, deliberately not part of the search filter.
-        out["split_reimbursement"] = list(qs.values_list("id", flat=True))
+        return list(qs.values_list("id", flat=True))
+
+    id_sources = [
+        FeedSource(
+            "expense", frozenset({"income", "outcome"}), False, False, _expense_ids
+        ),
+        FeedSource("transfer", frozenset({"transfer"}), True, False, _transfer_ids),
+        FeedSource(
+            "adjustment", frozenset({"adjustment"}), True, False, _adjustment_ids
+        ),
+        FeedSource("split", frozenset({"split"}), False, True, _split_ids),
+        FeedSource(
+            "split_reimbursement",
+            frozenset({"split_reimbursement"}),
+            True,
+            True,
+            _split_reimbursement_ids,
+        ),
+    ]
+    for source in id_sources:
+        if source.is_active(
+            types=types, has_cat_filter=has_cat_filter, verified=verified
+        ):
+            out[source.kind] = source.build()
 
     return out

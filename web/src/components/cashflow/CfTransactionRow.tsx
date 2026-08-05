@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useApp } from "../../context/useApp";
 import { useFormatters } from "../../utils/useFormatters";
+import { isOutcomeMoney, splitRowActions } from "../../utils/cashflowItemKind";
 import { Icon, SwipeRow } from "../ui";
 import type { SwipeAction } from "../ui/SwipeRow";
 
@@ -70,12 +71,7 @@ export default function CfTransactionRow({
     const isTransfer = item.source_type === "transfer";
     const isAdjustment = item.source_type === "adjustment";
     const isVerified = item.is_verified;
-    // "split" is a shared expense's net personal quota — real outcome money
-    // (piano sez. 5, decision #3), so it reads exactly like a plain expense
-    // row. "split_reimbursement" (a settle-up) stays neutral like
-    // transfer/adjustment: it moves money between people, not in/out of the
-    // budget.
-    const isOutcome = item.type === "outcome" || item.type === "split";
+    const isOutcome = isOutcomeMoney(item);
     const typeColor =
         item.type === "income"
             ? "var(--success)"
@@ -112,18 +108,8 @@ export default function CfTransactionRow({
         categoryText ||
         "—";
 
-    // Neither a shared expense nor a settlement can be edited in place here
-    // (a split expense's real edit form lives in Split; a settlement has no
-    // update endpoint at all, splitting/views/settlements.py) and only a
-    // settlement with a known group has anywhere to land in Split — for the
-    // rest (a cross-group settlement), the swipe/detail actions fall back to
-    // deleting it in place instead of offering a dead-end navigation.
-    const isSplitExpense = item.source_type === "split_expense";
-    const isSplitSettlement = item.source_type === "split_settlement";
-    const splitSettlementHasGroup = isSplitSettlement && item.group_id != null;
-    const openInSplit = isSplitExpense || splitSettlementHasGroup;
-    const showEditAction = !isSplitSettlement || splitSettlementHasGroup;
-    const showDeleteAction = !openInSplit;
+    const { openInSplit, showEditAction, showDeleteAction } =
+        splitRowActions(item);
     const editLabel = openInSplit ? T("cf_open_in_split") : T("cf_bulk_edit");
 
     // Left-swipe (finger right→left) → Edit + Delete (right edge).

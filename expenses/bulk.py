@@ -16,28 +16,40 @@ from decimal import Decimal
 from typing import Iterable
 
 from django.db import transaction
+from django.db.models import Q
 
 from expenses.cashflow import get_cashflow_ids
 from expenses.models import Category, Expense
 from portfolio.models import Asset, AssetTransaction, DashboardSummary
 from portfolio.services import invalidate_dashboard_summary
 from portfolio.signals import _bulk_state
+from splitting.models import SplitExpense, SplitSettlement
+from splitting.permissions import user_can_modify_settlement
 
 logger = logging.getLogger(__name__)
 
 _CENT = Decimal("0.01")
 
 # Feed-id prefixes — kept in sync with expenses/cashflow.py item construction.
+# "split_reimbursement_" DEVE precedere "split_": è un prefisso più lungo che
+# lo contiene ("split_reimbursement_5".startswith("split_") è vero), quindi
+# l'ordine di controllo determina quale kind vince.
 _FEED_ID_PREFIXES: tuple[tuple[str, str], ...] = (
     ("expense_", "expense"),
     ("transfer_", "transfer"),
     ("adjustment_", "adjustment"),
+    ("split_reimbursement_", "split_reimbursement"),
+    ("split_", "split"),
 )
 
 # Patch fields allowed per selection kind. A bulk request is rejected outright
 # if its selection is not homogeneous (mixed kinds), and again if any field in
 # the patch falls outside the set for the selected kind. Adjustments are not
-# editable in bulk at all — they may only be deleted.
+# editable in bulk at all — they may only be deleted. split/split_reimbursement
+# have no bulk-editable fields at all (see _validate_and_resolve: both are
+# rejected with a dedicated code before patch validation even runs — split
+# can't be edited OR deleted in bulk, split_reimbursement can be deleted but
+# only for the ungrouped, permission-eligible subset).
 EXPENSE_FIELDS = frozenset(
     {"is_verified", "date", "description", "category_id", "linked_asset_id"}
 )
@@ -45,16 +57,21 @@ TRANSFER_FIELDS = frozenset(
     {"is_verified", "date", "notes", "from_account_id", "to_account_id"}
 )
 ADJUSTMENT_FIELDS = frozenset()
+SPLIT_FIELDS = frozenset()
+SPLIT_REIMBURSEMENT_FIELDS = frozenset()
 ALL_KNOWN_FIELDS = EXPENSE_FIELDS | TRANSFER_FIELDS
 
 # Map "kind" → allowed patch fields. Kind names match the cashflow feed's
-# `type` discriminator: income / outcome / transfer / adjustment. Income and
-# outcome share the same model (Expense) so they share the same field set.
+# `type` discriminator: income / outcome / transfer / adjustment / split /
+# split_reimbursement. Income and outcome share the same model (Expense) so
+# they share the same field set.
 FIELDS_BY_KIND: dict[str, frozenset] = {
     "income": EXPENSE_FIELDS,
     "outcome": EXPENSE_FIELDS,
     "transfer": TRANSFER_FIELDS,
     "adjustment": ADJUSTMENT_FIELDS,
+    "split": SPLIT_FIELDS,
+    "split_reimbursement": SPLIT_REIMBURSEMENT_FIELDS,
 }
 
 # Cap on filtered-mode selections to avoid materializing unbounded queryset
@@ -93,12 +110,20 @@ class ResolvedSelection:
     expenses: list[Expense] = field(default_factory=list)
     transfer_cash_ins: list[AssetTransaction] = field(default_factory=list)
     adjustments: list[AssetTransaction] = field(default_factory=list)
+    splits: list[SplitExpense] = field(default_factory=list)
+    split_reimbursements: list[SplitSettlement] = field(default_factory=list)
     # IDs that the request asked for but we could not locate (other user, deleted, etc).
     missing_ids: list[str] = field(default_factory=list)
 
     @property
     def total(self) -> int:
-        return len(self.expenses) + len(self.transfer_cash_ins) + len(self.adjustments)
+        return (
+            len(self.expenses)
+            + len(self.transfer_cash_ins)
+            + len(self.adjustments)
+            + len(self.splits)
+            + len(self.split_reimbursements)
+        )
 
     @property
     def by_type(self) -> dict:
@@ -106,6 +131,8 @@ class ResolvedSelection:
             "expense": len(self.expenses),
             "transfer": len(self.transfer_cash_ins),
             "adjustment": len(self.adjustments),
+            "split": len(self.splits),
+            "split_reimbursement": len(self.split_reimbursements),
         }
 
 
@@ -125,9 +152,18 @@ def _parse_feed_id(feed_id) -> tuple[str, int] | None:
     return None
 
 
+_ID_KINDS: tuple[str, ...] = (
+    "expense",
+    "transfer",
+    "adjustment",
+    "split",
+    "split_reimbursement",
+)
+
+
 def _parse_ids(raw_ids) -> dict[str, list[int]]:
     """Group user-supplied feed ids into {kind: [pk, …]}, dropping malformed entries."""
-    grouped: dict[str, list[int]] = {"expense": [], "transfer": [], "adjustment": []}
+    grouped: dict[str, list[int]] = {kind: [] for kind in _ID_KINDS}
     for raw in raw_ids or []:
         parsed = _parse_feed_id(raw)
         if parsed is None:
@@ -187,7 +223,14 @@ def _parse_filters(raw_filters) -> dict:
         out["account_ids"] = numeric_accounts
 
     types = raw_filters.get("types")
-    valid = {"income", "outcome", "transfer", "adjustment"}
+    valid = {
+        "income",
+        "outcome",
+        "transfer",
+        "adjustment",
+        "split",
+        "split_reimbursement",
+    }
     if types:
         bad = [t for t in types if t not in valid]
         if bad:
@@ -256,6 +299,30 @@ def _fetch_adjustments(user, ids: Iterable[int]) -> list[AssetTransaction]:
     )
 
 
+def _fetch_splits(user, ids: Iterable[int]) -> list[SplitExpense]:
+    """Scoped like expenses/cashflow.py's split feed source: only the
+    expenses where `user` is the payer (SplitExpenseShare.is_payer=True) —
+    the single-payer-per-expense DB constraint means this returns at most
+    one row per pk."""
+    if not ids:
+        return []
+    return list(
+        SplitExpense.objects.filter(
+            pk__in=ids, shares__is_payer=True, shares__participant__user=user
+        )
+    )
+
+
+def _fetch_split_reimbursements(user, ids: Iterable[int]) -> list[SplitSettlement]:
+    if not ids:
+        return []
+    return list(
+        SplitSettlement.objects.select_related("linked_asset").filter(
+            Q(payer_user=user) | Q(payee_user=user), pk__in=ids
+        )
+    )
+
+
 def resolve_selection(user, selection: dict) -> ResolvedSelection:
     """Resolve the request's selection block into concrete ORM rows."""
     mode = (selection or {}).get("mode")
@@ -264,9 +331,15 @@ def resolve_selection(user, selection: dict) -> ResolvedSelection:
         expenses = _fetch_expenses(user, grouped["expense"])
         transfers = _fetch_transfers(user, grouped["transfer"])
         adjustments = _fetch_adjustments(user, grouped["adjustment"])
+        splits = _fetch_splits(user, grouped["split"])
+        split_reimbursements = _fetch_split_reimbursements(
+            user, grouped["split_reimbursement"]
+        )
         found_expense = {e.pk for e in expenses}
         found_transfer = {t.pk for t in transfers}
         found_adj = {t.pk for t in adjustments}
+        found_split = {s.pk for s in splits}
+        found_split_reimb = {s.pk for s in split_reimbursements}
         missing = []
         missing.extend(
             f"expense_{pk}" for pk in grouped["expense"] if pk not in found_expense
@@ -277,10 +350,20 @@ def resolve_selection(user, selection: dict) -> ResolvedSelection:
         missing.extend(
             f"adjustment_{pk}" for pk in grouped["adjustment"] if pk not in found_adj
         )
+        missing.extend(
+            f"split_{pk}" for pk in grouped["split"] if pk not in found_split
+        )
+        missing.extend(
+            f"split_reimbursement_{pk}"
+            for pk in grouped["split_reimbursement"]
+            if pk not in found_split_reimb
+        )
         return ResolvedSelection(
             expenses=expenses,
             transfer_cash_ins=transfers,
             adjustments=adjustments,
+            splits=splits,
+            split_reimbursements=split_reimbursements,
             missing_ids=missing,
         )
 
@@ -290,13 +373,10 @@ def resolve_selection(user, selection: dict) -> ResolvedSelection:
         ids_by_kind = get_cashflow_ids(user, filters)
         exclude_raw = (selection or {}).get("exclude_ids") or []
         exclude_grouped = _parse_ids(exclude_raw)
-        exclude_sets = {
-            kind: set(exclude_grouped[kind])
-            for kind in ("expense", "transfer", "adjustment")
-        }
+        exclude_sets = {kind: set(exclude_grouped[kind]) for kind in _ID_KINDS}
         kept: dict[str, list[int]] = {
             kind: [pk for pk in ids_by_kind[kind] if pk not in exclude_sets[kind]]
-            for kind in ("expense", "transfer", "adjustment")
+            for kind in _ID_KINDS
         }
         total = sum(len(v) for v in kept.values())
         if total > MAX_FILTERED_SELECTION:
@@ -309,6 +389,10 @@ def resolve_selection(user, selection: dict) -> ResolvedSelection:
             expenses=_fetch_expenses(user, kept["expense"]),
             transfer_cash_ins=_fetch_transfers(user, kept["transfer"]),
             adjustments=_fetch_adjustments(user, kept["adjustment"]),
+            splits=_fetch_splits(user, kept["split"]),
+            split_reimbursements=_fetch_split_reimbursements(
+                user, kept["split_reimbursement"]
+            ),
         )
 
     raise BulkValidationError(
@@ -322,17 +406,26 @@ def resolve_selection(user, selection: dict) -> ResolvedSelection:
 def _selection_kind(selection: ResolvedSelection) -> str | None:
     """Return the single homogeneous kind of the selection, or None if mixed.
 
-    Kinds: 'income' | 'outcome' | 'transfer' | 'adjustment'.
-    A selection that mixes top-level kinds (e.g. expense + transfer), or that
-    contains both income and outcome expenses, is considered mixed.
+    Kinds: 'income' | 'outcome' | 'transfer' | 'adjustment' | 'split' |
+    'split_reimbursement'. A selection that mixes top-level kinds (e.g.
+    expense + transfer), or that contains both income and outcome expenses,
+    is considered mixed.
     """
     has_expense = bool(selection.expenses)
     has_transfer = bool(selection.transfer_cash_ins)
     has_adjustment = bool(selection.adjustments)
+    has_split = bool(selection.splits)
+    has_split_reimbursement = bool(selection.split_reimbursements)
 
-    n_top = sum([has_expense, has_transfer, has_adjustment])
+    n_top = sum(
+        [has_expense, has_transfer, has_adjustment, has_split, has_split_reimbursement]
+    )
     if n_top != 1:
         return None
+    if has_split:
+        return "split"
+    if has_split_reimbursement:
+        return "split_reimbursement"
     if has_adjustment:
         return "adjustment"
     if has_transfer:
@@ -486,6 +579,55 @@ def _tx_amount(tx: AssetTransaction) -> Decimal:
     return (tx.shares * tx.price_per_share).quantize(_CENT)
 
 
+def _split_amount(obj) -> Decimal:
+    """SplitExpense/SplitSettlement both carry their own `.amount` field
+    directly (unlike AssetTransaction's shares*price_per_share)."""
+    return obj.amount or Decimal("0")
+
+
+def _partition_split_reimbursement_deletes(
+    user, settlements: list[SplitSettlement]
+) -> tuple[set[int], list[dict]]:
+    """Split a split_reimbursement selection into (eligible pks, rejected_rows).
+
+    Mirrors the row-level rule already enforced elsewhere in the app rather
+    than inventing a new one: a settlement with a group can only be deleted
+    from the Split app today (`showDeleteAction = !openInSplit` — see
+    web/src/components/cashflow/CfTransactionRow.tsx), and
+    `user_can_modify_settlement` (splitting/permissions.py) already gates
+    per-row destroy in SplitSettlementViewSet — replicated here since bulk
+    bypasses the viewset's get_object().
+
+    Unlike every other bulk-validation failure in this module, an ineligible
+    row here does NOT block the whole request: the eligible subset still
+    applies, and the rejected ones are reported via `rejected_rows` — a
+    grouped settlement mixed into an otherwise-ungrouped bulk selection is a
+    normal occurrence (the frontend lets you multi-select across a filtered
+    view), not something the user should have to fix by hand first.
+    """
+    eligible: set[int] = set()
+    rejected_rows: list[dict] = []
+    for s in settlements:
+        if s.group_id is not None:
+            rejected_rows.append(
+                {
+                    "id": f"split_reimbursement_{s.pk}",
+                    "reason": "split_reimbursement_grouped_requires_split_app",
+                }
+            )
+            continue
+        if not user_can_modify_settlement(user, s):
+            rejected_rows.append(
+                {
+                    "id": f"split_reimbursement_{s.pk}",
+                    "reason": "settlement_modify_restricted",
+                }
+            )
+            continue
+        eligible.add(s.pk)
+    return eligible, rejected_rows
+
+
 @dataclass
 class _ValidatedRequest:
     """Output of the validate-and-resolve helper, shared by preview and apply."""
@@ -498,6 +640,10 @@ class _ValidatedRequest:
     resolved_account: Asset | None
     resolved_from_account: Asset | None
     resolved_to_account: Asset | None
+    # pks from selection.split_reimbursements eligible for bulk delete (only
+    # populated when action=="delete" and kind=="split_reimbursement") — see
+    # _partition_split_reimbursement_deletes.
+    split_reimbursement_delete_ids: set[int]
     report: dict
 
 
@@ -522,13 +668,43 @@ def _validate_and_resolve(user, payload: dict) -> _ValidatedRequest:
         total_amount += _tx_amount(t)
     for a in selection.adjustments:
         total_amount += _tx_amount(a)
+    for s in selection.splits:
+        total_amount += _split_amount(s)
+    for s in selection.split_reimbursements:
+        total_amount += _split_amount(s)
 
     kind = _selection_kind(selection)
+    split_reimbursement_delete_ids: set[int] = set()
     if selection.total > 0 and kind is None:
         errors.append(
-            "selection mixes incompatible kinds (income / outcome / transfer / adjustment)"
+            "selection mixes incompatible kinds (income / outcome / transfer / "
+            "adjustment / split / split_reimbursement)"
         )
         error_codes.append("mixed_kinds")
+    elif kind == "split":
+        # Both edit AND delete are redirect-by-design (not a gap): editing a
+        # split expense means re-running apply_split_shares' allocation math,
+        # and per-row delete isn't offered anywhere in CashFlow today either
+        # (see splitting.services.delete_split_expense — it rebuilds
+        # cross-debt allocations, plain .delete() would corrupt them). This
+        # blocks unconditionally so the UI gets one clear, backend-enforced
+        # reason instead of silently resolving to zero affected rows.
+        errors.append("split expenses can only be edited or deleted from the Split app")
+        error_codes.append("split_requires_split_app")
+    elif kind == "split_reimbursement":
+        if action == "edit":
+            errors.append(
+                "settlements have no editable fields — delete only "
+                "(and only for ungrouped settlements you created)"
+            )
+            error_codes.append("split_reimbursement_not_editable")
+        else:
+            split_reimbursement_delete_ids, split_rejected_rows = (
+                _partition_split_reimbursement_deletes(
+                    user, selection.split_reimbursements
+                )
+            )
+            rejected_rows.extend(split_rejected_rows)
 
     patch_keys: set[str] = set()
     resolved_category: Category | None = None
@@ -627,6 +803,7 @@ def _validate_and_resolve(user, payload: dict) -> _ValidatedRequest:
         resolved_account=resolved_account,
         resolved_from_account=resolved_from_account,
         resolved_to_account=resolved_to_account,
+        split_reimbursement_delete_ids=split_reimbursement_delete_ids,
         report=report,
     )
 
@@ -810,6 +987,7 @@ def apply_bulk(user, payload: dict) -> dict:
     applied_expense = 0
     applied_transfer = 0
     applied_adjustment = 0
+    applied_split_reimbursement = 0
     affected_asset_ids: set[int] = set()
     runtime_missing: list[str] = []
 
@@ -905,6 +1083,20 @@ def apply_bulk(user, payload: dict) -> dict:
                         runtime_missing.append(f"adjustment_{a.pk}")
                         continue
                     applied_adjustment += 1
+                # Only the eligible subset (ungrouped + permission-passing,
+                # see _partition_split_reimbursement_deletes) — rows outside
+                # it were already reported via rejected_rows, skip silently.
+                for s in selection.split_reimbursements:
+                    if s.pk not in validated.split_reimbursement_delete_ids:
+                        continue
+                    if s.linked_asset_id is not None:
+                        affected_asset_ids.add(s.linked_asset_id)
+                    try:
+                        s.delete()
+                    except SplitSettlement.DoesNotExist:
+                        runtime_missing.append(f"split_reimbursement_{s.pk}")
+                        continue
+                    applied_split_reimbursement += 1
             finally:
                 _bulk_state.skip_recompute = False
             _refresh_assets_strict(affected_asset_ids)
@@ -927,7 +1119,13 @@ def apply_bulk(user, payload: dict) -> dict:
             "expense": applied_expense,
             "transfer": applied_transfer,
             "adjustment": applied_adjustment,
-            "total": applied_expense + applied_transfer + applied_adjustment,
+            "split_reimbursement": applied_split_reimbursement,
+            "total": (
+                applied_expense
+                + applied_transfer
+                + applied_adjustment
+                + applied_split_reimbursement
+            ),
         },
     }
     if runtime_missing:

@@ -10,6 +10,8 @@ from django.test import Client
 
 from expenses.models import Category, Expense
 from portfolio.models import Asset, AssetTransaction, InvestmentType
+from splitting.models import SplitContact, SplitExpense, SplitGroup, SplitSettlement
+from splitting.services import apply_split_shares
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -70,6 +72,31 @@ def account_b(test_user, bank_type):
     )
 
 
+@pytest.fixture
+def second_user(db):
+    User = get_user_model()
+    return User.objects.create_user(
+        username="bulk_cf_second", email="bulk_cf_second@test.com", password="pw"
+    )
+
+
+@pytest.fixture
+def second_bank_type(second_user):
+    return InvestmentType.objects.create(
+        name="Bank", is_bank_account=True, owner=second_user
+    )
+
+
+@pytest.fixture
+def second_account(second_user, second_bank_type):
+    return Asset.objects.create(
+        name="Second's Checking",
+        tracking_type=Asset.MANUAL,
+        investment_type=second_bank_type,
+        owner=second_user,
+    )
+
+
 def _make_expense(user, cat, **kwargs):
     return Expense.objects.create(
         description=kwargs.get("description", "expense"),
@@ -111,6 +138,44 @@ def _make_adjustment(user, account, amount, d):
         shares=Decimal("1"),
         price_per_share=Decimal(str(amount)),
         owner=user,
+    )
+
+
+def _make_split_expense(*, payer, other, amount="90.00", d=None, linked_asset=None):
+    """Standalone (group=None) EQUAL split between payer and one other user —
+    mirrors expenses/tests/test_cashflow_split.py::_make_split_expense."""
+    SplitContact.objects.get_or_create(
+        owner=payer, linked_user=other, defaults={"display_name": other.username}
+    )
+    expense = SplitExpense.objects.create(
+        group=None,
+        description="Bulk test split",
+        amount=Decimal(str(amount)),
+        date=d or date(2026, 5, 1),
+        split_method=SplitExpense.EQUAL,
+        linked_asset=linked_asset,
+        created_by=payer,
+    )
+    apply_split_shares(
+        expense,
+        [{"user_id": payer.id, "is_payer": True}, {"user_id": other.id}],
+        SplitExpense.EQUAL,
+        added_by=payer,
+    )
+    return expense
+
+
+def _make_settlement(
+    *, payer, payee, created_by, amount="50.00", d=None, group=None, linked_asset=None
+):
+    return SplitSettlement.objects.create(
+        group=group,
+        payer_user=payer,
+        payee_user=payee,
+        amount=Decimal(str(amount)),
+        date=d or date(2026, 5, 12),
+        created_by=created_by,
+        linked_asset=linked_asset,
     )
 
 
@@ -976,3 +1041,221 @@ class TestTransferAccountPatch:
         )
         assert res.status_code == 400, res.content
         assert "same_account_transfer" in res.json()["error_codes"]
+
+
+# ── split / split_reimbursement (fase "unificazione astrazione" step 4) ──────
+#
+# split resta un redirect verso lo Split app per scelta (non un gap): sia
+# edit che delete sono rifiutati con un codice esplicito invece di risolvere
+# silenziosamente zero righe (il comportamento pre-fix). split_reimbursement
+# invece supporta bulk delete per il sottoinsieme ungrouped + con permesso di
+# modifica — un gap reale, chiuso qui.
+
+
+class TestBulkSplit:
+    def test_split_id_resolves_to_split_expense_not_missing(
+        self, client, test_user, second_user, account_a
+    ):
+        """Verifica il round-trip dello spazio-id: l'id del feed (ora
+        f"split_{expense.id}", non più f"split_{share.id}") deve risolvere
+        alla SplitExpense corretta invece di finire in missing_ids — prova
+        diretta che il disallineamento di spazio-id descritto nel piano è
+        stato chiuso."""
+        expense = _make_split_expense(
+            payer=test_user, other=second_user, linked_asset=account_a
+        )
+        res = _post(
+            client,
+            {
+                "action": "delete",
+                "selection": {"mode": "ids", "ids": [f"split_{expense.id}"]},
+            },
+        )
+        assert res.status_code == 400, res.content
+        body = res.json()
+        assert body["missing_ids"] == []
+        assert body["total_selected"] == 1
+        assert body["kind"] == "split"
+
+    def test_split_edit_rejected_with_split_requires_split_app(
+        self, client, test_user, second_user, account_a
+    ):
+        expense = _make_split_expense(
+            payer=test_user, other=second_user, linked_asset=account_a
+        )
+        res = _post(
+            client,
+            {
+                "action": "edit",
+                "selection": {"mode": "ids", "ids": [f"split_{expense.id}"]},
+                "patch": {"is_verified": True},
+            },
+        )
+        assert res.status_code == 400, res.content
+        assert "split_requires_split_app" in res.json()["error_codes"]
+
+    def test_split_delete_rejected_with_split_requires_split_app(
+        self, client, test_user, second_user, account_a
+    ):
+        expense = _make_split_expense(
+            payer=test_user, other=second_user, linked_asset=account_a
+        )
+        res = _post(
+            client,
+            {
+                "action": "delete",
+                "selection": {"mode": "ids", "ids": [f"split_{expense.id}"]},
+            },
+        )
+        assert res.status_code == 400, res.content
+        assert "split_requires_split_app" in res.json()["error_codes"]
+        assert SplitExpense.objects.filter(pk=expense.id).exists()
+
+    def test_split_reimbursement_edit_rejected(
+        self, client, test_user, second_user, account_a
+    ):
+        settlement = _make_settlement(
+            payer=test_user,
+            payee=second_user,
+            created_by=test_user,
+            linked_asset=account_a,
+        )
+        res = _post(
+            client,
+            {
+                "action": "edit",
+                "selection": {
+                    "mode": "ids",
+                    "ids": [f"split_reimbursement_{settlement.id}"],
+                },
+                "patch": {"is_verified": True},
+            },
+        )
+        assert res.status_code == 400, res.content
+        assert "split_reimbursement_not_editable" in res.json()["error_codes"]
+
+    def test_split_reimbursement_ungrouped_delete_allowed(
+        self, client, test_user, second_user, account_a
+    ):
+        settlement = _make_settlement(
+            payer=test_user,
+            payee=second_user,
+            created_by=test_user,
+            linked_asset=account_a,
+        )
+        account_a.refresh_from_db()
+        balance_before = account_a.current_value
+        res = _post(
+            client,
+            {
+                "action": "delete",
+                "selection": {
+                    "mode": "ids",
+                    "ids": [f"split_reimbursement_{settlement.id}"],
+                },
+            },
+        )
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body["applied"]["split_reimbursement"] == 1
+        assert not SplitSettlement.objects.filter(pk=settlement.id).exists()
+        assert not AssetTransaction.objects.filter(
+            source_split_settlement_id=settlement.id
+        ).exists()
+        account_a.refresh_from_db()
+        assert account_a.current_value == balance_before + settlement.amount
+
+    def test_split_reimbursement_grouped_rejected_ungrouped_still_applies(
+        self, client, test_user, second_user, account_a
+    ):
+        group = SplitGroup.objects.create(name="Trip", created_by=test_user)
+        grouped = _make_settlement(
+            payer=test_user,
+            payee=second_user,
+            created_by=test_user,
+            group=group,
+            amount="30.00",
+        )
+        ungrouped = _make_settlement(
+            payer=test_user,
+            payee=second_user,
+            created_by=test_user,
+            linked_asset=account_a,
+            amount="40.00",
+        )
+        res = _post(
+            client,
+            {
+                "action": "delete",
+                "selection": {
+                    "mode": "ids",
+                    "ids": [
+                        f"split_reimbursement_{grouped.id}",
+                        f"split_reimbursement_{ungrouped.id}",
+                    ],
+                },
+            },
+        )
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body["applied"]["split_reimbursement"] == 1
+        assert not SplitSettlement.objects.filter(pk=ungrouped.id).exists()
+        assert SplitSettlement.objects.filter(pk=grouped.id).exists()
+        rejected = {r["id"]: r["reason"] for r in body["rejected_rows"]}
+        assert (
+            rejected[f"split_reimbursement_{grouped.id}"]
+            == "split_reimbursement_grouped_requires_split_app"
+        )
+
+    def test_split_reimbursement_modify_restricted_rejected(
+        self, client, test_user, second_user, second_account
+    ):
+        """test_user is payer (so the settlement is in their selection scope)
+        but second_user (the payee) created it and it has a linked_asset —
+        user_can_modify_settlement restricts destroy to the creator in that
+        case (splitting/permissions.py), replicated here for bulk."""
+        settlement = _make_settlement(
+            payer=test_user,
+            payee=second_user,
+            created_by=second_user,
+            linked_asset=second_account,
+        )
+        res = _post(
+            client,
+            {
+                "action": "delete",
+                "selection": {
+                    "mode": "ids",
+                    "ids": [f"split_reimbursement_{settlement.id}"],
+                },
+            },
+        )
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body["applied"]["split_reimbursement"] == 0
+        rejected = {r["id"]: r["reason"] for r in body["rejected_rows"]}
+        assert (
+            rejected[f"split_reimbursement_{settlement.id}"]
+            == "settlement_modify_restricted"
+        )
+        assert SplitSettlement.objects.filter(pk=settlement.id).exists()
+
+    def test_split_and_expense_mixed_selection_rejected(
+        self, client, test_user, second_user, expense_cat, account_a
+    ):
+        expense = _make_expense(test_user, expense_cat)
+        split_expense = _make_split_expense(
+            payer=test_user, other=second_user, linked_asset=account_a
+        )
+        res = _post(
+            client,
+            {
+                "action": "delete",
+                "selection": {
+                    "mode": "ids",
+                    "ids": [f"expense_{expense.id}", f"split_{split_expense.id}"],
+                },
+            },
+        )
+        assert res.status_code == 400, res.content
+        assert "mixed_kinds" in res.json()["error_codes"]

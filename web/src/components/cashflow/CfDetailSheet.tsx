@@ -5,6 +5,11 @@ import type { ReactNode } from "react";
 import { useApp } from "../../context/useApp";
 import { useFormatters } from "../../utils/useFormatters";
 import { formatDate } from "../../utils/formatters";
+import {
+    canVerifyRow,
+    isOutcomeMoney,
+    splitRowActions,
+} from "../../utils/cashflowItemKind";
 import { BottomSheet, ToggleSwitch } from "../ui";
 import type { CfItem } from "./CfTransactionRow";
 
@@ -70,30 +75,21 @@ export default function CfDetailSheet({
 
     const isTransfer = data?.source_type === "transfer";
     const isAdjustment = data?.source_type === "adjustment";
-    const isSplitExpense = data?.source_type === "split_expense";
-    const isSplitSettlement = data?.source_type === "split_settlement";
-    // Split rows are always is_verified=True from creation (no "pending"
-    // concept in the Split domain, splitting/signals.py) and the bulk
-    // endpoint doesn't recognize their feed ids anyway (expenses/bulk.py) —
-    // hide the toggle rather than wire it to a dead endpoint (mirrors
-    // CashflowFeed.tsx's canVerify for the row's own swipe action).
-    const canVerify = !isAdjustment && !isSplitExpense && !isSplitSettlement;
-    // A settlement with a known group can be deleted from its group page in
-    // Split; one without (cross-group, registered from the overview) has no
-    // list to land on there, so it deletes in place instead (see
-    // splitting/views/settlements.py: no update endpoint either way).
-    const splitSettlementHasGroup = isSplitSettlement && data?.group_id != null;
-    const openInSplit = isSplitExpense || splitSettlementHasGroup;
-    const showEdit = !isSplitSettlement || splitSettlementHasGroup;
-    const showDelete = !openInSplit;
+    // See web/src/utils/cashflowItemKind.ts for why: split rows are always
+    // verified, have no editable bulk fields, and only a grouped settlement
+    // has anywhere to land in Split (mirrors CfTransactionRow's swipe
+    // actions and CashflowFeed.tsx's per-row canVerify — same derivation,
+    // now shared instead of copy-pasted).
+    const canVerify = canVerifyRow(data);
+    const {
+        isSplitExpense,
+        openInSplit,
+        showEditAction: showEdit,
+        showDeleteAction: showDelete,
+    } = splitRowActions(data);
     const editLabel = openInSplit ? T("cf_open_in_split") : T("cf_bulk_edit");
 
-    // "split" is a shared expense's net personal quota — real outcome money
-    // (piano sez. 5, decision #3) — same treatment CfTransactionRow already
-    // gives it; this sheet had not been updated to match, so it kept
-    // rendering a split row's hero amount in the neutral "±" grey a
-    // transfer/adjustment gets instead of the red "-" a real expense gets.
-    const isOutcome = data?.type === "outcome" || data?.type === "split";
+    const isOutcome = isOutcomeMoney(data);
     const typeColor = !data
         ? "var(--fg)"
         : data.type === "income"

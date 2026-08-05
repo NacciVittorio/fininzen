@@ -6,6 +6,7 @@ import CfTransactionRow from "../../components/cashflow/CfTransactionRow";
 import type { CfItem } from "../../components/cashflow/CfTransactionRow";
 import { Icon, MonthPager, PageHeader } from "../../components/ui";
 import { useFormatters } from "../../utils/useFormatters";
+import { canVerifyRow } from "../../utils/cashflowItemKind";
 import type { Translator } from "../../types";
 import type { CashflowFilters } from "../../context/feedDefaults";
 import type {
@@ -314,18 +315,7 @@ export default function CashflowFeed({
                                     onDelete={(row) =>
                                         setDeleteCfTarget({ item: row })
                                     }
-                                    // Split rows are always is_verified=True from
-                                    // creation (no "pending" concept in the Split
-                                    // domain, see splitting/signals.py) and the
-                                    // bulk endpoint's _parse_feed_id doesn't
-                                    // recognize split_*/split_reimbursement_* ids
-                                    // anyway (expenses/bulk.py) — hide the toggle
-                                    // rather than wire it to a dead endpoint.
-                                    canVerify={
-                                        item.source_type !== "adjustment" &&
-                                        item.source_type !== "split_expense" &&
-                                        item.source_type !== "split_settlement"
-                                    }
+                                    canVerify={canVerifyRow(item)}
                                 />
                             </div>
                         );
