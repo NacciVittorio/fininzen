@@ -103,9 +103,7 @@ export default function BottomSheet({
             const first =
                 items.find(
                     (el) =>
-                        !["INPUT", "TEXTAREA", "SELECT"].includes(
-                            el.tagName,
-                        ),
+                        !["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName),
                 ) ??
                 items[0] ??
                 panelRef.current;
