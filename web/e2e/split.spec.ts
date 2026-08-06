@@ -575,6 +575,13 @@ test.describe.serial("Split feature", () => {
             `/split/groups/${groupId}/simplify/`,
             () => page.click('[data-testid="split-simplify-btn"]'),
         );
+        // waitForApi only resolves on the network response, not on React
+        // finishing the re-render — wait for the row to mount/paint before
+        // clicking (see test d) for the same guard), or the click can land
+        // on the still-settling parent row/card instead.
+        await expect(
+            page.locator('[data-testid="split-simplify-settle-0"]'),
+        ).toBeVisible({ timeout: 8000 });
         // tx-0 is B → A 35.00 (see test d) — settle it in full.
         await page.click('[data-testid="split-simplify-settle-0"]');
 
