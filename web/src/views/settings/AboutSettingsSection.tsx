@@ -15,6 +15,13 @@ export function AboutSettingsSection() {
     const appVersion = useAppVersion();
     // Empty on a checkout with no matching CHANGELOG section — omit the row then.
     const releaseDate = process.env.NEXT_PUBLIC_RELEASE_DATE ?? "";
+    const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim();
+    const contactHref = contactEmail
+        ? `mailto:${contactEmail}?${new URLSearchParams({
+              subject: T("about_contact_subject"),
+              body: T("about_contact_body"),
+          }).toString()}`
+        : null;
 
     return (
         <div>
@@ -98,6 +105,28 @@ export function AboutSettingsSection() {
                         ›
                     </span>
                 </Link>
+                {contactHref && (
+                    <a
+                        href={contactHref}
+                        data-testid="about-contact"
+                        className="grouped-list__item pressable"
+                        style={{ color: "var(--accent)" }}
+                    >
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>
+                            {T("about_contact")}
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            style={{
+                                color: "var(--fg-faint)",
+                                fontSize: 17,
+                                lineHeight: 1,
+                            }}
+                        >
+                            ›
+                        </span>
+                    </a>
+                )}
             </GroupedList>
         </div>
     );

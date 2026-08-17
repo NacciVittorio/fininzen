@@ -16,6 +16,8 @@ RUN npm ci
 # App sources + the repo-root VERSION file next.config.ts inlines.
 COPY web/ ./
 COPY VERSION /app/VERSION
+ARG NEXT_PUBLIC_CONTACT_EMAIL
+ENV NEXT_PUBLIC_CONTACT_EMAIL=$NEXT_PUBLIC_CONTACT_EMAIL
 RUN npm run build
 
 # ---- runtime stage ----

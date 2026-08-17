@@ -82,6 +82,9 @@ ALLOW_SQLITE_IN_PRODUCTION=1
 DB_PATH=/opt/fininzen/db.sqlite3
 # Necessario per il silent refresh dietro Caddy col path prefissato:
 REFRESH_COOKIE_PATH=/fininzen/api/auth/
+# Pubblico: apre il client email dell'utente da Impostazioni → About; non invia
+# email dal VPS. Sostituisci con il tuo indirizzo reale.
+NEXT_PUBLIC_CONTACT_EMAIL=assistenza@example.com
 ```
 
 > Redis è **opzionale** (serve solo per il throttle condiviso fra worker). Su 1 GB
@@ -95,7 +98,9 @@ cd /opt/fininzen
 just install                 # venv Python + npm install
 just migrate-prod            # applica le migrazioni su SQLite
 just collectstatic-prod      # → /opt/fininzen/staticfiles
-just build-frontend-prod     # npm ci && npm run build (Next.js SSR)
+# Le NEXT_PUBLIC_* devono essere presenti durante la build: vengono inlined nel
+# bundle del browser (incluso NEXT_PUBLIC_CONTACT_EMAIL).
+set -a; . /etc/fininzen.env; set +a; just build-frontend-prod
 mkdir -p logs backups
 exit
 ```

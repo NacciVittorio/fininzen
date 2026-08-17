@@ -88,6 +88,8 @@ services:
     build:
       context: ../../..
       dockerfile: deploy/docker/web/Dockerfile
+      args:
+        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL:-}
     restart: unless-stopped
     depends_on:
       - backend

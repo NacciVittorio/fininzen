@@ -332,6 +332,10 @@ const en: Record<string, string> = {
     about_version: "Application version",
     about_released_on: "Release date",
     about_whats_new: "See what's new",
+    about_contact: "Contact support or report a problem",
+    about_contact_subject: "Fininzen — support or bug report",
+    about_contact_body:
+        "Describe your request or issue here.\n\nSteps to reproduce:\n\nExpected result:\n\nActual result:\n",
     // Release notes
     release_bar_title: "Fininzen {version} is here",
     release_bar_body: "See what changed.",

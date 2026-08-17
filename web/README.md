@@ -14,9 +14,10 @@ every variable the build understands. Next.js loads `.env.local` automatically.
 > `NEXT_PUBLIC_*` variables are inlined into the client bundle at build time —
 > they are **public** and must never contain secrets.
 
-| Variable               | Web build            |
-| ---------------------- | --------------------- |
-| `NEXT_PUBLIC_API_BASE` | optional (fallback `/fininzen/api`) |
+| Variable                    | Web build                                     |
+| --------------------------- | --------------------------------------------- |
+| `NEXT_PUBLIC_API_BASE`      | optional (fallback `/fininzen/api`)           |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | optional recipient for the About contact link |
 
 ## Scripts
 

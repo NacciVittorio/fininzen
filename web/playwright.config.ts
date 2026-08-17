@@ -48,6 +48,10 @@ export default defineConfig({
         // E2E=1 hides the dev indicator (see next.config.ts); pinning the API
         // base to the same-origin default keeps a developer's local .env.local
         // (e.g. a LAN IP for device testing) from breaking the run via CSP.
-        env: { E2E: "1", NEXT_PUBLIC_API_BASE: "/fininzen/api" },
+        env: {
+            E2E: "1",
+            NEXT_PUBLIC_API_BASE: "/fininzen/api",
+            NEXT_PUBLIC_CONTACT_EMAIL: "support@example.test",
+        },
     },
 });

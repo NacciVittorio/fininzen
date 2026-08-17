@@ -333,6 +333,10 @@ const it: Record<string, string> = {
     about_version: "Versione applicazione",
     about_released_on: "Data di rilascio",
     about_whats_new: "Scopri le novità",
+    about_contact: "Contatta l'assistenza o segnala un problema",
+    about_contact_subject: "Fininzen — assistenza o segnalazione",
+    about_contact_body:
+        "Descrivi qui la richiesta o il problema.\n\nPassaggi per riprodurlo:\n\nRisultato atteso:\n\nRisultato ottenuto:\n",
     // Release notes
     release_bar_title: "Fininzen {version} è qui",
     release_bar_body: "Scopri cosa è cambiato.",
