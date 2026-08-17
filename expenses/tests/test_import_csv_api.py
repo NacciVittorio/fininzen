@@ -181,6 +181,28 @@ def test_invalid_date_reports_error(client, db):
     assert "Row 1" in data["errors"][0]
 
 
+def test_unexpected_import_error_details_are_not_exposed(client, monkeypatch):
+    sensitive_detail = "SELECT password FROM auth_user at /srv/app/secrets.py"
+
+    def raise_unexpected_error(*args, **kwargs):
+        raise RuntimeError(sensitive_detail)
+
+    monkeypatch.setattr(
+        "expenses.import_csv.parse_optional_bool",
+        raise_unexpected_error,
+    )
+
+    res = _post_rows(
+        client,
+        [{"date": "2026-04-10", "description": "Bad", "amount": "10"}],
+    )
+
+    data = res.json()
+    assert data["errors"] == ["Row 1: unexpected error"]
+    assert data["skipped_details"] == ["Row 1: unexpected error"]
+    assert sensitive_detail not in str(data)
+
+
 def test_amount_comma_decimal(client, expense_cat, test_user):
     account = _bank_account(test_user)
     res = _post_rows(

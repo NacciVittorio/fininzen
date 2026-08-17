@@ -460,6 +460,44 @@ def test_import_assets_partial_failure_does_not_block_valid(client, itype):
     ).exists()
 
 
+def test_import_assets_value_error_details_are_not_exposed(
+    client, itype, test_user, monkeypatch
+):
+    sensitive_detail = "SELECT password FROM auth_user at /srv/app/secrets.py"
+    Asset.objects.create(
+        name="Sensitive asset",
+        isin="IE00SECRET01",
+        tracking_type="AUTO",
+        investment_type=itype,
+        owner=test_user,
+    )
+
+    def reject_transaction(*args, **kwargs):
+        raise ValueError(sensitive_detail)
+
+    monkeypatch.setattr("portfolio.services.create_transaction", reject_transaction)
+    res = client.post(
+        "/api/portfolio/import-assets/",
+        data={
+            "rows": [
+                {
+                    "name": "Sensitive asset",
+                    "isin": "IE00SECRET01",
+                    "transaction_type": "buy",
+                    "date": "2026-03-15",
+                    "shares": "1",
+                    "price_per_share": "100",
+                }
+            ]
+        },
+        content_type="application/json",
+    )
+
+    body = res.json()
+    assert body["errors"] == [{"row": 1, "error": "invalid row data"}]
+    assert sensitive_detail not in str(body)
+
+
 def test_import_assets_rejects_other_user_investment_type(client, test_user):
     other = User.objects.create_user(username="other", password="x")
     other_type = InvestmentType.objects.create(name="Other", owner=other)
@@ -555,6 +593,39 @@ def test_import_transactions_partial_failure(client, asset):
     assert AssetTransaction.objects.filter(
         asset=asset, price_per_share=Decimal("200.5000")
     ).exists()
+
+
+def test_import_transactions_value_error_details_are_not_exposed(
+    client, asset, monkeypatch
+):
+    sensitive_detail = "SELECT password FROM auth_user at /srv/app/secrets.py"
+
+    def reject_transaction(*args, **kwargs):
+        raise ValueError(sensitive_detail)
+
+    monkeypatch.setattr(
+        "portfolio.views.asset_mixins.imports.create_transaction",
+        reject_transaction,
+    )
+    res = client.post(
+        "/api/portfolio/import-transactions/",
+        data={
+            "rows": [
+                {
+                    "asset_id": asset.id,
+                    "transaction_type": "buy",
+                    "date": "2026-03-15",
+                    "shares": "1",
+                    "price_per_share": "100",
+                }
+            ]
+        },
+        content_type="application/json",
+    )
+
+    body = res.json()
+    assert body["errors"] == [{"row": 1, "error": "invalid row data"}]
+    assert sensitive_detail not in str(body)
 
 
 def test_import_transactions_rejects_other_user_asset(client, test_user):

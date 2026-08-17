@@ -18,7 +18,6 @@ from ..prices import (
 from ..services import (
     create_asset_with_initial_balance,
 )
-from fininzen.api_errors import safe_client_message
 from fininzen.mixins import ViewAsMixin
 
 
@@ -142,7 +141,7 @@ class AssetViewSet(
             )
         except ValueError as exc:
             raise ValidationError(
-                {"initial_balance": safe_client_message(exc)}
+                {"initial_balance": "Initial balance must be a positive number"}
             ) from exc
         logger.info(
             "asset created: id=%s name=%s type=%s user=%s",

@@ -103,7 +103,8 @@ def test_status_propagates_backfill_error(client, auto_asset):
         res = client.get(f"/api/portfolio/{auto_asset.id}/price-history/?days=365")
     data = res.json()
     assert data["status"] == "error"
-    assert "rate limit" in data["message"]
+    assert data["message"] == "Historical price data could not be refreshed"
+    assert "rate limit" not in data["message"]
 
 
 def test_status_partial_when_provider_has_only_cached_current_quote(client, auto_asset):
@@ -117,8 +118,24 @@ def test_status_partial_when_provider_has_only_cached_current_quote(client, auto
 
     data = res.json()
     assert data["status"] == "partial"
-    assert data["message"] == "no validated history"
+    assert data["message"] == (
+        "No historical price data is available for the requested period"
+    )
     assert len(data["points"]) == 1
+
+
+def test_backfill_exception_details_are_not_exposed(client, auto_asset):
+    sensitive_detail = "SELECT password FROM auth_user at /srv/app/secrets.py"
+    with patch(
+        "portfolio.prices._backfill_price_history_with_meta",
+        side_effect=RuntimeError(sensitive_detail),
+    ):
+        res = client.get(f"/api/portfolio/{auto_asset.id}/price-history/?days=365")
+
+    data = res.json()
+    assert data["status"] == "error"
+    assert data["message"] == "Historical price data could not be refreshed"
+    assert sensitive_detail not in str(data)
 
 
 def test_days_clamped_to_3650(client, auto_asset):
