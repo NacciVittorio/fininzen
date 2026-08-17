@@ -218,6 +218,114 @@ test.describe("Portfolio CRUD", () => {
         await deleteInvestmentType(page, token, typeId);
     });
 
+    test("transaction sheet submits once on rapid clicks and unlocks after failure", async ({
+        page,
+    }) => {
+        const token = await getToken(page);
+        const { id: typeId } = await createInvestmentType(page, token);
+        const assetName = `E2E SingleFlight ${Date.now()}`;
+        const assetResponse = await page.request.post(
+            "/fininzen/api/portfolio/",
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                data: {
+                    name: assetName,
+                    investment_type: typeId,
+                    tracking_type: "AUTO",
+                    currency: "EUR",
+                },
+            },
+        );
+        const { id: assetId } = await assetResponse.json();
+
+        await page.reload();
+        await expect(page.locator(".app-net-worth")).toBeVisible({
+            timeout: 15000,
+        });
+        await page.click('nav a[href="/portfolio"]');
+        await expect(page).toHaveURL(/\/portfolio$/);
+        await expect(
+            page.locator('[data-testid="speed-dial-main"]'),
+        ).toBeVisible({ timeout: 10000 });
+
+        await page.click('[data-testid="speed-dial-main"]');
+        await page.click('[data-testid="portfolio-fab-add-transaction"]');
+        await page.click('[data-testid="addtx-asset"]');
+        await page.click(`[data-testid="addtx-asset-option-${assetId}"]`);
+        await page.fill('[data-testid="addtx-shares"]', "3");
+        await page.fill('[data-testid="addtx-price"]', "50");
+
+        let releaseFirstRequest = () => {};
+        const firstRequestCanFinish = new Promise<void>((resolve) => {
+            releaseFirstRequest = resolve;
+        });
+        let postCount = 0;
+        let failNextRequest = true;
+        const transactionUrl = `**/fininzen/api/portfolio/${assetId}/transactions/`;
+        await page.route(transactionUrl, async (route) => {
+            if (route.request().method() !== "POST") {
+                await route.continue();
+                return;
+            }
+            postCount += 1;
+            if (failNextRequest) {
+                await firstRequestCanFinish;
+                failNextRequest = false;
+                await route.fulfill({
+                    status: 500,
+                    contentType: "application/json",
+                    body: JSON.stringify({ error: "temporary failure" }),
+                });
+                return;
+            }
+            await route.continue();
+        });
+
+        const submit = page.locator('[data-testid="addtx-submit"]');
+        await submit.evaluate((button: HTMLButtonElement) => {
+            button.click();
+            button.click();
+        });
+
+        await expect(submit).toBeDisabled();
+        // Both click handlers ran synchronously; allow their network events to
+        // reach Playwright while the first response remains deliberately held.
+        await page.waitForTimeout(200);
+        expect(postCount).toBe(1);
+
+        releaseFirstRequest();
+        await expect(page.locator('[data-testid="addtx-error"]')).toBeVisible();
+        await expect(submit).toBeEnabled();
+
+        const retryResponsePromise = page.waitForResponse(
+            (response) =>
+                response
+                    .url()
+                    .endsWith(
+                        `/fininzen/api/portfolio/${assetId}/transactions/`,
+                    ) && response.request().method() === "POST",
+        );
+        await submit.evaluate((button: HTMLButtonElement) => button.click());
+        await expect(submit).toBeDisabled();
+        const retryResponse = await retryResponsePromise;
+        expect(retryResponse.status()).toBe(201);
+        expect(postCount).toBe(2);
+
+        const transactionsResponse = await page.request.get(
+            `/fininzen/api/portfolio/${assetId}/transactions/`,
+            { headers: { Authorization: `Bearer ${token}` } },
+        );
+        expect(transactionsResponse.ok()).toBeTruthy();
+        const transactions = await transactionsResponse.json();
+        expect(transactions).toHaveLength(1);
+
+        await deleteAsset(page, token, assetId);
+        await deleteInvestmentType(page, token, typeId);
+    });
+
     test("existing asset visible in investments list", async ({ page }) => {
         const token = await getToken(page);
         const { id: typeId } = await createInvestmentType(page, token);
