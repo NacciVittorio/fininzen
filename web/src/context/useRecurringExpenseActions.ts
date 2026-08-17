@@ -1,12 +1,6 @@
 import { useCallback } from "react";
 import { API } from "../utils/api";
-import {
-    currentMonth,
-    currentYear,
-    parseAmount,
-    parseMoneyToString,
-    today,
-} from "../utils/formatters";
+import { parseAmount, parseMoneyToString, today } from "../utils/formatters";
 import { REFRESH_REASONS } from "../utils/refreshReasons";
 import { buildRecurringForm } from "./formBuilders";
 import type { ApiFetcher } from "../api/client";
@@ -21,7 +15,6 @@ type RecurringExpenseState = Pick<
     | "editingRecurringId"
     | "recurringForm"
     | "setEditingRecurringId"
-    | "setGenerateRecurringMsg"
     | "setRecurringError"
     | "setRecurringForm"
     | "setRecurringSaving"
@@ -37,7 +30,6 @@ export type RecurringExpenseActionsOptions = RecurringExpenseState & {
     refreshAfter: (reason: RefreshReason) => unknown;
 };
 
-type GenerationPeriod = { month?: number; year?: number };
 type ApiMessage = Record<string, unknown>;
 
 const asApiMessage = (payload: unknown): ApiMessage =>
@@ -57,7 +49,6 @@ export function useRecurringExpenseActions({
     recurringForm,
     refreshAfter,
     setEditingRecurringId,
-    setGenerateRecurringMsg,
     setRecurringError,
     setRecurringForm,
     setRecurringSaving,
@@ -67,7 +58,6 @@ export function useRecurringExpenseActions({
     const openRecurringModal = useCallback(
         (recurring: RecurringExpense | null = null) => {
             setRecurringError(null);
-            setGenerateRecurringMsg(null);
             if (recurring) {
                 const rawAmount =
                     recurring.amount == null || recurring.amount === ""
@@ -88,6 +78,9 @@ export function useRecurringExpenseActions({
                             ? String(recurring.linked_asset)
                             : "",
                         frequency: recurring.frequency || "MONTHLY",
+                        generation_lead_days: String(
+                            recurring.generation_lead_days ?? 2,
+                        ),
                         day_of_month: String(recurring.day_of_month || 1),
                         month_of_year: recurring.month_of_year
                             ? String(recurring.month_of_year)
@@ -114,7 +107,6 @@ export function useRecurringExpenseActions({
         [
             decimalSeparator,
             setEditingRecurringId,
-            setGenerateRecurringMsg,
             setRecurringError,
             setRecurringForm,
             setShowRecurringModal,
@@ -138,113 +130,130 @@ export function useRecurringExpenseActions({
         refreshAfter(REFRESH_REASONS.RECURRING_GENERATED);
     }, [fetchRecurringExpenses, refreshAfter]);
 
-    const submitRecurring = useCallback(async () => {
-        if (guardDemo()) return false;
-        const missing: string[] = [];
-        if (!recurringForm.description.trim())
-            missing.push(T("required_description"));
-        if (!recurringForm.amount) missing.push(T("required_amount"));
-        if (!recurringForm.start_date) missing.push(T("recurring_start_date"));
-        if (missing.length) {
-            setRecurringError(
-                `${T("error_required_fields")} ${missing.join(", ")}`,
-            );
-            return false;
-        }
-
-        const parsedAmount = parseAmount(
-            recurringForm.amount,
-            decimalSeparator,
-        );
-        if (isNaN(parsedAmount) || parsedAmount <= 0) {
-            setRecurringError(T("error_invalid_amount"));
-            return false;
-        }
-
-        const dayNum = parseInt(recurringForm.day_of_month, 10);
-        if (!Number.isFinite(dayNum) || dayNum < 1 || dayNum > 31) {
-            setRecurringError(T("recurring_day_error"));
-            return false;
-        }
-        if (recurringForm.frequency === "YEARLY") {
-            const monthNum = parseInt(recurringForm.month_of_year, 10);
-            if (!Number.isFinite(monthNum) || monthNum < 1 || monthNum > 12) {
-                setRecurringError(T("recurring_month_error"));
-                return false;
-            }
-        }
-
-        const amount = parseMoneyToString(
-            recurringForm.amount,
-            decimalSeparator,
-        );
-        if (amount == null) {
-            setRecurringError(T("error_invalid_amount"));
-            return false;
-        }
-        const bodyPayload = {
-            description: recurringForm.description.trim(),
-            // CRIT-04: send the canonical decimal string (parseAmount above already
-            // validated finiteness/sign) so the value never round-trips through Number.
-            amount,
-            category: recurringForm.category
-                ? Number.parseInt(recurringForm.category, 10)
-                : null,
-            linked_asset: recurringForm.linked_asset
-                ? Number.parseInt(recurringForm.linked_asset, 10)
-                : null,
-            frequency: recurringForm.frequency || "MONTHLY",
-            day_of_month: dayNum,
-            month_of_year:
-                recurringForm.frequency === "YEARLY" &&
-                recurringForm.month_of_year
-                    ? parseInt(recurringForm.month_of_year, 10)
-                    : null,
-            is_active: recurringForm.is_active,
-            status: recurringForm.is_active ? "ACTIVE" : "DISABLED",
-            start_date: recurringForm.start_date,
-            end_date: recurringForm.end_date || null,
-        };
-
-        setRecurringSaving(true);
-        setRecurringError(null);
-        try {
-            const url = editingRecurringId
-                ? `${API}/expenses/recurring/${editingRecurringId}/`
-                : `${API}/expenses/recurring/`;
-            const res = await apiFetch(url, {
-                method: editingRecurringId ? "PATCH" : "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyPayload),
-            });
-            if (!res.ok) {
-                const err = (await res.json().catch(() => ({}))) as unknown;
+    const submitRecurring = useCallback(
+        async (updateGenerated = false) => {
+            if (guardDemo()) return false;
+            const missing: string[] = [];
+            if (!recurringForm.description.trim())
+                missing.push(T("required_description"));
+            if (!recurringForm.amount) missing.push(T("required_amount"));
+            if (!recurringForm.start_date)
+                missing.push(T("recurring_start_date"));
+            if (missing.length) {
                 setRecurringError(
-                    responseErrorMessage(err) || T("error_save_failed"),
+                    `${T("error_required_fields")} ${missing.join(", ")}`,
                 );
                 return false;
             }
-            closeRecurringModal();
-            refreshRecurringMutation();
-            return true;
-        } catch {
-            setRecurringError(T("error_network"));
-            return false;
-        } finally {
-            setRecurringSaving(false);
-        }
-    }, [
-        apiFetch,
-        closeRecurringModal,
-        decimalSeparator,
-        editingRecurringId,
-        guardDemo,
-        recurringForm,
-        refreshRecurringMutation,
-        setRecurringError,
-        setRecurringSaving,
-        T,
-    ]);
+
+            const parsedAmount = parseAmount(
+                recurringForm.amount,
+                decimalSeparator,
+            );
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                setRecurringError(T("error_invalid_amount"));
+                return false;
+            }
+
+            const dayNum = parseInt(recurringForm.day_of_month, 10);
+            if (!Number.isFinite(dayNum) || dayNum < 1 || dayNum > 31) {
+                setRecurringError(T("recurring_day_error"));
+                return false;
+            }
+            if (recurringForm.frequency === "YEARLY") {
+                const monthNum = parseInt(recurringForm.month_of_year, 10);
+                if (
+                    !Number.isFinite(monthNum) ||
+                    monthNum < 1 ||
+                    monthNum > 12
+                ) {
+                    setRecurringError(T("recurring_month_error"));
+                    return false;
+                }
+            }
+
+            const leadDays = parseInt(recurringForm.generation_lead_days, 10);
+            if (!Number.isFinite(leadDays) || leadDays < 0 || leadDays > 31) {
+                setRecurringError(T("recurring_lead_days_error"));
+                return false;
+            }
+
+            const amount = parseMoneyToString(
+                recurringForm.amount,
+                decimalSeparator,
+            );
+            if (amount == null) {
+                setRecurringError(T("error_invalid_amount"));
+                return false;
+            }
+            const bodyPayload = {
+                description: recurringForm.description.trim(),
+                // CRIT-04: send the canonical decimal string (parseAmount above already
+                // validated finiteness/sign) so the value never round-trips through Number.
+                amount,
+                category: recurringForm.category
+                    ? Number.parseInt(recurringForm.category, 10)
+                    : null,
+                linked_asset: recurringForm.linked_asset
+                    ? Number.parseInt(recurringForm.linked_asset, 10)
+                    : null,
+                frequency: recurringForm.frequency || "MONTHLY",
+                generation_lead_days: leadDays,
+                day_of_month: dayNum,
+                month_of_year:
+                    recurringForm.frequency === "YEARLY" &&
+                    recurringForm.month_of_year
+                        ? parseInt(recurringForm.month_of_year, 10)
+                        : null,
+                is_active: recurringForm.is_active,
+                status: recurringForm.is_active ? "ACTIVE" : "DISABLED",
+                start_date: recurringForm.start_date,
+                end_date: recurringForm.end_date || null,
+                update_generated_expenses:
+                    editingRecurringId != null && updateGenerated,
+            };
+
+            setRecurringSaving(true);
+            setRecurringError(null);
+            try {
+                const url = editingRecurringId
+                    ? `${API}/expenses/recurring/${editingRecurringId}/`
+                    : `${API}/expenses/recurring/`;
+                const res = await apiFetch(url, {
+                    method: editingRecurringId ? "PATCH" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(bodyPayload),
+                });
+                if (!res.ok) {
+                    const err = (await res.json().catch(() => ({}))) as unknown;
+                    setRecurringError(
+                        responseErrorMessage(err) || T("error_save_failed"),
+                    );
+                    return false;
+                }
+                closeRecurringModal();
+                refreshRecurringMutation();
+                return true;
+            } catch {
+                setRecurringError(T("error_network"));
+                return false;
+            } finally {
+                setRecurringSaving(false);
+            }
+        },
+        [
+            apiFetch,
+            closeRecurringModal,
+            decimalSeparator,
+            editingRecurringId,
+            guardDemo,
+            recurringForm,
+            refreshRecurringMutation,
+            setRecurringError,
+            setRecurringSaving,
+            T,
+        ],
+    );
 
     const toggleRecurringStatus = useCallback(
         async (recurring: RecurringExpense) => {
@@ -329,62 +338,11 @@ export function useRecurringExpenseActions({
         ],
     );
 
-    const generateRecurringForMonth = useCallback(
-        async ({
-            month = currentMonth,
-            year = currentYear,
-        }: GenerationPeriod = {}) => {
-            if (guardDemo()) return null;
-            setRecurringSaving(true);
-            setRecurringError(null);
-            try {
-                const res = await apiFetch(
-                    `${API}/expenses/recurring/generate/`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ month, year }),
-                    },
-                );
-                if (!res.ok) {
-                    const err = asApiMessage(
-                        await res.json().catch(() => ({})),
-                    );
-                    setRecurringError(
-                        typeof err.error === "string"
-                            ? err.error
-                            : T("error_save_failed"),
-                    );
-                    return null;
-                }
-                const data = asApiMessage(await res.json());
-                setGenerateRecurringMsg(data);
-                refreshRecurringMutation();
-                return data;
-            } catch {
-                setRecurringError(T("error_network"));
-                return null;
-            } finally {
-                setRecurringSaving(false);
-            }
-        },
-        [
-            apiFetch,
-            guardDemo,
-            refreshRecurringMutation,
-            setGenerateRecurringMsg,
-            setRecurringError,
-            setRecurringSaving,
-            T,
-        ],
-    );
-
     return {
         openRecurringModal,
         closeRecurringModal,
         submitRecurring,
         toggleRecurringStatus,
         deleteRecurring,
-        generateRecurringForMonth,
     };
 }

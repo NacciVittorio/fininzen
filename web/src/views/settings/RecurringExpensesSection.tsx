@@ -5,8 +5,6 @@ import { useFormatters } from "../../utils/useFormatters";
 import type { Asset, Category, RecurringExpense } from "../../api/types";
 import type { NumericValue, Translator } from "../../types";
 
-type GenerateRecurringMsg = { created?: number; skipped?: number };
-
 export function RecurringExpensesSection({
     setDeleteRecurringTarget,
 }: {
@@ -20,13 +18,10 @@ export function RecurringExpensesSection({
         showRecurringModal,
         recurringError,
         recurringSaving,
-        generateRecurringMsg,
         openRecurringModal,
         toggleRecurringStatus,
-        generateRecurringForMonth,
     } = useSettings();
     const { formatEur } = useFormatters();
-    const recurringMsg = generateRecurringMsg as GenerateRecurringMsg | null;
 
     return (
         <div>
@@ -49,31 +44,7 @@ export function RecurringExpensesSection({
                 >
                     + {T("add_recurring")}
                 </button>
-                <button
-                    className="btn btn-g btn-sm"
-                    disabled={recurringSaving}
-                    onClick={() => generateRecurringForMonth()}
-                >
-                    {recurringSaving ? "..." : T("generate_recurring")}
-                </button>
             </div>
-
-            {recurringMsg && (
-                <div
-                    style={{
-                        marginBottom: 14,
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        fontSize: 13,
-                        background: "var(--success-soft)",
-                        border: "1px solid var(--success-soft)",
-                        color: "var(--success)",
-                    }}
-                >
-                    ✓ {recurringMsg.created} {T("generate_done")},{" "}
-                    {recurringMsg.skipped} {T("generate_skipped")}
-                </div>
-            )}
 
             {recurringError && !showRecurringModal && (
                 <div
@@ -166,6 +137,10 @@ function RecurringExpenseRow({
                             ` · ${recurringExpense.start_date}`}
                         {recurringExpense.end_date &&
                             ` -> ${recurringExpense.end_date}`}
+                        {` · ${T("recurring_lead_days_short").replace(
+                            "{days}",
+                            String(recurringExpense.generation_lead_days ?? 2),
+                        )}`}
                         {linkedAccount && ` · ${linkedAccount.name}`}
                         {recurringExpense.status !== "ACTIVE" && (
                             <span

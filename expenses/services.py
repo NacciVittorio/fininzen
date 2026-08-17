@@ -7,9 +7,9 @@ Queste funzioni non dipendono da request/Response — sono testabili senza Clien
 import calendar
 import logging
 import random
-from datetime import date as date_cls
+from datetime import date as date_cls, timedelta
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 
@@ -48,10 +48,20 @@ def _occurrence_date(rec: RecurringExpense, year: int, month: int) -> date_cls |
 def _recurring_already_generated(
     rec: RecurringExpense, occurrence_date: date_cls
 ) -> bool:
+    if rec.frequency == RecurringExpense.FREQUENCY_YEARLY:
+        period_start = date_cls(occurrence_date.year, 1, 1)
+        period_end = date_cls(occurrence_date.year, 12, 31)
+    else:
+        period_start = date_cls(occurrence_date.year, occurrence_date.month, 1)
+        period_end = date_cls(
+            occurrence_date.year,
+            occurrence_date.month,
+            calendar.monthrange(occurrence_date.year, occurrence_date.month)[1],
+        )
     return Expense.objects.filter(
         owner=rec.owner,
         recurring_source=rec,
-        recurring_occurrence_date=occurrence_date,
+        recurring_occurrence_date__range=(period_start, period_end),
     ).exists()
 
 
@@ -77,22 +87,57 @@ def _create_occurrence_if_missing(
     rec: RecurringExpense, occurrence_date: date_cls
 ) -> bool:
     try:
-        _, created = Expense.objects.get_or_create(
-            owner=rec.owner,
-            recurring_source=rec,
-            recurring_occurrence_date=occurrence_date,
-            defaults={
-                "description": rec.description,
-                "amount": rec.amount,
-                "category": rec.category,
-                "linked_asset": rec.linked_asset,
-                "date": occurrence_date,
-            },
-        )
-        return created
+        with transaction.atomic():
+            # Schedule edits can change the exact due date. Lock the template and
+            # deduplicate by cadence period so a moved day/month never creates a
+            # second expense for the same monthly/yearly occurrence.
+            locked_rec = RecurringExpense.objects.select_for_update().get(pk=rec.pk)
+            if _recurring_already_generated(locked_rec, occurrence_date):
+                return False
+            Expense.objects.create(
+                owner=locked_rec.owner,
+                recurring_source=locked_rec,
+                recurring_occurrence_date=occurrence_date,
+                description=locked_rec.description,
+                amount=locked_rec.amount,
+                category=locked_rec.category,
+                linked_asset=locked_rec.linked_asset,
+                date=occurrence_date,
+            )
+            return True
     except IntegrityError:
-        # Concurrent generators can race between lookup and insert.
+        # SQLite does not enforce select_for_update; the exact-date unique
+        # constraint remains the final guard for concurrent generators there.
         return False
+
+
+def _occurrence_is_due(
+    rec: RecurringExpense,
+    occurrence_date: date_cls,
+    *,
+    as_of: date_cls,
+) -> bool:
+    return occurrence_date <= as_of + timedelta(days=rec.generation_lead_days)
+
+
+def update_generated_expenses(rec: RecurringExpense) -> int:
+    """Apply template data to linked occurrences without rewriting their dates."""
+    updated = 0
+    expenses = Expense.objects.filter(owner=rec.owner, recurring_source=rec).order_by(
+        "pk"
+    )
+    for expense in expenses:
+        expense.description = rec.description
+        expense.amount = rec.amount
+        expense.category = rec.category
+        expense.linked_asset = rec.linked_asset
+        # Deliberately use save(): linked-account shadow transactions are kept in
+        # sync by Expense's post_save signal. Dates and verification stay intact.
+        expense.save(
+            update_fields=["description", "amount", "category", "linked_asset"]
+        )
+        updated += 1
+    return updated
 
 
 def generate_recurring_expenses(user, year: int, month: int) -> dict:
@@ -112,12 +157,16 @@ def generate_recurring_expenses(user, year: int, month: int) -> dict:
     created_count = 0
     skipped_count = 0
 
+    today = timezone.localdate()
     for rec in recurrings:
         exp_date = _occurrence_date(rec, year, month)
         if exp_date is None:
             skipped_count += 1
             continue
         if not _is_recurring_active_on(rec, exp_date):
+            skipped_count += 1
+            continue
+        if not _occurrence_is_due(rec, exp_date, as_of=today):
             skipped_count += 1
             continue
         if _create_occurrence_if_missing(rec, exp_date):
@@ -134,14 +183,15 @@ def generate_recurring_expenses(user, year: int, month: int) -> dict:
 
 
 def backfill_recurring_expense(rec: RecurringExpense) -> dict:
-    """Create missing recurring expenses from start_date to current month."""
+    """Create missing due expenses, including the configured future window."""
     disable_expired_recurrings(rec.owner)
     today = timezone.localdate()
     if rec.status != RecurringExpense.STATUS_ACTIVE or not rec.is_active:
         return {"created": 0, "skipped": 0}
 
     start_month = date_cls(rec.start_date.year, rec.start_date.month, 1)
-    end_cap = rec.end_date if rec.end_date else today
+    due_cap = today + timedelta(days=rec.generation_lead_days)
+    end_cap = min(rec.end_date, due_cap) if rec.end_date else due_cap
     end_month = date_cls(end_cap.year, end_cap.month, 1)
     if start_month > end_month:
         return {"created": 0, "skipped": 0}
@@ -155,7 +205,9 @@ def backfill_recurring_expense(rec: RecurringExpense) -> dict:
             skipped += 1
             current = _next_month(current)
             continue
-        if _is_recurring_active_on(rec, occurrence_date):
+        if _is_recurring_active_on(rec, occurrence_date) and _occurrence_is_due(
+            rec, occurrence_date, as_of=today
+        ):
             if _create_occurrence_if_missing(rec, occurrence_date):
                 created += 1
             else:

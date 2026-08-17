@@ -1012,28 +1012,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/expenses/recurring/generate/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description POST /api/expenses/recurring/generate/
-         *
-         *     Genera le spese ricorrenti per il mese/anno indicato.
-         *     Body: {month: 1-12, year: 2026}
-         */
-        post: operations["expenses_recurring_generate_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/expenses/recurring/status/": {
         parameters: {
             query?: never;
@@ -2487,6 +2465,7 @@ export interface components {
             category?: number | null;
             linked_asset?: number | null;
             frequency?: components["schemas"]["RecurringExpenseFrequencyEnum"];
+            generation_lead_days?: number;
             /** Format: int64 */
             day_of_month?: number;
             /** Format: int64 */
@@ -2497,6 +2476,7 @@ export interface components {
             start_date?: string;
             /** Format: date */
             end_date?: string | null;
+            update_generated_expenses?: boolean;
         };
         PatchedRecurringInvestmentPlanRequest: {
             name?: string;
@@ -2535,6 +2515,7 @@ export interface components {
             linked_asset?: number | null;
             readonly linked_asset_name: string;
             frequency?: components["schemas"]["RecurringExpenseFrequencyEnum"];
+            generation_lead_days?: number;
             /** Format: int64 */
             day_of_month?: number;
             /** Format: int64 */
@@ -2565,6 +2546,7 @@ export interface components {
             category?: number | null;
             linked_asset?: number | null;
             frequency?: components["schemas"]["RecurringExpenseFrequencyEnum"];
+            generation_lead_days?: number;
             /** Format: int64 */
             day_of_month?: number;
             /** Format: int64 */
@@ -2575,6 +2557,7 @@ export interface components {
             start_date: string;
             /** Format: date */
             end_date?: string | null;
+            update_generated_expenses?: boolean;
         };
         RecurringInvestmentPlan: {
             readonly id: number;
@@ -4150,31 +4133,6 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecurringExpenseRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["RecurringExpenseRequest"];
-                "multipart/form-data": components["schemas"]["RecurringExpenseRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecurringExpense"];
-                };
-            };
-        };
-    };
-    expenses_recurring_generate_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody: {

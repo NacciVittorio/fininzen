@@ -184,6 +184,15 @@ class BudgetSerializer(serializers.ModelSerializer):
 
 class RecurringExpenseSerializer(serializers.ModelSerializer):
     linked_asset_name = serializers.SerializerMethodField()
+    generation_lead_days = serializers.IntegerField(
+        min_value=0,
+        max_value=31,
+        required=False,
+    )
+    update_generated_expenses = serializers.BooleanField(
+        write_only=True,
+        required=False,
+    )
 
     def get_linked_asset_name(self, obj):
         return obj.linked_asset.name if obj.linked_asset_id else None
@@ -283,6 +292,14 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def update(self, instance, validated_data):
+        self.apply_to_generated = validated_data.pop("update_generated_expenses", False)
+        return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        validated_data.pop("update_generated_expenses", None)
+        return super().create(validated_data)
+
     class Meta:
         model = RecurringExpense
         fields = [
@@ -293,6 +310,7 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             "linked_asset",
             "linked_asset_name",
             "frequency",
+            "generation_lead_days",
             "day_of_month",
             "month_of_year",
             "is_active",
@@ -302,5 +320,6 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             "disabled_at",
             "deleted_at",
             "created_at",
+            "update_generated_expenses",
         ]
         read_only_fields = ["created_at", "disabled_at", "deleted_at"]

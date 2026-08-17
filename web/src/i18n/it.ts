@@ -831,7 +831,7 @@ const it: Record<string, string> = {
     settings_recurring: "Ricorrenti",
     recurring_title: "Spese Ricorrenti",
     recurring_desc:
-        "Definisci template mensili che generano spese con un click.",
+        "Definisci spese periodiche che vengono generate automaticamente alla scadenza.",
     recurring_day: "Giorno del mese",
     recurring_active: "Attiva",
     recurring_start_date: "Data inizio",
@@ -840,11 +840,19 @@ const it: Record<string, string> = {
     recurring_month: "Mese",
     recurring_day_error: "Il giorno del mese deve essere compreso tra 1 e 31.",
     recurring_month_error: "Il mese deve essere compreso tra 1 e 12.",
+    recurring_lead_days: "Giorni di anticipo",
+    recurring_lead_days_help:
+        "Il movimento apparirà automaticamente da 0 a 31 giorni prima della scadenza.",
+    recurring_lead_days_error:
+        "I giorni di anticipo devono essere compresi tra 0 e 31.",
+    recurring_lead_days_short: "{days} giorni prima",
+    recurring_update_choice_title: "Aggiornare le transazioni già generate?",
+    recurring_update_choice_body:
+        "Puoi applicare descrizione, importo, categoria e conto anche alle transazioni esistenti. Le loro date e lo stato di verifica non cambieranno.",
+    recurring_update_existing: "Aggiorna anche le già generate",
+    recurring_update_future_only: "Solo nuove occorrenze",
     recurring_delete_confirm: "Eliminare la spesa ricorrente",
     add_recurring: "Aggiungi Ricorrente",
-    generate_recurring: "Genera per questo mese",
-    recurring_generate_cta: "Genera",
-    recurring_all_generated: "Tutte generate",
     recurring_status_generated: "Generata",
     recurring_status_pending: "Da generare",
     generate_done: "generate",

@@ -1,11 +1,12 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.test import Client
 from django.utils import timezone
 
 from expenses.models import Category, Expense, RecurringExpense
-from portfolio.models import Asset, InvestmentType
+from expenses.services import generate_recurring_expenses
+from portfolio.models import Asset, AssetTransaction, InvestmentType
 
 
 def test_create_recurring_requires_start_date(client, expense_cat):
@@ -40,6 +41,40 @@ def test_create_recurring_accepts_future_start_date(client, expense_cat):
     )
     assert res.status_code == 201
     assert RecurringExpense.objects.filter(description="Spotify").exists()
+
+
+def test_create_recurring_defaults_generation_lead_days(client, expense_cat):
+    res = client.post(
+        "/api/expenses/recurring/",
+        data={
+            "description": "Spotify",
+            "amount": "9.99",
+            "category": expense_cat.id,
+            "day_of_month": 15,
+            "start_date": timezone.localdate().isoformat(),
+        },
+        content_type="application/json",
+    )
+    assert res.status_code == 201
+    assert res.json()["generation_lead_days"] == 2
+
+
+def test_create_recurring_rejects_invalid_generation_lead_days(client, expense_cat):
+    payload = {
+        "description": "Spotify",
+        "amount": "9.99",
+        "category": expense_cat.id,
+        "day_of_month": 15,
+        "start_date": timezone.localdate().isoformat(),
+    }
+    for invalid in (-1, 32):
+        res = client.post(
+            "/api/expenses/recurring/",
+            data={**payload, "generation_lead_days": invalid},
+            content_type="application/json",
+        )
+        assert res.status_code == 400
+        assert "generation_lead_days" in res.json()
 
 
 def test_create_recurring_rejects_past_end_date(client, expense_cat):
@@ -105,20 +140,11 @@ def test_auto_disable_when_end_date_is_yesterday(client, recurring):
     assert recurring.is_active is False
 
 
-def test_generate_idempotent_and_uses_recurrence_dedup(client, recurring):
-    res1 = client.post(
-        "/api/expenses/recurring/generate/",
-        data={"month": 3, "year": 2026},
-        content_type="application/json",
-    )
-    res2 = client.post(
-        "/api/expenses/recurring/generate/",
-        data={"month": 3, "year": 2026},
-        content_type="application/json",
-    )
-    assert res1.status_code == 200
-    assert res2.status_code == 200
-    assert res2.json()["created"] == 0
+def test_generate_idempotent_and_uses_recurrence_dedup(recurring):
+    result1 = generate_recurring_expenses(recurring.owner, 2026, 3)
+    result2 = generate_recurring_expenses(recurring.owner, 2026, 3)
+    assert result1["created"] == 1
+    assert result2["created"] == 0
     assert (
         Expense.objects.filter(
             recurring_source=recurring,
@@ -128,7 +154,7 @@ def test_generate_idempotent_and_uses_recurrence_dedup(client, recurring):
     )
 
 
-def test_yearly_recurring_generates_only_in_configured_month(client, expense_cat):
+def test_yearly_recurring_generates_only_in_configured_month(expense_cat):
     rec = RecurringExpense.objects.create(
         description="Insurance",
         amount="480.00",
@@ -142,27 +168,13 @@ def test_yearly_recurring_generates_only_in_configured_month(client, expense_cat
         owner=expense_cat.owner,
     )
 
-    may = client.post(
-        "/api/expenses/recurring/generate/",
-        data={"month": 5, "year": 2026},
-        content_type="application/json",
-    )
-    june = client.post(
-        "/api/expenses/recurring/generate/",
-        data={"month": 6, "year": 2026},
-        content_type="application/json",
-    )
-    june_again = client.post(
-        "/api/expenses/recurring/generate/",
-        data={"month": 6, "year": 2026},
-        content_type="application/json",
-    )
+    may = generate_recurring_expenses(expense_cat.owner, 2026, 5)
+    june = generate_recurring_expenses(expense_cat.owner, 2026, 6)
+    june_again = generate_recurring_expenses(expense_cat.owner, 2026, 6)
 
-    assert may.status_code == 200
-    assert may.json()["created"] == 0
-    assert june.status_code == 200
-    assert june.json()["created"] == 1
-    assert june_again.json()["created"] == 0
+    assert may["created"] == 0
+    assert june["created"] == 1
+    assert june_again["created"] == 0
     assert (
         Expense.objects.filter(
             recurring_source=rec,
@@ -192,9 +204,7 @@ def test_backfill_creates_missing_past_months(client, test_user, expense_cat):
     ).exists()
 
 
-def test_linked_account_is_propagated_on_generated_expense(
-    client, test_user, expense_cat
-):
+def test_linked_account_is_propagated_on_generated_expense(test_user, expense_cat):
     inv_type = InvestmentType.objects.create(
         name="Bank Account",
         owner=test_user,
@@ -220,12 +230,8 @@ def test_linked_account_is_propagated_on_generated_expense(
         status=RecurringExpense.STATUS_ACTIVE,
         owner=test_user,
     )
-    res = client.post(
-        "/api/expenses/recurring/generate/",
-        data={"month": 4, "year": 2026},
-        content_type="application/json",
-    )
-    assert res.status_code == 200
+    result = generate_recurring_expenses(test_user, 2026, 4)
+    assert result["created"] == 1
     exp = Expense.objects.get(
         recurring_source=rec,
         recurring_occurrence_date=date(2026, 4, 5),
@@ -261,26 +267,8 @@ def test_generate_dedup_is_scoped_per_owner(db, test_user, expense_cat):
         owner=other_user,
     )
 
-    c_a = Client()
-    c_a.force_login(test_user)
-    c_b = Client()
-    c_b.force_login(other_user)
-    assert (
-        c_a.post(
-            "/api/expenses/recurring/generate/",
-            data={"month": 8, "year": 2026},
-            content_type="application/json",
-        ).status_code
-        == 200
-    )
-    assert (
-        c_b.post(
-            "/api/expenses/recurring/generate/",
-            data={"month": 8, "year": 2026},
-            content_type="application/json",
-        ).status_code
-        == 200
-    )
+    assert generate_recurring_expenses(test_user, 2026, 8)["created"] == 1
+    assert generate_recurring_expenses(other_user, 2026, 8)["created"] == 1
     assert (
         Expense.objects.filter(
             owner=test_user,
@@ -295,3 +283,149 @@ def test_generate_dedup_is_scoped_per_owner(db, test_user, expense_cat):
         ).count()
         == 1
     )
+
+
+def test_manual_generate_endpoint_is_removed(client):
+    res = client.post(
+        "/api/expenses/recurring/generate/",
+        data={"month": 8, "year": 2026},
+        content_type="application/json",
+    )
+    assert res.status_code == 405
+
+
+def test_generation_respects_lead_window_across_month_boundary(
+    monkeypatch, test_user, expense_cat
+):
+    rec = RecurringExpense.objects.create(
+        description="Rent",
+        amount="900.00",
+        category=expense_cat,
+        day_of_month=1,
+        start_date=date(2026, 1, 1),
+        generation_lead_days=1,
+        owner=test_user,
+    )
+    monkeypatch.setattr(
+        "expenses.services.timezone.localdate", lambda: date(2026, 1, 30)
+    )
+
+    assert generate_recurring_expenses(test_user, 2026, 2)["created"] == 0
+    rec.generation_lead_days = 2
+    rec.save(update_fields=["generation_lead_days"])
+    assert generate_recurring_expenses(test_user, 2026, 2)["created"] == 1
+
+
+def test_changed_day_does_not_duplicate_an_existing_month(test_user, expense_cat):
+    rec = RecurringExpense.objects.create(
+        description="Rent",
+        amount="900.00",
+        category=expense_cat,
+        day_of_month=5,
+        start_date=date(2026, 1, 1),
+        owner=test_user,
+    )
+    Expense.objects.create(
+        description="Rent",
+        amount="900.00",
+        category=expense_cat,
+        date=date(2026, 5, 5),
+        recurring_source=rec,
+        recurring_occurrence_date=date(2026, 5, 5),
+        owner=test_user,
+    )
+    rec.day_of_month = 20
+    rec.save(update_fields=["day_of_month"])
+
+    assert generate_recurring_expenses(test_user, 2026, 5)["created"] == 0
+    assert Expense.objects.filter(recurring_source=rec).count() == 1
+
+
+def test_patch_can_leave_generated_expenses_unchanged(
+    client, recurring, expense_cat, test_user
+):
+    generated = Expense.objects.create(
+        description="Netflix",
+        amount="15.99",
+        category=expense_cat,
+        date=date(2026, 5, 1),
+        recurring_source=recurring,
+        recurring_occurrence_date=date(2026, 5, 1),
+        is_verified=True,
+        owner=test_user,
+    )
+
+    res = client.patch(
+        f"/api/expenses/recurring/{recurring.id}/",
+        data={"amount": "19.99", "update_generated_expenses": False},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    generated.refresh_from_db()
+    assert generated.amount == Decimal("15.99")
+    assert generated.date == date(2026, 5, 1)
+    assert generated.is_verified is True
+
+
+def test_patch_can_update_generated_data_but_preserves_dates_and_verification(
+    client, recurring, expense_cat, test_user
+):
+    inv_type = InvestmentType.objects.create(
+        name="Bank Account",
+        owner=test_user,
+        is_bank_account=True,
+        supports_ticker=False,
+        is_liquid_default=True,
+    )
+    old_account = Asset.objects.create(
+        name="Old account",
+        owner=test_user,
+        tracking_type=Asset.MANUAL,
+        investment_type=inv_type,
+        is_liquid=True,
+    )
+    new_account = Asset.objects.create(
+        name="New account",
+        owner=test_user,
+        tracking_type=Asset.MANUAL,
+        investment_type=inv_type,
+        is_liquid=True,
+    )
+    generated = Expense.objects.create(
+        description="Netflix",
+        amount="15.99",
+        category=expense_cat,
+        linked_asset=old_account,
+        date=date(2026, 5, 1),
+        recurring_source=recurring,
+        recurring_occurrence_date=date(2026, 5, 1),
+        is_verified=True,
+        owner=test_user,
+    )
+
+    res = client.patch(
+        f"/api/expenses/recurring/{recurring.id}/",
+        data={
+            "description": "Streaming",
+            "amount": "19.99",
+            "linked_asset": new_account.id,
+            "day_of_month": 20,
+            "update_generated_expenses": True,
+        },
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    generated.refresh_from_db()
+    assert generated.description == "Streaming"
+    assert generated.amount == Decimal("19.99")
+    assert generated.linked_asset == new_account
+    assert generated.date == date(2026, 5, 1)
+    assert generated.recurring_occurrence_date == date(2026, 5, 1)
+    assert generated.is_verified is True
+    shadow = AssetTransaction.objects.get(source_expense=generated)
+    assert shadow.asset == new_account
+    assert shadow.price_per_share == Decimal("19.99")
+    assert shadow.date == date(2026, 5, 1)
+    assert shadow.is_verified is True
