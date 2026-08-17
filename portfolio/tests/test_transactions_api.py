@@ -1114,6 +1114,35 @@ def test_transactions_bulk_verify_invalid_sell_rolls_back(client, asset):
     assert AssetTransaction.objects.get(pk=sell_id).is_verified is False
 
 
+def test_transactions_bulk_exception_details_are_not_exposed(
+    client, asset, monkeypatch
+):
+    tx_id = _post_tx(client, asset.id, is_verified=False).json()["id"]
+    sensitive_detail = "SELECT password FROM auth_user at /srv/app/secrets.py"
+
+    def fail_patch(*args, **kwargs):
+        raise RuntimeError(sensitive_detail)
+
+    monkeypatch.setattr(
+        "portfolio.views.transactions_feed.patch_transaction",
+        fail_patch,
+    )
+    res = _post_tx_bulk(
+        client,
+        {
+            "action": "edit",
+            "selection": {"mode": "ids", "ids": [tx_id]},
+            "patch": {"is_verified": True},
+        },
+    )
+
+    body = res.json()
+    assert res.status_code == 400
+    assert body["errors"] == ["Unable to update transaction"]
+    assert body["error_codes"] == ["bulk_apply_failed"]
+    assert sensitive_detail not in str(body)
+
+
 # ── Asset destroy with linked accounts ──────────────────────────────────────
 
 
@@ -1210,6 +1239,39 @@ def test_create_auto_asset_ignores_initial_balance(client, db, test_user):
     asset = Asset.objects.get(pk=asset_id)
     # AUTO assets: initial_balance is ignored, no CASH_IN created
     assert not AssetTransaction.objects.filter(asset=asset).exists()
+
+
+def test_initial_balance_exception_details_are_not_exposed(
+    client, db, test_user, monkeypatch
+):
+    itype = InvestmentType.objects.create(
+        name="CC secure", is_bank_account=True, supports_ticker=False, owner=test_user
+    )
+    sensitive_detail = "SELECT password FROM auth_user at /srv/app/secrets.py"
+
+    def reject_initial_balance(*args, **kwargs):
+        raise ValueError(sensitive_detail)
+
+    monkeypatch.setattr(
+        "portfolio.views.assets.create_asset_with_initial_balance",
+        reject_initial_balance,
+    )
+    res = client.post(
+        "/api/portfolio/",
+        data={
+            "name": "Secure account",
+            "investment_type": itype.id,
+            "tracking_type": "MANUAL",
+            "initial_balance": "1500",
+            "currency": "EUR",
+        },
+        content_type="application/json",
+    )
+
+    body = res.json()
+    assert res.status_code == 400
+    assert body["initial_balance"] == "Initial balance must be a positive number"
+    assert sensitive_detail not in str(body)
 
 
 # ── rebuild_manual_history ──────────────────────────────────────────────────

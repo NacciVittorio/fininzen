@@ -15,6 +15,7 @@ from ...serializers import (
     AssetTransactionSerializer,
 )
 from ...services import (
+    ArchivedAssetTransactionError,
     create_transaction,
     delete_transaction,
     patch_transaction,
@@ -24,7 +25,11 @@ from ...services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal
-from fininzen.api_errors import client_error_response, domain_error_response
+from fininzen.api_errors import (
+    archived_asset_response,
+    invalid_request_response,
+    transaction_validation_response,
+)
 from fininzen.utils import parse_optional_bool
 
 from .._common import (
@@ -91,6 +96,8 @@ class _AssetTransactionsMixin:
                 dest_account_id=dest_account_id,
                 owner=self.get_effective_user(),
             )
+        except ArchivedAssetTransactionError:
+            return archived_asset_response()
         except ValueError as exc:
             logger.warning(
                 "transactions POST: rejected — %s (asset=%s user=%s)",
@@ -98,7 +105,7 @@ class _AssetTransactionsMixin:
                 asset.name,
                 self.request.user,
             )
-            return domain_error_response(exc)
+            return transaction_validation_response(exc)
 
         _ensure_history_covers_transactions(asset)
         resp_data = dict(
@@ -125,8 +132,10 @@ class _AssetTransactionsMixin:
             )
             try:
                 delete_transaction(tx)
+            except ArchivedAssetTransactionError:
+                return archived_asset_response()
             except ValueError as exc:
-                return domain_error_response(exc)
+                return transaction_validation_response(exc)
             return Response(status=status.HTTP_204_NO_CONTENT)
         # PATCH
         source_account_id = request.data.get("source_account_id")
@@ -151,8 +160,10 @@ class _AssetTransactionsMixin:
                 dest_account_id=dest_account_id,
                 owner=self.get_effective_user(),
             )
+        except ArchivedAssetTransactionError:
+            return archived_asset_response()
         except ValueError as exc:
-            return domain_error_response(exc)
+            return transaction_validation_response(exc)
         _ensure_history_covers_transactions(asset)
         return Response(
             AssetTransactionSerializer(updated_tx, context={"request": request}).data
@@ -226,7 +237,7 @@ class _AssetTransactionsMixin:
                 owner=self.get_effective_user(),
             )
         except ValueError as exc:
-            return client_error_response(exc)
+            return transaction_validation_response(exc)
         if result.get("warning"):
             logger.warning(
                 "transfer: insufficient balance — from=%s balance=%s amount=%s",
@@ -296,8 +307,10 @@ class _AssetTransactionsMixin:
                 fee=request.data.get("fee", "0"),
                 owner=self.get_effective_user(),
             )
-        except ValueError as exc:
-            return domain_error_response(exc)
+        except ArchivedAssetTransactionError:
+            return archived_asset_response()
+        except ValueError:
+            return invalid_request_response()
         asset.refresh_from_db()
         return Response(
             {

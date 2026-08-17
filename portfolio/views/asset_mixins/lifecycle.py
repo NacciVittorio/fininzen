@@ -17,7 +17,7 @@ from ...services import (
     move_asset_position,
 )
 from decimal import Decimal
-from fininzen.api_errors import client_error_response
+from fininzen.api_errors import invalid_request_response
 from fininzen.mixins import require_view_as_full
 from fininzen.throttles import ResetRateThrottle
 
@@ -219,8 +219,8 @@ class _AssetLifecycleMixin:
             )
         try:
             move_asset_position(asset, dest_account, owner=owner)
-        except ValueError as exc:
-            return client_error_response(exc)
+        except ValueError:
+            return invalid_request_response()
         return Response(
             AssetSerializer(asset, context={"request": request}).data,
             status=status.HTTP_200_OK,

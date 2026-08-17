@@ -4,7 +4,6 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
 from .models import Category, Expense
-from fininzen.api_errors import safe_client_message
 from fininzen.utils import parse_optional_bool
 from expenses.views.helpers import _parse_import_amount
 
@@ -244,11 +243,11 @@ def run_csv_import(rows, user, request_user=None):
             )
             imported += 1
 
-        except Exception as e:
-            safe_detail = safe_client_message(e)
-            errors.append(f"Row {i + 1}: {safe_detail}")
-            skipped_details.append(f"Row {i + 1}: {safe_detail}")
-            logger.error("CSV row %d: unexpected error: %s", i + 1, e)
+        except Exception:
+            public_detail = "unexpected error"
+            errors.append(f"Row {i + 1}: {public_detail}")
+            skipped_details.append(f"Row {i + 1}: {public_detail}")
+            logger.exception("CSV row %d: unexpected error", i + 1)
             skipped += 1
 
     affected_assets = {}
