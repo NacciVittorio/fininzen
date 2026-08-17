@@ -983,7 +983,7 @@ const it: Record<string, string> = {
         "Attenzione: saldo insufficiente — il trasferimento verrà comunque eseguito.",
     btn_transfer: "Trasferisci",
     no_linked_account: "— Nessuno —",
-    label_initial_balance: "Saldo iniziale (€)",
+    label_initial_balance: "Saldo iniziale",
     hint_initial_balance:
         "Opzionale — crea un movimento CASH_IN per popolare il conto.",
     error_sell_oversell:

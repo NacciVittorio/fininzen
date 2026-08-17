@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import CurrencySelect from "../../components/CurrencySelect";
 import FieldLabel from "../../components/FieldLabel";
 import { BottomSheet, SheetTitle } from "../../components/ui";
 import type { ContributionSource, InvestmentType } from "../../api/types";
@@ -165,6 +166,19 @@ export default function AssetFormSheet({
                                 selectedInvType={selectedInvType}
                             />
                         )}
+                    </div>
+
+                    <div>
+                        <FieldLabel text={T("label_currency")} />
+                        <CurrencySelect
+                            value={assetForm.currency}
+                            onChange={(currency) =>
+                                setAssetForm((previous) => ({
+                                    ...previous,
+                                    currency,
+                                }))
+                            }
+                        />
                     </div>
 
                     {selectedInvType && !selectedInvType.is_bank_account && (

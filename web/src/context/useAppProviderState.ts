@@ -52,6 +52,7 @@ export type InvestmentTypeForm = {
 
 export type AssetForm = {
     name: string;
+    currency: string;
     ticker: string;
     price_source: string;
     source_symbol: string;
@@ -261,6 +262,7 @@ export function useAppProviderState() {
     );
     const [assetForm, setAssetForm] = useState<AssetForm>({
         name: "",
+        currency: "EUR",
         ticker: "",
         price_source: "AUTO",
         source_symbol: "",

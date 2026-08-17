@@ -977,7 +977,7 @@ const en: Record<string, string> = {
         "Warning: insufficient balance — transfer will still proceed.",
     btn_transfer: "Transfer",
     no_linked_account: "— None —",
-    label_initial_balance: "Initial balance (€)",
+    label_initial_balance: "Initial balance",
     hint_initial_balance:
         "Optional — creates a CASH_IN transaction to seed the account.",
     error_sell_oversell: "Cannot sell more shares than you own at this date.",
