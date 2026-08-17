@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import CategorySelect from "../../components/CategorySelect";
 import FieldLabel from "../../components/FieldLabel";
@@ -35,8 +36,10 @@ export function RecurringExpenseModal({
     recurringError: string | null;
     recurringSaving: boolean;
     closeRecurringModal: () => void;
-    submitRecurring: () => void;
+    submitRecurring: (updateGenerated?: boolean) => void;
 }) {
+    const [showUpdateChoice, setShowUpdateChoice] = useState(false);
+
     return (
         <Modal
             title={
@@ -46,132 +49,235 @@ export function RecurringExpenseModal({
             }
             onClose={closeRecurringModal}
         >
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div>
-                    <FieldLabel text={T("label_description")} />
-                    <input
-                        className="inp"
-                        placeholder={T("placeholder_description")}
-                        value={recurringForm.description}
-                        onChange={(event) =>
-                            setRecurringForm((state) => ({
-                                ...state,
-                                description: event.target.value,
-                            }))
-                        }
-                    />
-                </div>
-                <div>
-                    <FieldLabel text={T("label_amount")} />
-                    <input
-                        className="inp"
-                        type="text"
-                        inputMode="decimal"
-                        placeholder={decimalSeparator === "," ? "0,00" : "0.00"}
-                        value={recurringForm.amount}
-                        onChange={(event) =>
-                            setRecurringForm((state) => ({
-                                ...state,
-                                amount: filterAmountInput(event.target.value),
-                            }))
-                        }
-                    />
-                </div>
-                <div>
-                    <FieldLabel text={T("label_category")} />
-                    <CategorySelect
-                        value={recurringForm.category}
-                        onChange={(value) =>
-                            setRecurringForm((state) => ({
-                                ...state,
-                                category: value,
-                            }))
-                        }
-                        categoryType="expense"
-                        categories={categories}
-                        placeholder={T("no_category")}
-                    />
-                </div>
-                <div>
-                    <FieldLabel text={T("label_linked_asset")} />
-                    <select
-                        className="inp"
-                        value={recurringForm.linked_asset}
-                        onChange={(event) =>
-                            setRecurringForm((state) => ({
-                                ...state,
-                                linked_asset: event.target.value,
-                            }))
-                        }
-                    >
-                        <option value="">{T("no_linked_asset")}</option>
-                        {bankAccounts.map((account) => (
-                            <option key={account.id} value={account.id}>
-                                {account.investment_type_detail?.icon || ""}{" "}
-                                {account.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <RecurringFrequencyFields
+            {showUpdateChoice ? (
+                <RecurringUpdateChoice
                     T={T}
-                    MONTHS={MONTHS}
-                    recurringForm={recurringForm}
-                    setRecurringForm={setRecurringForm}
-                />
-                <DateRangeFields
-                    T={T}
-                    form={recurringForm}
-                    setForm={setRecurringForm}
-                    startField="start_date"
-                    endField="end_date"
-                />
-                <label
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        cursor: "pointer",
-                        fontSize: 13,
+                    recurringSaving={recurringSaving}
+                    onCancel={() => setShowUpdateChoice(false)}
+                    onChoose={(updateGenerated) => {
+                        setShowUpdateChoice(false);
+                        submitRecurring(updateGenerated);
                     }}
-                >
-                    <input
-                        type="checkbox"
-                        checked={recurringForm.is_active}
-                        onChange={(event) =>
-                            setRecurringForm((state) => ({
-                                ...state,
-                                is_active: event.target.checked,
-                            }))
-                        }
-                    />
-                    {T("recurring_active")}
-                </label>
-                {recurringError && <ModalError>{recurringError}</ModalError>}
+                />
+            ) : (
                 <div
                     style={{
                         display: "flex",
-                        gap: 8,
-                        justifyContent: "flex-end",
+                        flexDirection: "column",
+                        gap: 12,
                     }}
                 >
-                    <button className="btn btn-g" onClick={closeRecurringModal}>
-                        {T("btn_cancel")}
-                    </button>
-                    <button
-                        className="btn btn-p"
-                        disabled={recurringSaving}
-                        onClick={submitRecurring}
+                    <div>
+                        <FieldLabel text={T("label_description")} />
+                        <input
+                            className="inp"
+                            placeholder={T("placeholder_description")}
+                            value={recurringForm.description}
+                            onChange={(event) =>
+                                setRecurringForm((state) => ({
+                                    ...state,
+                                    description: event.target.value,
+                                }))
+                            }
+                        />
+                    </div>
+                    <div>
+                        <FieldLabel text={T("label_amount")} />
+                        <input
+                            className="inp"
+                            type="text"
+                            inputMode="decimal"
+                            placeholder={
+                                decimalSeparator === "," ? "0,00" : "0.00"
+                            }
+                            value={recurringForm.amount}
+                            onChange={(event) =>
+                                setRecurringForm((state) => ({
+                                    ...state,
+                                    amount: filterAmountInput(
+                                        event.target.value,
+                                    ),
+                                }))
+                            }
+                        />
+                    </div>
+                    <div>
+                        <FieldLabel text={T("label_category")} />
+                        <CategorySelect
+                            value={recurringForm.category}
+                            onChange={(value) =>
+                                setRecurringForm((state) => ({
+                                    ...state,
+                                    category: value,
+                                }))
+                            }
+                            categoryType="expense"
+                            categories={categories}
+                            placeholder={T("no_category")}
+                        />
+                    </div>
+                    <div>
+                        <FieldLabel text={T("label_linked_asset")} />
+                        <select
+                            className="inp"
+                            value={recurringForm.linked_asset}
+                            onChange={(event) =>
+                                setRecurringForm((state) => ({
+                                    ...state,
+                                    linked_asset: event.target.value,
+                                }))
+                            }
+                        >
+                            <option value="">{T("no_linked_asset")}</option>
+                            {bankAccounts.map((account) => (
+                                <option key={account.id} value={account.id}>
+                                    {account.investment_type_detail?.icon || ""}{" "}
+                                    {account.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <RecurringFrequencyFields
+                        T={T}
+                        MONTHS={MONTHS}
+                        recurringForm={recurringForm}
+                        setRecurringForm={setRecurringForm}
+                    />
+                    <div>
+                        <FieldLabel text={T("recurring_lead_days")} />
+                        <input
+                            className="inp"
+                            type="number"
+                            min="0"
+                            max="31"
+                            value={recurringForm.generation_lead_days}
+                            onChange={(event) =>
+                                setRecurringForm((state) => ({
+                                    ...state,
+                                    generation_lead_days: event.target.value,
+                                }))
+                            }
+                        />
+                        <div
+                            style={{
+                                marginTop: 5,
+                                fontSize: 11,
+                                color: "var(--fg-soft)",
+                            }}
+                        >
+                            {T("recurring_lead_days_help")}
+                        </div>
+                    </div>
+                    <DateRangeFields
+                        T={T}
+                        form={recurringForm}
+                        setForm={setRecurringForm}
+                        startField="start_date"
+                        endField="end_date"
+                    />
+                    <label
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            cursor: "pointer",
+                            fontSize: 13,
+                        }}
                     >
-                        {recurringSaving
-                            ? "..."
-                            : editingRecurringId
-                              ? T("btn_update")
-                              : T("btn_add")}
-                    </button>
+                        <input
+                            type="checkbox"
+                            checked={recurringForm.is_active}
+                            onChange={(event) =>
+                                setRecurringForm((state) => ({
+                                    ...state,
+                                    is_active: event.target.checked,
+                                }))
+                            }
+                        />
+                        {T("recurring_active")}
+                    </label>
+                    {recurringError && (
+                        <ModalError>{recurringError}</ModalError>
+                    )}
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 8,
+                            justifyContent: "flex-end",
+                        }}
+                    >
+                        <button
+                            className="btn btn-g"
+                            onClick={closeRecurringModal}
+                        >
+                            {T("btn_cancel")}
+                        </button>
+                        <button
+                            className="btn btn-p"
+                            disabled={recurringSaving}
+                            onClick={() => {
+                                if (editingRecurringId) {
+                                    setShowUpdateChoice(true);
+                                } else {
+                                    submitRecurring(false);
+                                }
+                            }}
+                        >
+                            {recurringSaving
+                                ? "..."
+                                : editingRecurringId
+                                  ? T("btn_update")
+                                  : T("btn_add")}
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
         </Modal>
+    );
+}
+
+function RecurringUpdateChoice({
+    T,
+    recurringSaving,
+    onCancel,
+    onChoose,
+}: {
+    T: Translator;
+    recurringSaving: boolean;
+    onCancel: () => void;
+    onChoose: (updateGenerated: boolean) => void;
+}) {
+    return (
+        <div
+            data-testid="recurring-update-choice"
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
+            <div style={{ fontSize: 15, fontWeight: 600 }}>
+                {T("recurring_update_choice_title")}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                {T("recurring_update_choice_body")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button
+                    className="btn btn-p"
+                    disabled={recurringSaving}
+                    onClick={() => onChoose(true)}
+                >
+                    {T("recurring_update_existing")}
+                </button>
+                <button
+                    className="btn btn-g"
+                    disabled={recurringSaving}
+                    onClick={() => onChoose(false)}
+                >
+                    {T("recurring_update_future_only")}
+                </button>
+                <button className="btn btn-g" onClick={onCancel}>
+                    {T("btn_cancel")}
+                </button>
+            </div>
+        </div>
     );
 }
 

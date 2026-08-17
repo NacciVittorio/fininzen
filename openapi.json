@@ -2434,55 +2434,6 @@
                 }
             }
         },
-        "/api/expenses/recurring/generate/": {
-            "post": {
-                "operationId": "expenses_recurring_generate_create",
-                "description": "POST /api/expenses/recurring/generate/\n\nGenera le spese ricorrenti per il mese/anno indicato.\nBody: {month: 1-12, year: 2026}",
-                "tags": [
-                    "expenses"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RecurringExpenseRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RecurringExpenseRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RecurringExpenseRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "jwtAuth": []
-                    },
-                    {
-                        "cookieAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RecurringExpense"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
         "/api/expenses/recurring/status/": {
             "get": {
                 "operationId": "expenses_recurring_status_retrieve",
@@ -6743,6 +6694,11 @@
                     "frequency": {
                         "$ref": "#/components/schemas/RecurringExpenseFrequencyEnum"
                     },
+                    "generation_lead_days": {
+                        "type": "integer",
+                        "maximum": 31,
+                        "minimum": 0
+                    },
                     "day_of_month": {
                         "type": "integer",
                         "maximum": 9223372036854775807,
@@ -6770,6 +6726,10 @@
                         "type": "string",
                         "format": "date",
                         "nullable": true
+                    },
+                    "update_generated_expenses": {
+                        "type": "boolean",
+                        "writeOnly": true
                     }
                 }
             },
@@ -6874,6 +6834,11 @@
                     "frequency": {
                         "$ref": "#/components/schemas/RecurringExpenseFrequencyEnum"
                     },
+                    "generation_lead_days": {
+                        "type": "integer",
+                        "maximum": 31,
+                        "minimum": 0
+                    },
                     "day_of_month": {
                         "type": "integer",
                         "maximum": 9223372036854775807,
@@ -6962,6 +6927,11 @@
                     "frequency": {
                         "$ref": "#/components/schemas/RecurringExpenseFrequencyEnum"
                     },
+                    "generation_lead_days": {
+                        "type": "integer",
+                        "maximum": 31,
+                        "minimum": 0
+                    },
                     "day_of_month": {
                         "type": "integer",
                         "maximum": 9223372036854775807,
@@ -6989,6 +6959,10 @@
                         "type": "string",
                         "format": "date",
                         "nullable": true
+                    },
+                    "update_generated_expenses": {
+                        "type": "boolean",
+                        "writeOnly": true
                     }
                 },
                 "required": [

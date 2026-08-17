@@ -41,6 +41,7 @@ export type RecurringForm = {
     category: string;
     linked_asset: string;
     frequency: string;
+    generation_lead_days: string;
     day_of_month: string;
     month_of_year: string;
     start_date: string;
@@ -112,6 +113,7 @@ export const buildRecurringForm = (
     category: "",
     linked_asset: "",
     frequency: "MONTHLY",
+    generation_lead_days: "2",
     day_of_month: "1",
     month_of_year: "",
     start_date: today(),

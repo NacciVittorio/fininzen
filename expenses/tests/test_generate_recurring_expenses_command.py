@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from io import StringIO
 
 from django.core.management import call_command
@@ -66,3 +66,36 @@ def test_command_skips_disabled_recurring(db, test_user, expense_cat):
     call_command("generate_recurring_expenses")
 
     assert not Expense.objects.filter(recurring_source=rec).exists()
+
+
+def test_command_respects_each_recurring_lead_window(
+    monkeypatch, db, test_user, expense_cat
+):
+    rec = RecurringExpense.objects.create(
+        description="Rent",
+        amount="900.00",
+        category=expense_cat,
+        day_of_month=1,
+        start_date=date(2026, 1, 1),
+        generation_lead_days=1,
+        is_active=True,
+        status=RecurringExpense.STATUS_ACTIVE,
+        owner=test_user,
+    )
+    monkeypatch.setattr(
+        "expenses.services.timezone.localdate", lambda: date(2026, 1, 30)
+    )
+
+    call_command("generate_recurring_expenses")
+    assert not Expense.objects.filter(
+        recurring_source=rec,
+        recurring_occurrence_date=date(2026, 2, 1),
+    ).exists()
+
+    rec.generation_lead_days = 2
+    rec.save(update_fields=["generation_lead_days"])
+    call_command("generate_recurring_expenses")
+    assert Expense.objects.filter(
+        recurring_source=rec,
+        recurring_occurrence_date=date(2026, 2, 1),
+    ).exists()
