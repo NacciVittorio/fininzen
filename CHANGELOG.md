@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v0.13.3 (2026-08-17)
+
+### Fix
+
+- **expenses**: control recurring expense generation
+
 ## v0.13.2 (2026-08-17)
 
 ### Fix

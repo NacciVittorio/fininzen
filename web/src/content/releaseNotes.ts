@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "0.13.3",
+        date: "2026-08-17",
         highlights: {
             it: [
                 "Le spese ricorrenti ora appaiono solo con l'anticipo scelto, da 0 a 31 giorni. Quando modifichi una ricorrenza puoi decidere se aggiornare anche le transazioni già generate, senza duplicare lo storico.",
