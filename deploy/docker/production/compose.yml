@@ -1,13 +1,8 @@
 # Full containerized stack — Caddy + Next.js + Django + Postgres + Redis.
 #
-# This is the "everything in Docker" topology: a single `docker compose up -d`
-# brings the whole app online behind its own Caddy. On this VPS the host also
-# runs a separate systemd-managed Caddy for another domain on :80/:443, so
-# this stack's Caddy is temporarily published on an alternate host port via
-# HTTP_PORT (see ./Caddyfile) instead of binding 80/443 directly — the host
-# Caddy relays fininzen.nacci.eu to it. See ./README.md and
-# wiki/archive/VPS_DEPLOY_CHECKLIST.md for the current setup and the future flip back
-# to owning 80/443 directly once that host Caddy is retired.
+# This is the supported "everything in Docker" topology. It can be exposed
+# directly on a LAN or bound to loopback behind an existing TLS reverse proxy;
+# see wiki/DOCKER_DEPLOY.md.
 #
 #   cp deploy/docker/production/.env.example deploy/docker/production/.env   # then edit
 #   docker compose --env-file deploy/docker/production/.env \
@@ -105,9 +100,7 @@ services:
       - frontend
       - backend
     ports:
-      # Temporarily an alternate port (see header comment) instead of 80/443
-      # directly, while the host's other systemd Caddy owns those.
-      - "${HTTP_PORT:-80}:80"
+      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - staticfiles:/srv/staticfiles:ro

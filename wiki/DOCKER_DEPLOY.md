@@ -1,5 +1,9 @@
 # Deploy Docker — da VM vuota a stack online
 
+> Docker è un percorso supportato e in sviluppo attivo. Il server pubblico usa
+> attualmente il deploy [bare-metal](SYSTEMD_DEPLOY.md), ma questo runbook descrive lo
+> stack completo alternativo con PostgreSQL e Redis.
+
 Guida completa per portare Fininzen in produzione su una VM Linux (es. Debian su
 Proxmox) con **tutto in Docker**: Caddy + Next.js + Django/Gunicorn + PostgreSQL + Redis, dietro un unico `docker compose`.
 
@@ -198,9 +202,9 @@ alias dc='docker compose --env-file /opt/fininzen/deploy/docker/production/.env 
 ## 7. Job schedulati: prezzi e spese ricorrenti (IMPORTANTE)
 
 I prezzi degli asset si aggiornano con `manage.py refresh_asset_prices`, che
-**non** deve girare ai request degli utenti (vedi `wiki/OPS_HARDENING.md`). Nel
-mondo bare-metal lo faceva un timer systemd; in Docker lo schediamo con il **cron
-dell'host** che invoca il container già in esecuzione.
+**non** deve girare durante le richieste degli utenti. Nel mondo bare-metal lo
+esegue un timer systemd; in Docker lo scheduliamo con il **cron dell'host** che
+invoca il container già in esecuzione.
 
 Lo stesso vale per le spese ricorrenti: `generate_recurring_expenses` applica
 ogni giorno la finestra di anticipo configurata su ciascuna ricorrenza, mentre
@@ -253,6 +257,9 @@ git pull
 dc up -d --build           # ricostruisce le immagini; migrate/collectstatic automatici
 ```
 
+Dopo il deploy controlla `dc ps`, i log di backend e Caddy, il contenuto di
+`crontab -l` ed esegui `scripts/smoke_test.sh` sull'URL dell'installazione.
+
 ### Backup del database
 
 Usa lo script dedicato: fa il `pg_dump` (formato custom) dal container in
@@ -260,26 +267,29 @@ Usa lo script dedicato: fa il `pg_dump` (formato custom) dal container in
 nel `.env`):
 
 ```bash
-just production-backup           # equivale a: bash scripts/backup_db.sh
+just production-backup           # equivale a: bash scripts/backup_postgres.sh
 ```
 
 Schedulalo da cron (utente **dockerapp**) e, se vuoi una copia off-site, aggiungi
 `backup_offsite.sh` dopo (richiede `OFFSITE_RSYNC_TARGET` nel `.env`):
 
 ```cron
-30 3 * * * /opt/fininzen/scripts/backup_db.sh      >> /home/dockerapp/backup_db.log 2>&1
+30 3 * * * /opt/fininzen/scripts/backup_postgres.sh      >> /home/dockerapp/backup_db.log 2>&1
 45 3 * * * /opt/fininzen/scripts/backup_offsite.sh >> /home/dockerapp/offsite.log   2>&1
 ```
 
-Ripristino di un dump su un DB vuoto:
+Ripristino di un dump non cifrato su un DB vuoto:
 
 ```bash
-cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
-  docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml \
-  exec -T postgres pg_restore -U fininzen -d fininzen --clean
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml exec -T postgres \
+  sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' \
+  < backups/fininzen_AAAA-MM-GG_HHMMSS.dump
 ```
 
-> Testa periodicamente un restore su un DB usa e getta, non sul DB live.
+Per un file `.enc`, decifra prima in una directory temporanea protetta oppure
+collega `openssl enc -d` allo stesso comando. Testa periodicamente un restore su
+un DB usa e getta, non sul DB live.
 
 ---
 
@@ -311,7 +321,6 @@ cat backups/fininzen_AAAA-MM-GG_HHMMSS.dump | \
 
 ## Riferimenti
 
-- `deploy/docker/production/README.md` — riferimento rapido dei comandi dello stack.
-- `wiki/OPS_HARDENING.md` — checklist di hardening lato deploy.
-- `wiki/VERSIONING.md` — schema di versionamento unico backend/frontend.
-- `wiki/archive/POSTGRES_MIGRATION.md` — note storiche di migrazione SQLite → PostgreSQL (cutover completato).
+- `deploy/docker/README.md` — riferimento rapido dei comandi dello stack.
+- [VERSIONING.md](VERSIONING.md) — schema di versionamento unico backend/frontend.
+- `wiki/archive/POSTGRES_MIGRATION.md` — snapshot storico di una migrazione SQLite → PostgreSQL.

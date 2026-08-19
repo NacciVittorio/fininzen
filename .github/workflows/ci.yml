@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_DB: fininzen_test
           POSTGRES_USER: fininzen
@@ -98,13 +98,13 @@ jobs:
 
   backend-postgres:
     name: Backend on Postgres (migrate + pytest)
-    # Production runs on PostgreSQL with AES-256-GCM field encryption; this job
-    # exercises the suite against the real engine so Postgres-only behaviour
+    # The Docker target runs on PostgreSQL with AES-256-GCM field encryption;
+    # this job exercises the suite against that engine so Postgres-only behaviour
     # (sequences, JSON/array SQL, the encrypted columns) is covered before merge.
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_DB: fininzen
           POSTGRES_USER: fininzen

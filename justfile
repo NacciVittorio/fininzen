@@ -76,7 +76,7 @@ start:
 # ── Bare-metal production (systemd, no Docker) ───────────────────────────────
 # Da eseguire sul VPS come utente fininzen dentro /opt/fininzen. La produzione
 # usa SQLite (ALLOW_SQLITE_IN_PRODUCTION=1 in /etc/fininzen.env). Guida completa:
-# wiki/DEPLOY.md. I comandi manage.py sono management command → non attivano il
+# wiki/SYSTEMD_DEPLOY.md. I comandi manage.py sono management command → non attivano il
 # guard di boot, quindi non servono le env di sicurezza per migrate/collectstatic.
 
 migrate-prod:
@@ -108,9 +108,9 @@ docker-local-down:
 docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
-# ── Full Docker stack (production deploy: Caddy + Next.js + Django + PG + Redis) ─
-# Run these on the server from the repo root. Require deploy/docker/production/.env.
-# Full guide: wiki/DOCKER_DEPLOY.md
+# ── Full Docker stack (Caddy + Next.js + Django + PG + Redis) ────────────────
+# Supported full-stack target, currently exercised in development/testing.
+# Requires deploy/docker/production/.env. Guide: wiki/DOCKER_DEPLOY.md.
 
 production-up:
     docker compose {{production}} up -d --build
@@ -134,7 +134,7 @@ production-refresh-prices:
     docker compose {{production}} exec -T backend python manage.py refresh_asset_prices
 
 production-backup:
-    bash scripts/backup_db.sh
+    bash scripts/backup_postgres.sh
 
 # ── Code quality ─────────────────────────────────────────────────────────────
 
@@ -199,7 +199,8 @@ hooks-run:
 # version and an incremental changelog. On every later run it bumps the unified
 # version (SemVer) from the Conventional Commits: update VERSION +
 # web/package.json + CHANGELOG.md and create the vX.Y.Z tag. Either way it pushes
-# commit + tag, and the `release` job in .gitlab-ci.yml then publishes the Release.
+# commit + tag; the GitHub mirror workflow then publishes the GitHub and GitLab
+# Releases while GitLab CI is dormant.
 # Usage:
 #   just release            → increment inferred automatically from the commits
 #   just release patch      → force a patch increment (likewise minor / major)

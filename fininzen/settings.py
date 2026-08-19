@@ -151,8 +151,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "fininzen.wsgi.application"
 
 
-# Database: Postgres in produzione (via DATABASE_URL o POSTGRES_*), SQLite come
-# default per sviluppo/test. La produzione è bloccata sotto se non usa Postgres.
+# Database: SQLite e PostgreSQL sono entrambi supportati. Il deploy bare-metal
+# usa SQLite con opt-in esplicito; lo stack Docker usa PostgreSQL tramite
+# DATABASE_URL o POSTGRES_*.
 def _apply_pool(cfg):
     """Abilita il connection pool nativo di psycopg3 quando DB_POOL è impostato.
 
@@ -241,7 +242,7 @@ def _build_default_database():
 DATABASES = {"default": _build_default_database()}
 DEFAULT_DB_IS_POSTGRES = DATABASES["default"]["ENGINE"].endswith("postgresql")
 
-# Where scripts/backup_db.sh writes backups (see that script's own default).
+# Where the SQLite/PostgreSQL backup scripts write backups.
 # Read here too so the admin health panel can report the latest backup's age.
 BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
 

@@ -1,10 +1,10 @@
 # Migrazione SQLite → PostgreSQL + cifratura campi
 
-> ✅ **Cutover a Postgres completato — documento archiviato, conservato solo per
-> storico.** La produzione gira ormai su PostgreSQL. Il tooling
-> (`manage.py migrate_sqlite_to_postgres`) resta nel codice per riferimento, ma
-> questo runbook non fa più parte del flusso operativo. Per backup/restore in stato
-> stazionario vedi [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) §8.
+> **Archivio storico — non descrive lo stato corrente.** Questo runbook conserva
+> una migrazione sperimentata in una fase precedente. Il deploy pubblico attuale
+> usa SQLite bare-metal; lo stack PostgreSQL Docker rimane supportato ma segue
+> [la guida corrente](../DOCKER_DEPLOY.md). Non eseguire questi comandi
+> su dati correnti senza progettare e verificare una nuova migrazione.
 
 Questa guida copre il passaggio una-tantum dal vecchio `db.sqlite3` (database di
 sviluppo) al PostgreSQL dello stack Docker, con cifratura applicativa

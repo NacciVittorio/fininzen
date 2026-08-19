@@ -2,12 +2,11 @@
 
 Stack: **Django 6 + Gunicorn** · **Next.js SSR** (`next start`) · **Caddy** (systemd host) · **systemd** · **SQLite3**
 
-> **Perché bare-metal.** Su una VPS piccola (1 vCPU / 1 GB RAM / 10 GB disco) le
-> immagini Docker (postgres, python, node, redis, caddy) saturano il disco e
-> impediscono gli upgrade. Questo percorso fa girare tutto direttamente con
-> systemd e usa **SQLite** come database: un solo file, nessun processo/RAM extra.
-> Lo stack Docker/Postgres resta in `deploy/docker/` come riferimento ma **non
-> viene usato**. Guida Docker (storica): [archive/DOCKER_DEPLOY.md](archive/DOCKER_DEPLOY.md).
+> Questo è il runbook del deploy pubblico attuale. Su una VPS piccola
+> (1 vCPU / 1 GB RAM / 10 GB disco) evita il costo di PostgreSQL, Redis e dei
+> container, usando SQLite e servizi systemd. Lo stack Docker/PostgreSQL rimane
+> un'alternativa supportata e testata in sviluppo; usa la sua
+> [guida dedicata](DOCKER_DEPLOY.md) senza mescolare i due percorsi.
 
 ## 1. Swap file (fondamentale con 1 GB RAM)
 
@@ -121,6 +120,8 @@ install -m 0644 /opt/fininzen/deploy/systemd/fininzen.service              /etc/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-web.service          /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.service /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-refresh-prices.timer   /etc/systemd/system/
+install -m 0644 /opt/fininzen/deploy/systemd/fininzen-backup.service        /etc/systemd/system/
+install -m 0644 /opt/fininzen/deploy/systemd/fininzen-backup.timer          /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-recurring.service /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-recurring.timer   /etc/systemd/system/
 install -m 0644 /opt/fininzen/deploy/systemd/fininzen-generate-split-recurring.service /etc/systemd/system/
@@ -130,6 +131,7 @@ systemctl daemon-reload
 systemctl enable --now fininzen              # gunicorn su 127.0.0.1:8001
 systemctl enable --now fininzen-web          # next start su 127.0.0.1:3000
 systemctl enable --now fininzen-refresh-prices.timer   # refresh prezzi orario
+systemctl enable --now fininzen-backup.timer           # backup SQLite giornaliero
 systemctl enable --now fininzen-generate-recurring.timer   # genera spese ricorrenti giornaliero
 systemctl enable --now fininzen-generate-split-recurring.timer   # genera spese Split ricorrenti giornaliero
 
@@ -142,6 +144,8 @@ systemctl status fininzen fininzen-web --no-pager
   `DJANGO_ORIGIN=http://127.0.0.1:8001` per le fetch server-side.
 - `fininzen-refresh-prices.{service,timer}` — `manage.py refresh_asset_prices`
   ogni ora (`Nice=10`, `IOSchedulingClass=idle`).
+- `fininzen-backup.{service,timer}` — backup SQLite consistente ogni giorno,
+  con recupero dell'esecuzione mancata e jitter di 15 minuti.
 - `fininzen-generate-recurring.{service,timer}` — `manage.py generate_recurring_expenses`
   una volta al giorno (`Persistent=true`, recupera l'esecuzione mancata se il VPS
   era spento); genera le `Expense` mancanti per tutte le `RecurringExpense` attive.
@@ -177,7 +181,11 @@ filesystem, tutto il resto → `127.0.0.1:3000` (Next.js).
 scripts/smoke_test.sh https://fininzen.nacci.eu 20
 journalctl -u fininzen -f
 journalctl -u fininzen-web -f
+systemctl list-timers 'fininzen-*'
 ```
+
+Verifica inoltre il login e che backend, frontend e timer non risultino in
+stato `failed`.
 
 ## 10. Aggiornamenti futuri
 
@@ -192,6 +200,10 @@ riavvia i servizi → reload Caddy → smoke test. Rollback automatico del codic
 commit precedente in caso di errore. In alternativa, come utente `fininzen`:
 `just deploy-prod main` (senza reinstallo unit/Caddy).
 
+Entrambi i comandi riallineano il checkout alla branch remota con
+`git reset --hard`: il working tree sul server deve essere pulito e non deve
+contenere modifiche da conservare.
+
 Serve il sudoers per il restart dei servizi da parte di `fininzen`:
 
 ```
@@ -202,35 +214,19 @@ fininzen ALL=(ALL) NOPASSWD: /bin/systemctl reload caddy
 ## 11. Backup del database
 
 `scripts/backup_db.sh` usa `sqlite3 .backup` (copia consistente anche in WAL) +
-`PRAGMA integrity_check`, con rotazione a 7 giorni. Schedulalo via cron `fininzen`:
-
-```cron
-0 3 * * * /opt/fininzen/scripts/backup_db.sh >> /opt/fininzen/logs/backup.log 2>&1
-```
-
-Per la replica off-site vedi `scripts/backup_offsite.sh`.
-
-## 12. Liberare spazio disco: dismettere Docker
-
-Una volta che i servizi systemd sono su e l'app risponde, recupera lo spazio
-occupato dallo stack Docker:
+`PRAGMA integrity_check`, con rotazione a 7 giorni. Il timer
+`fininzen-backup.timer`, installato al passo 7 e dal normale script di deploy,
+lo esegue ogni giorno alle 03:00 con jitter e recupero delle esecuzioni mancate.
 
 ```bash
-# Se lo stack gira ancora:
-cd /opt/fininzen && just production-down    # oppure: docker compose -f deploy/docker/production/compose.yml down
-
-# Rimuovi immagini, container e volumi inutilizzati:
-docker system prune -a --volumes
+systemctl status fininzen-backup.timer --no-pager
+systemctl list-timers fininzen-backup.timer
 ```
 
-> **Attenzione ai dati Postgres.** Se nel volume `postgres_data` c'erano dati di
-> produzione da conservare, esportali PRIMA del prune (`docker compose ... exec
-> postgres pg_dump ...`). Nel deploy SQLite la produzione torna a
-> `/opt/fininzen/db.sqlite3`, quindi i volumi del container Postgres di norma non
-> contengono nulla da salvare — **verifica comunque** prima di cancellare.
-
-Volendo, dopo la migrazione puoi disinstallare del tutto Docker per liberare
-ancora più spazio (`apt purge docker-ce docker-ce-cli containerd.io ...`).
+Per la replica off-site configura `OFFSITE_RSYNC_TARGET` in
+`/etc/fininzen.env` ed esegui `scripts/backup_offsite.sh` dopo il timer locale.
+Prova periodicamente il ripristino su una copia temporanea: la sola presenza del
+file di backup non garantisce che sia recuperabile.
 
 ## Rate limiting (opzionale)
 

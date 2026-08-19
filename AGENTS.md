@@ -6,9 +6,9 @@ The Django project configuration and shared security code live in `fininzen/`. D
 
 ## Build, Test, and Development Commands
 
-- `just doctor && just install` checks prerequisites and installs Python and Node dependencies.
+- `just install && just doctor` installs Python and Node dependencies, then verifies the resulting environment.
 - `just start` runs Django on port 8000 and Next.js on port 3000; use `just backend` or `just web` for one side only.
-- `just test-backend` runs pytest with coverage; `just test-e2e` runs Playwright when Django is available. `just test` runs both.
+- `just test-backend` runs pytest with coverage; `just test-e2e` runs Playwright and starts Django when needed. `just test` runs both.
 - `just lint` runs Ruff, Prettier checks, ESLint, and TypeScript checking. `just format` applies Ruff and Prettier formatting.
 - `just makemigrations` and `just migrate` create and apply schema changes.
 - `just schema` regenerates `openapi.json`; then run `npm run generate:api --prefix web` when the API contract changes.
@@ -19,7 +19,7 @@ Honor `.editorconfig` and let Ruff/Prettier determine final formatting. Python m
 
 ## Testing Guidelines
 
-Place backend tests in `<app>/tests/test_*.py`; pytest-django reuses the test database and enforces at least 75% coverage through `just test-backend`. Add focused regression tests for API, tenant isolation, migrations, and security behavior. Name Playwright files `*.spec.ts`; start Django before `just test-e2e`.
+Place backend tests in `<app>/tests/test_*.py`; pytest-django reuses the test database and enforces at least 75% coverage through `just test-backend`. Add focused regression tests for API, tenant isolation, migrations, and security behavior. Name Playwright files `*.spec.ts`; `just test-e2e` starts a temporary backend when port 8000 is free, or reuses one started explicitly with `just backend-e2e`.
 
 ## Commit & Pull Request Guidelines
 

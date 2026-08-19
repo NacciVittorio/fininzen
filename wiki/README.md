@@ -1,45 +1,34 @@
 # Wiki — Fininzen
 
-Mappa della documentazione di progetto. Il [README](../README.md) alla root copre
-installazione, avvio e comandi `just`; questa cartella raccoglie le guide
-approfondite.
+Indice della documentazione mantenuta. Il [README principale](../README.md)
+copre installazione e sviluppo locale.
 
-## Deploy & operatività
+## Deploy supportati
 
-- [DEPLOY.md](DEPLOY.md) — runbook canonico: deploy bare-metal su VPS Ubuntu
-  (systemd, SQLite, senza Docker), da VM vuota a stack online.
-- [OPS_HARDENING.md](OPS_HARDENING.md) — checklist di hardening lato deploy (rate limit,
-  backup, gunicorn, price refresh) + log dei finding accettati.
+| Modalità | Ruolo attuale | Fonte operativa |
+|---|---|---|
+| Bare-metal, systemd e SQLite | Deploy pubblico in produzione | [SYSTEMD_DEPLOY.md](SYSTEMD_DEPLOY.md) |
+| Docker full-stack, PostgreSQL e Redis | Alternativa supportata, in test e sviluppo | [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) |
 
-## Architettura
+Le due guide sono indipendenti: non combinare comandi, file `.env`, backup o
+scheduler di una modalità con l'altra.
 
-- [HEAVY_DEPS.md](HEAVY_DEPS.md) — perché le dipendenze pesanti del backend (yfinance,
-  pandas, numpy, …) restano e come il loro raggio d'azione è confinato da un test guardia.
+## Integrazioni
 
-## Automazioni
+- [APPLE_PAY_SHORTCUT.md](APPLE_PAY_SHORTCUT.md) — automazione iOS Wallet per
+  registrare una spesa tramite token API.
 
-- [APPLE_PAY_SHORTCUT.md](APPLE_PAY_SHORTCUT.md) — guida per registrare automaticamente
-  una spesa a ogni pagamento Apple Pay NFC, via trigger Wallet dell'app Comandi (iOS) e
-  token API (`ApiToken` / endpoint `quick-add`).
+## Processo di sviluppo
 
-## Processo
+- [VERSIONING.md](VERSIONING.md) — workflow di issue e branch, versione unica,
+  note di rilascio e `just release`.
+- [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md) — CI GitHub Actions collegata al
+  repository GitLab.
 
-- [VERSIONING.md](VERSIONING.md) — schema SemVer unico backend/frontend, fonte di verità
-  (`VERSION`) e come si taglia una release con `just release`.
-- [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md) — la CI gira su GitHub Actions via
-  push mirror da GitLab, che è a quota zero: come funziona il mirror, perché i
-  job GitLab (gate di merge compreso) sono dormienti e quali token servono.
-- [ISSUES.md](ISSUES.md) — convenzioni per aprire le issue (titoli, template, label).
+## Archivio storico
 
-## Archivio
+I documenti sotto `archive/` sono snapshot non mantenuti. Rimangono consultabili
+per ricostruire decisioni passate, ma i loro comandi non devono essere usati per
+un nuovo deploy.
 
-Documenti storici, conservati per riferimento ma non più parte del flusso operativo.
-
-- [archive/POSTGRES_MIGRATION.md](archive/POSTGRES_MIGRATION.md) — migrazione una-tantum
-  SQLite → PostgreSQL (cutover completato).
-- [archive/DOCKER_DEPLOY.md](archive/DOCKER_DEPLOY.md) — guida Docker storica (Caddy +
-  Next.js + Django + Postgres + Redis in container); tenuta come riferimento ma non è il
-  deploy in uso.
-- [archive/VPS_DEPLOY_CHECKLIST.md](archive/VPS_DEPLOY_CHECKLIST.md) — checklist per la
-  migrazione a stack Docker su VPS; non eseguita, il deploy attivo resta bare-metal
-  ([DEPLOY.md](DEPLOY.md)).
+- [archive/POSTGRES_MIGRATION.md](archive/POSTGRES_MIGRATION.md)

@@ -11,7 +11,7 @@ set -euo pipefail
 #
 # Caddy NON viene toccato: il site-block di fininzen.nacci.eu si installa una
 # volta sola nel Caddyfile host (vedi deploy/caddy/fininzen.Caddyfile e
-# wiki/DEPLOY.md). Qui facciamo solo un reload non distruttivo.
+# wiki/SYSTEMD_DEPLOY.md). Qui facciamo solo un reload non distruttivo.
 
 BRANCH="${1:-main}"
 APP_ROOT="/opt/fininzen"
@@ -80,10 +80,16 @@ install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.service" "${
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-refresh-prices.timer" "${SYSTEMD_DIR}/fininzen-refresh-prices.timer"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-backup.service" "${SYSTEMD_DIR}/fininzen-backup.service"
 install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-backup.timer" "${SYSTEMD_DIR}/fininzen-backup.timer"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-generate-recurring.service" "${SYSTEMD_DIR}/fininzen-generate-recurring.service"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-generate-recurring.timer" "${SYSTEMD_DIR}/fininzen-generate-recurring.timer"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-generate-split-recurring.service" "${SYSTEMD_DIR}/fininzen-generate-split-recurring.service"
+install -m 0644 "${APP_ROOT}/deploy/systemd/fininzen-generate-split-recurring.timer" "${SYSTEMD_DIR}/fininzen-generate-split-recurring.timer"
 systemctl daemon-reload
 systemctl enable fininzen fininzen-web
 systemctl enable --now fininzen-refresh-prices.timer
 systemctl enable --now fininzen-backup.timer
+systemctl enable --now fininzen-generate-recurring.timer
+systemctl enable --now fininzen-generate-split-recurring.timer
 
 # Riavvia i servizi (fininzen-web ha After=fininzen.service).
 systemctl restart fininzen

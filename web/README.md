@@ -1,28 +1,31 @@
-# web/ — fininzen frontend (Next.js App Router, SSR)
+# Frontend web — Next.js
 
-## Environment
+Il frontend usa Next.js App Router, rendering server-side, React e TypeScript
+strict. Richiede Node.js 24 o successivo.
 
-Copy the template and fill in the values for your machine:
+## Ambiente
 
 ```bash
 cp web/.env.example web/.env.local
 ```
 
-`.env.local` is git-ignored; `.env.example` is the committed reference listing
-every variable the build understands. Next.js loads `.env.local` automatically.
+`.env.local` è ignorato da Git. Le variabili `NEXT_PUBLIC_*` vengono incluse
+nel bundle del browser e non devono mai contenere segreti.
 
-> `NEXT_PUBLIC_*` variables are inlined into the client bundle at build time —
-> they are **public** and must never contain secrets.
+| Variabile | Uso |
+|---|---|
+| `NEXT_PUBLIC_API_BASE` | Opzionale; il fallback è `/fininzen/api`. |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Destinatario pubblico del link di contatto nella pagina About. |
 
-| Variable                    | Web build                                     |
-| --------------------------- | --------------------------------------------- |
-| `NEXT_PUBLIC_API_BASE`      | optional (fallback `/fininzen/api`)           |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | optional recipient for the About contact link |
-
-## Scripts
+## Comandi
 
 ```bash
-npm run dev            # local dev server
-npm run build          # web build (relative /fininzen/api by default)
-npm run test:e2e       # Playwright end-to-end tests
+npm run dev --prefix web
+npm run build --prefix web
+npm run lint --prefix web
+npm run test:e2e --prefix web
+npm run generate:api --prefix web
 ```
+
+L'ultimo comando rigenera `web/src/api/schema.d.ts` da `openapi.json`; non
+modificare manualmente il file generato.
