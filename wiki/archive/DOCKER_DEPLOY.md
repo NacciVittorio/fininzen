@@ -1,15 +1,10 @@
 # Deploy Docker — da VM vuota a stack online
 
 Guida completa per portare Fininzen in produzione su una VM Linux (es. Debian su
-Proxmox) con **tutto in Docker**: Caddy + Next.js + Django/Gunicorn + PostgreSQL
-+ Redis, dietro un unico `docker compose`.
+Proxmox) con **tutto in Docker**: Caddy + Next.js + Django/Gunicorn + PostgreSQL + Redis, dietro un unico `docker compose`.
 
 Scenario di riferimento: deploy su **LAN affidabile in HTTP** (accesso via
 `http://<IP-VM>`). La migrazione a dominio reale + HTTPS è in fondo.
-
-> Questo sostituisce il vecchio deploy bare-metal (gunicorn sotto systemd). I
-> file `deploy/systemd/` sono stati ritirati: l'app non gira più come servizio
-> di sistema ma dentro i container.
 
 ```
 browser ──http://<IP-VM>──▶ caddy:80
@@ -61,11 +56,11 @@ l'ambiente completo di root, `/usr/sbin` incluso, evitando errori tipo
 
 ```bash
 su -
-apt install -y git                 # nano di solito c'è già
+apt install -y git
 
 # utente non-root dedicato alla gestione dei container
 adduser dockerapp
-usermod -aG docker dockerapp       # il gruppo docker = privilegi root: solo utenti fidati
+usermod -aG docker dockerapp
 
 # cartella applicativa, di proprietà di dockerapp
 mkdir -p /opt/fininzen
@@ -105,7 +100,7 @@ Come **dockerapp**:
 
 ```bash
 ssh-keygen -t ed25519 -C "dockerapp@$(hostname) fininzen deploy" -f ~/.ssh/id_ed25519 -N ""
-cat ~/.ssh/id_ed25519.pub          # copia questa riga
+cat ~/.ssh/id_ed25519.pub
 ```
 
 Su GitLab: repo → **Settings → Repository → Deploy keys → Add new key** →
@@ -126,12 +121,9 @@ ssh -T git@gitlab.com
 ```bash
 cd /opt/fininzen
 git clone git@gitlab.com:fininzengroup/fininzen.git .
-git checkout main                  # o il branch desiderato
-ls deploy/docker/production/            # deve mostrare: compose.yml Caddyfile .env.example README.md
+git checkout main
+ls deploy/docker/production/
 ```
-
-> Se avevi già clonato in HTTPS, cambia solo il remote senza riclonare:
-> `git remote set-url origin git@gitlab.com:fininzengroup/fininzen.git`
 
 ---
 
