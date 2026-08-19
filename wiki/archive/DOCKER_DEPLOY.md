@@ -149,6 +149,7 @@ Valori da impostare:
 | `FIELD_ENCRYPTION_KEYS` | secondo segreto generato |
 | `POSTGRES_PASSWORD` | password robusta a tua scelta |
 | `DJANGO_ALLOWED_HOSTS` | `backend,localhost,127.0.0.1,<IP-VM>` |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | indirizzo pubblico mostrato da Impostazioni → About (es. `assistenza@example.com`); se omesso, il link “Contattaci” non viene mostrato |
 | `CSRF_TRUSTED_ORIGINS` | `http://<IP-VM>` |
 | `WEBAUTHN_RP_ID` | `<IP-VM>` |
 | `WEBAUTHN_ORIGIN` | `http://<IP-VM>` |
@@ -157,6 +158,10 @@ Valori da impostare:
 
 `token_urlsafe` e `b64encode` producono solo caratteri sicuri per un file `.env`
 (niente `#` o spazi): **non** servono virgolette attorno ai valori.
+
+`NEXT_PUBLIC_CONTACT_EMAIL` non è una credenziale: genera un link `mailto:` e
+viene incorporato nell'immagine del frontend durante la build. Se lo modifichi
+dopo il primo deploy, ricostruisci l'immagine con `dc up -d --build`.
 
 > `DJANGO_ALLOWED_HOSTS` deve includere sia `<IP-VM>` (come lo raggiunge il
 > browser) sia `backend` (come il livello SSR di Next.js raggiunge Django sulla
