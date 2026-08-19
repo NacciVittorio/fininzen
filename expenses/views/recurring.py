@@ -1,6 +1,7 @@
 import logging
 from datetime import date
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -19,6 +20,7 @@ from fininzen.mixins import (
 from ..services import (
     backfill_recurring_expense,
     disable_expired_recurrings,
+    update_generated_expenses,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,8 +44,12 @@ class RecurringExpenseViewSet(ViewAsMixin, viewsets.ModelViewSet):
         backfill_recurring_expense(rec)
 
     def perform_update(self, serializer):
-        rec = serializer.save()
-        backfill_recurring_expense(rec)
+        # Editing a template must never trigger a historical backfill. The daily
+        # job will materialize future due occurrences using the new values.
+        with transaction.atomic():
+            rec = serializer.save()
+            if getattr(serializer, "apply_to_generated", False):
+                update_generated_expenses(rec)
 
     def destroy(self, request, *args, **kwargs):
         rec = self.get_object()
@@ -71,25 +77,6 @@ class RecurringExpenseViewSet(ViewAsMixin, viewsets.ModelViewSet):
         rec.disabled_at = timezone.now()
         rec.save(update_fields=["status", "is_active", "disabled_at"])
         return Response({"ok": True})
-
-    @action(detail=False, methods=["post"], url_path="generate")
-    def generate(self, request):
-        """POST /api/expenses/recurring/generate/
-
-        Genera le spese ricorrenti per il mese/anno indicato.
-        Body: {month: 1-12, year: 2026}
-        """
-        from ..services import generate_recurring_expenses
-
-        try:
-            month = int(request.data.get("month", date.today().month))
-            year = int(request.data.get("year", date.today().year))
-        except (TypeError, ValueError):
-            return Response({"error": "month/year must be integers"}, status=400)
-        if not 1 <= month <= 12:
-            return Response({"error": "month must be 1..12"}, status=400)
-        result = generate_recurring_expenses(_effective_user(request), year, month)
-        return Response(result)
 
     @action(detail=False, methods=["get"], url_path="status")
     def status(self, request):

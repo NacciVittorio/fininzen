@@ -20,7 +20,7 @@ from ..services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal, ROUND_HALF_UP
-from fininzen.api_errors import client_error_response, safe_client_message
+from fininzen.api_errors import invalid_request_response
 from fininzen.mixins import _effective_user, require_view_as_full
 from fininzen.permissions import IsNotDemoUser
 
@@ -200,8 +200,8 @@ class TransactionsFeedView(APIView):
         user = _effective_user(request)
         try:
             qs = _portfolio_transactions_queryset(user, request.query_params)
-        except ValueError as exc:
-            return client_error_response(exc)
+        except ValueError:
+            return invalid_request_response()
         total = qs.count()
 
         page_size_str = request.query_params.get("page_size", "50")
@@ -328,11 +328,11 @@ class TransactionsBulkView(APIView):
             selection, missing_ids = self._resolve_selection(user, payload)
             patch = payload.get("patch") or {}
             self._validate_payload(payload, patch)
-        except ValueError as exc:
+        except ValueError:
             return Response(
                 {
                     "ok": False,
-                    "errors": [safe_client_message(exc)],
+                    "errors": ["Invalid bulk request"],
                     "error_codes": ["invalid_bulk"],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -360,12 +360,17 @@ class TransactionsBulkView(APIView):
                 try:
                     serializer.is_valid(raise_exception=True)
                     patch_transaction(tx, serializer, owner=user)
-                except ArchivedAssetTransactionError as exc:
-                    errors.append(safe_client_message(exc))
+                except ArchivedAssetTransactionError:
+                    errors.append("Archived asset transactions are read-only")
                     archived_blocked = True
                     break
-                except Exception as exc:
-                    errors.append(safe_client_message(exc))
+                except Exception:
+                    logger.exception(
+                        "bulk transaction update failed tx=%s user=%s",
+                        tx.pk,
+                        user.pk,
+                    )
+                    errors.append("Unable to update transaction")
                     break
                 applied += 1
             if errors:

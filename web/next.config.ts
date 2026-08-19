@@ -25,11 +25,18 @@ const releaseDate = (version: string): string => {
             join(__dirname, "..", "CHANGELOG.md"),
             "utf8",
         );
-        const escaped = version.replace(/\./g, "\\.");
-        const match = changelog.match(
-            new RegExp(`^## v?${escaped} \\((\\d{4}-\\d{2}-\\d{2})\\)`, "m"),
+        // Parse headings with a static expression, then compare the captured
+        // version literally. Building a RegExp from VERSION would require a
+        // custom escaping routine and is both unnecessary and easy to get wrong.
+        const headings = changelog.matchAll(
+            /^## v?(\S+) \((\d{4}-\d{2}-\d{2})\)$/gm,
         );
-        return match?.[1] ?? "";
+        for (const match of headings) {
+            if (match[1] === version) {
+                return match[2] ?? "";
+            }
+        }
+        return "";
     } catch {
         return "";
     }

@@ -68,6 +68,7 @@ export default function PortfolioView() {
     );
     const [addTxError, setAddTxError] = useState<string | null>(null);
     const [addTxLoading, setAddTxLoading] = useState(false);
+    const addTxSubmitInFlightRef = useRef(false);
     const [editingAddTxId, setEditingAddTxId] = useState<EntityId | null>(null);
     const [editingAddTxItem, setEditingAddTxItem] = useState<EditingItem>(null);
     const [addTxPriceTouched, setAddTxPriceTouched] = useState(false);
@@ -426,26 +427,35 @@ export default function PortfolioView() {
     ]);
 
     const handleAddTxSubmit = async () => {
+        // React applies the loading state on the next render, so two click events
+        // dispatched in the same tick can both observe an enabled button. Keep a
+        // synchronous lock as the source of truth for the in-flight submission.
+        if (addTxSubmitInFlightRef.current) return;
+        addTxSubmitInFlightRef.current = true;
         setAddTxError(null);
         setAddTxLoading(true);
-        const taxIsManual =
-            addTxForm.transaction_type === "sell" && addTxTaxTouched;
-        const result = await submitAddTxFromModal(
-            addTxAssetId,
-            addTxForm,
-            editingAddTxId,
-            { taxIsManual },
-        );
-        setAddTxLoading(false);
-        if (result.ok) {
-            closeAddModal();
-            // Force immediate feed refresh so edited rows reflect new values even
-            // before broader refresh orchestration settles.
-            await loadAssetTxFeed(1);
-        } else {
-            setAddTxError(
-                result.error ?? T(result.errorKey ?? "error_save_failed"),
+        try {
+            const taxIsManual =
+                addTxForm.transaction_type === "sell" && addTxTaxTouched;
+            const result = await submitAddTxFromModal(
+                addTxAssetId,
+                addTxForm,
+                editingAddTxId,
+                { taxIsManual },
             );
+            if (result.ok) {
+                closeAddModal();
+                // Force immediate feed refresh so edited rows reflect new values even
+                // before broader refresh orchestration settles.
+                await loadAssetTxFeed(1);
+            } else {
+                setAddTxError(
+                    result.error ?? T(result.errorKey ?? "error_save_failed"),
+                );
+            }
+        } finally {
+            setAddTxLoading(false);
+            addTxSubmitInFlightRef.current = false;
         }
     };
 

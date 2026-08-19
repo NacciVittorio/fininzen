@@ -107,6 +107,11 @@ test.describe("Recurring expenses form", () => {
 
         try {
             await openRecurringSettings(page);
+            await expect(
+                page.getByRole("button", {
+                    name: /Generate for this month|Genera per questo mese/,
+                }),
+            ).toHaveCount(0);
 
             await page
                 .getByRole("button", {
@@ -137,7 +142,8 @@ test.describe("Recurring expenses form", () => {
                 .locator("select.inp")
                 .first()
                 .selectOption(String(accountId));
-            await modal.locator('input[type="number"]').fill("31");
+            await modal.locator('input[type="number"]').first().fill("31");
+            await modal.locator('input[type="number"]').nth(1).fill("7");
             await modal
                 .locator('input[type="date"]')
                 .first()
@@ -166,7 +172,14 @@ test.describe("Recurring expenses form", () => {
                 modal.locator('input[placeholder="Description"]'),
             ).toHaveValue(description);
             await modal.locator('input[inputmode="decimal"]').fill("13,75");
-            await modal.locator('input[type="number"]').fill("30");
+            await modal.locator('input[type="number"]').first().fill("30");
+            await modal.locator('input[type="number"]').nth(1).fill("5");
+
+            await modal.locator("button.btn.btn-p").click();
+            const updateChoice = modal.locator(
+                '[data-testid="recurring-update-choice"]',
+            );
+            await expect(updateChoice).toBeVisible();
 
             await Promise.all([
                 page.waitForResponse(
@@ -175,7 +188,11 @@ test.describe("Recurring expenses form", () => {
                         r.url().includes("/fininzen/api/expenses/recurring/") &&
                         r.ok(),
                 ),
-                modal.locator("button.btn.btn-p").click(),
+                updateChoice
+                    .getByRole("button", {
+                        name: /Update generated transactions too|Aggiorna anche le già generate/,
+                    })
+                    .click(),
             ]);
 
             const listRes = await page.request.get(
@@ -190,6 +207,7 @@ test.describe("Recurring expenses form", () => {
             );
             expect(updated.amount).toBe("13.75");
             expect(updated.day_of_month).toBe(30);
+            expect(updated.generation_lead_days).toBe(5);
             expect(updated.linked_asset).toBe(accountId);
 
             await Promise.all([

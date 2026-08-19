@@ -22,7 +22,6 @@ from ...services import (
 from datetime import datetime, timedelta, timezone, date as date_cls
 from decimal import Decimal
 from fininzen.accounting import accounting_month_range, get_user_accounting_start_day
-from fininzen.api_errors import safe_client_message
 
 from .._common import (
     _build_fx_lookup,
@@ -34,6 +33,22 @@ from .._common import (
 from portfolio import views as _pv
 
 logger = logging.getLogger(__name__)
+
+_BACKFILL_PUBLIC_MESSAGES = {
+    "no_data": "No historical price data is available for the requested period",
+    "no_ticker": "This asset has no price ticker",
+    "future_start": "The requested start date is in the future",
+    "error": "Historical price data could not be refreshed",
+}
+
+
+def _public_backfill_message(backfill_status):
+    if backfill_status == "ok":
+        return None
+    return _BACKFILL_PUBLIC_MESSAGES.get(
+        backfill_status,
+        "Historical price data is unavailable",
+    )
 
 
 class _AssetAnalyticsMixin:
@@ -349,17 +364,9 @@ class _AssetAnalyticsMixin:
             try:
                 _, backfill_meta = _run_with_timeout(_run_backfill, _BACKFILL_TIMEOUT)
                 meta["status"] = backfill_meta.get("status", "ok")
-                # The provider layer (portfolio.prices) builds error messages as
-                # f"yfinance: {exc}" / f"Borsa Italiana: {exc}" — raw str(exc) that
-                # reaches this HTTP response. Scrub it through the same audited
-                # sanitizer used by the except branch below so no SQL/path/stack
-                # detail can leak to the client (CodeQL py/stack-trace-exposure).
-                raw_message = backfill_meta.get("message")
-                meta["message"] = (
-                    safe_client_message(raw_message)
-                    if raw_message is not None
-                    else None
-                )
+                # Provider messages may include exception text. Keep those in
+                # server logs and expose only application-defined status text.
+                meta["message"] = _public_backfill_message(meta["status"])
             except FuturesTimeoutError:
                 logger.warning(
                     "price-history auto-backfill timeout (>%ds) asset=%s",
@@ -368,12 +375,12 @@ class _AssetAnalyticsMixin:
                 )
                 meta["status"] = "error"
                 meta["message"] = f"backfill timeout after {_BACKFILL_TIMEOUT}s"
-            except Exception as e:
+            except Exception:
                 logger.exception(
                     "price-history auto-backfill failed asset=%s", asset.id
                 )
                 meta["status"] = "error"
-                meta["message"] = safe_client_message(e)
+                meta["message"] = _BACKFILL_PUBLIC_MESSAGES["error"]
 
             # Refresh earliest_available after backfill — may have changed.
             existing_earliest = (

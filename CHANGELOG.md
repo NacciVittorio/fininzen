@@ -52,6 +52,21 @@ automatically by `just release` (commitizen) from Conventional Commits — see
   SettingsCard/SettingsRow helper, consolidated danger-zone, and migrate the
   remaining sections onto GroupedList/Card (including a Sharing i18n key fix)
 
+## v0.13.3 (2026-08-17)
+
+### Fix
+
+- **expenses**: control recurring expense generation
+
+## v0.13.2 (2026-08-17)
+
+### Fix
+
+- **web**: prevent duplicate transaction submissions
+- **deps**: upgrade cryptography to 50.0.0
+- **security**: prevent exception detail exposure
+- **e2e**: stabilize mobile changelog and calculator tests
+
 ## v0.13.1 (2026-08-03)
 
 ### Fix

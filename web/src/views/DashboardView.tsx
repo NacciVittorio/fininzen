@@ -53,8 +53,6 @@ export default function DashboardView() {
         investmentTypes,
         bankAccounts,
         budgets,
-        recurringSaving,
-        generateRecurringForMonth,
         filterMonth,
         setFilterMonth,
         filterYear,
@@ -210,8 +208,6 @@ export default function DashboardView() {
         recurring_overview: (
             <RecurringOverviewCard
                 recurringStatus={recurringStatus}
-                generateRecurringForMonth={generateRecurringForMonth}
-                recurringSaving={recurringSaving}
                 T={T}
                 formatEur={formatEur}
             />

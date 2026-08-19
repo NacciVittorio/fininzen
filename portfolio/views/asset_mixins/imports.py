@@ -18,7 +18,6 @@ from ...services import (
 )
 from datetime import date as date_cls
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
-from fininzen.api_errors import safe_client_message
 from fininzen.utils import parse_optional_bool
 
 from .._common import (
@@ -246,8 +245,13 @@ class _AssetImportMixin:
                         "price_per_share": str(price),
                     }
                 )
-            except ValueError as e:
-                errors.append({"row": row_number, "error": safe_client_message(e)})
+            except ValueError:
+                logger.warning(
+                    "import-assets: row %d failed validation",
+                    row_number,
+                    exc_info=True,
+                )
+                errors.append({"row": row_number, "error": "invalid row data"})
                 skipped += 1
             except Exception:
                 logger.exception("import: row %d failed", row_number)
@@ -367,8 +371,13 @@ class _AssetImportMixin:
                 tx_serializer.is_valid(raise_exception=True)
                 create_transaction(asset, tx_serializer, owner=owner)
                 imported += 1
-            except ValueError as e:
-                errors.append({"row": i + 1, "error": safe_client_message(e)})
+            except ValueError:
+                logger.warning(
+                    "import-transactions: row %d failed validation",
+                    i + 1,
+                    exc_info=True,
+                )
+                errors.append({"row": i + 1, "error": "invalid row data"})
                 skipped += 1
             except Exception:
                 # str(e) would leak SQL column names, FK identifiers, or stack

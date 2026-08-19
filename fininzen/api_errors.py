@@ -1,69 +1,62 @@
-"""Centralised, safe API error responses.
+"""Centralised API responses that never reflect exception text.
 
-CodeQL flags ``str(exc)`` reaching an HTTP response (``py/stack-trace-exposure``).
-Most of our sinks are intentional: the domain/service layer raises ``ValueError``
-subclasses carrying *user-facing* validation messages (never tracebacks), so
-reflecting them is safe. A few sinks, however, sat behind a broad ``except
-Exception`` and could in principle leak SQL identifiers, file paths or stack
-context.
-
-This module is the single, audited place where an exception/message is turned
-into a client payload. Every message passes through :func:`safe_client_message`,
-which drops anything that looks like an internal detail (defence in depth) and
-bounds the length. Views import these helpers instead of inlining ``str(exc)``.
-
-Truly unhandled exceptions are intentionally *not* caught here: Django already
-returns a generic 500 (no traceback) when ``DEBUG`` is off, and some views rely
-on non-lock ``OperationalError`` propagating so the surrounding ``transaction``
-rolls back and the failure surfaces loudly.
+Exception messages are server-side diagnostics. Even messages currently raised
+by validation code can start carrying database, provider, or filesystem details
+after a future refactor, so HTTP payloads use only stable application-defined
+codes and messages.
 """
-
-import re
 
 from rest_framework import status as drf_status
 from rest_framework.response import Response
 
-_MAX_LEN = 300
 
-# Markers that must never reach a client. If a message contains any of these it
-# almost certainly comes from an unexpected (non-validation) error, so we drop
-# it in favour of a generic code and rely on the server-side log for detail.
-_INTERNAL_MARKERS = re.compile(
-    r'File "|Traceback|/Users/|/home/|site-packages|0x[0-9a-fA-F]{6,}|'
-    r"\bSELECT\b|\bINSERT\b|\bUPDATE\b|psycopg|sqlite3|OperationalError"
-)
+def invalid_request_response(*, status=drf_status.HTTP_400_BAD_REQUEST):
+    """Return the generic response for rejected domain/service operations."""
+    return Response({"error": "invalid_request"}, status=status)
 
 
-def safe_client_message(message):
-    """Return a client-safe error string, or a generic code if it looks internal."""
-    text = str(message).strip()
-    if not text or _INTERNAL_MARKERS.search(text):
-        return "invalid_request"
-    return text[:_MAX_LEN]
+def transaction_validation_response(exc):
+    """Return an allow-listed transaction validation message.
 
-
-def client_error_response(
-    message, *, status=drf_status.HTTP_400_BAD_REQUEST, extra=None
-):
-    """Build a 4xx ``Response`` carrying only a sanitized error message."""
-    payload = {"error": safe_client_message(message)}
-    if extra:
-        payload.update(extra)
-    return Response(payload, status=status)
-
-
-def domain_error_response(exc):
-    """Map a domain ``ValueError`` to a safe 4xx ``Response``.
-
-    ``ArchivedAssetTransactionError`` -> 409 ``{"error":"asset_archived","detail":<msg>}``
-    any other ``ValueError``          -> 400 ``{"error":<msg>}``
+    The exception text is used only to select a server-defined constant. It is
+    never copied into the response, and unrecognised messages fall back to the
+    generic error code.
     """
-    # Imported lazily: the project package must not import app code at load time.
-    from portfolio.services import ArchivedAssetTransactionError
-
-    if isinstance(exc, ArchivedAssetTransactionError):
+    message = str(exc)
+    if message == "This asset does not support contribution sources":
         return Response(
-            {"error": "asset_archived", "detail": safe_client_message(exc)},
-            status=drf_status.HTTP_409_CONFLICT,
+            {"error": "This asset does not support contribution sources"},
+            status=drf_status.HTTP_400_BAD_REQUEST,
         )
-    return client_error_response(exc)
+    if message == "Contribution source cannot be used with a source account":
+        return Response(
+            {"error": "Contribution source cannot be used with a source account"},
+            status=drf_status.HTTP_400_BAD_REQUEST,
+        )
+    if message == "Contribution source is allowed only on buy transactions":
+        return Response(
+            {"error": "Contribution source is allowed only on buy transactions"},
+            status=drf_status.HTTP_400_BAD_REQUEST,
+        )
+    if message == "Contribution source is not available for this asset":
+        return Response(
+            {"error": "Contribution source is not available for this asset"},
+            status=drf_status.HTTP_400_BAD_REQUEST,
+        )
+    if message.startswith("Cannot sell "):
+        return Response(
+            {"error": "Cannot sell more shares than are owned"},
+            status=drf_status.HTTP_400_BAD_REQUEST,
+        )
+    return invalid_request_response()
+
+
+def archived_asset_response():
+    """Return the stable response for attempts to mutate archived assets."""
+    return Response(
+        {
+            "error": "asset_archived",
+            "detail": "Archived asset transactions are read-only",
+        },
+        status=drf_status.HTTP_409_CONFLICT,
+    )

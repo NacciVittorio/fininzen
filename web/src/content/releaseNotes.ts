@@ -23,6 +23,30 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: "0.13.3",
+        date: "2026-08-17",
+        highlights: {
+            it: [
+                "Le spese ricorrenti ora appaiono solo con l'anticipo scelto, da 0 a 31 giorni. Quando modifichi una ricorrenza puoi decidere se aggiornare anche le transazioni già generate, senza duplicare lo storico.",
+            ],
+            en: [
+                "Recurring expenses now appear only as early as you choose, from 0 to 31 days ahead. When editing a schedule, you can decide whether to update already generated transactions without duplicating history.",
+            ],
+        },
+    },
+    {
+        version: "0.13.2",
+        date: "2026-08-17",
+        highlights: {
+            it: [
+                "Negli Investimenti, premere rapidamente più volte il pulsante di salvataggio non crea più transazioni duplicate. Se il salvataggio non riesce, il pulsante si riattiva per consentire un nuovo tentativo.",
+            ],
+            en: [
+                "In Investments, rapidly pressing the save button multiple times no longer creates duplicate transactions. If saving fails, the button is re-enabled so you can try again.",
+            ],
+        },
+    },
+    {
         version: "0.13.1",
         date: "2026-08-03",
         highlights: {

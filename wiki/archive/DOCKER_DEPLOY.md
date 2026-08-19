@@ -195,24 +195,36 @@ alias dc='docker compose --env-file /opt/fininzen/deploy/docker/production/.env 
 
 ---
 
-## 7. Aggiornamento prezzi schedulato (IMPORTANTE)
+## 7. Job schedulati: prezzi e spese ricorrenti (IMPORTANTE)
 
 I prezzi degli asset si aggiornano con `manage.py refresh_asset_prices`, che
 **non** deve girare ai request degli utenti (vedi `wiki/OPS_HARDENING.md`). Nel
 mondo bare-metal lo faceva un timer systemd; in Docker lo schediamo con il **cron
 dell'host** che invoca il container già in esecuzione.
 
+Lo stesso vale per le spese ricorrenti: `generate_recurring_expenses` applica
+ogni giorno la finestra di anticipo configurata su ciascuna ricorrenza, mentre
+`generate_split_recurring_expenses` genera le occorrenze mancanti delle spese
+condivise. Senza questi job, le nuove occorrenze non vengono materializzate finché
+non interviene un utente.
+
 Come **dockerapp**, `crontab -e`:
 
 ```cron
 # Aggiorna i prezzi ogni ora (minuto 17 per evitare il picco dell'ora esatta)
 17 * * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py refresh_asset_prices >> /home/dockerapp/refresh_prices.log 2>&1
+
+# Genera ogni giorno le spese ricorrenti personali e Split mancanti
+23 3 * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py generate_recurring_expenses >> /home/dockerapp/recurring_expenses.log 2>&1
+41 3 * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py generate_split_recurring_expenses >> /home/dockerapp/split_recurring_expenses.log 2>&1
 ```
 
 Note:
 - `exec -T` riusa il container `backend` già attivo (niente nuovo container) e
   disabilita la TTY (necessario sotto cron).
 - Path assoluto a `docker` perché cron ha un `PATH` minimale.
+- Gli orari 03:23 e 03:41 separano i due job giornalieri e seguono il fuso orario
+  configurato sull'host.
 - In alternativa "pure-Docker" si può aggiungere un container scheduler
   (es. *ofelia*) al compose; il cron dell'host è più semplice ed è la scelta
   consigliata per un homelab.

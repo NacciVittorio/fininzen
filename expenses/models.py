@@ -269,6 +269,7 @@ class RecurringExpense(models.Model):
         choices=FREQUENCY_CHOICES,
         default=FREQUENCY_MONTHLY,
     )
+    generation_lead_days = models.PositiveSmallIntegerField(default=2)
     is_active = models.BooleanField(default=True)
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default=STATUS_ACTIVE
@@ -308,6 +309,13 @@ class RecurringExpense(models.Model):
                     | models.Q(month_of_year__gte=1, month_of_year__lte=12)
                 ),
                 name="recurringexpense_month_valid",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    generation_lead_days__gte=0,
+                    generation_lead_days__lte=31,
+                ),
+                name="recurringexpense_lead_valid",
             ),
         ]
 

@@ -21,7 +21,16 @@ const SHEET = ".bottom-sheet__panel";
 const barKey = (id: string) => `[data-testid="calc-bar-${id}"]`;
 
 async function openMovementSheet(page: Page): Promise<void> {
-    await page.goto("/cashflow");
+    // Navigate from the already-authenticated dashboard instead of doing a
+    // full-page navigation to Cash Flow. The access token is intentionally
+    // memory-only in the app; keeping this client-side transition avoids a
+    // race with the silent refresh that can leave the route half-initialized
+    // under a loaded CI runner.
+    await page.click('nav a[href="/cashflow"]');
+    await expect(page).toHaveURL(/\/cashflow$/);
+    await expect(
+        page.locator('nav a[href="/cashflow"][aria-current="page"]'),
+    ).toBeVisible();
     // next dev injects <nextjs-portal>, whose error badge lands in the
     // bottom-left corner — exactly on top of the bar's first key, which then
     // swallows the click. next.config.ts already turns off the dev-tools

@@ -165,8 +165,6 @@ export function useAppProviderState() {
     );
     const [recurringError, setRecurringError] = useState<string | null>(null);
     const [recurringSaving, setRecurringSaving] = useState(false);
-    const [generateRecurringMsg, setGenerateRecurringMsg] =
-        useState<DataObject | null>(null);
     const [showPacModal, setShowPacModal] = useState(false);
     const [editingPacId, setEditingPacId] = useState<EntityId | null>(null);
     const [pacForm, setPacForm] = useState<PacForm>(() => buildPacForm());
@@ -352,8 +350,6 @@ export function useAppProviderState() {
         setRecurringError,
         recurringSaving,
         setRecurringSaving,
-        generateRecurringMsg,
-        setGenerateRecurringMsg,
         showPacModal,
         setShowPacModal,
         editingPacId,
