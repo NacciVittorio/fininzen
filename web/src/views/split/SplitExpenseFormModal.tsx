@@ -192,6 +192,47 @@ export default function SplitExpenseFormModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [openKey]);
 
+    // Groups and partner links load asynchronously when /split mounts. On a
+    // fast tap after a reload, a standalone form can therefore open while the
+    // current user's numeric Split id is still unresolved. The opening effect
+    // above cannot seed "You" in that state and, without this late-resolution
+    // path, the first contact added by the user incorrectly becomes the payer;
+    // payer-owned fields such as category and linked account then disappear.
+    useEffect(() => {
+        if (!open || group != null || expense || mySplitUserId == null) return;
+
+        setSplitExpenseForm((prev) => {
+            if (
+                prev.id != null ||
+                prev.group != null ||
+                prev.participants.some(
+                    (participant) =>
+                        participant.user_id === mySplitUserId &&
+                        participant.contact_id == null,
+                )
+            ) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                participants: [
+                    {
+                        key: `user:${mySplitUserId}`,
+                        user_id: mySplitUserId,
+                        contact_id: null,
+                        rawInputText: "",
+                        isPayer: true,
+                    },
+                    ...prev.participants.map((participant) => ({
+                        ...participant,
+                        isPayer: false,
+                    })),
+                ],
+            };
+        });
+    }, [expense, group, mySplitUserId, open, setSplitExpenseForm]);
+
     // Re-derives participants whenever the user changes the group selector
     // mid-session (as opposed to at open time, handled above) — participants
     // picked under the old group are very likely not members of the new one

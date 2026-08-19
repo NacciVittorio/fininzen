@@ -27,6 +27,12 @@ const PASS_A = "PlSplitA!123xyz";
 const EMAIL_B = `playwright_split_b_${RUN_ID}@test.com`;
 const PASS_B = "PlSplitB!456xyz";
 
+// These scenarios intentionally combine several UI transitions and API
+// round-trips. A 45s whole-test budget is too close to their normal runtime on
+// a loaded CI runner: Playwright then reports whichever final locator/response
+// happened to be pending, even though that operation was not the root cause.
+const COMPLEX_SPLIT_TEST_TIMEOUT = 75_000;
+
 async function getToken(page: Page): Promise<string> {
     const token = await page.evaluate(() =>
         localStorage.getItem("access_token"),
@@ -190,7 +196,7 @@ test.describe.serial("Split feature", () => {
     test("a) partner link: A sends a request, B sees it pending and accepts, both end up with a mutual contact", async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
         tokenA = await getToken(page);
 
@@ -268,7 +274,7 @@ test.describe.serial("Split feature", () => {
     test("b) group with 2 users + 1 local contact — an equal split expense shows the correct per-member balance", async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
 
         await gotoSplit(page);
@@ -384,7 +390,7 @@ test.describe.serial("Split feature", () => {
     test("c) exact/percentage/shares split methods compute the live per-participant preview correctly", async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
         await gotoSplit(page);
 
@@ -485,7 +491,7 @@ test.describe.serial("Split feature", () => {
     test("d) Simplify debts on the 3-person group nets cross-debts into at most n-1 transactions", async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
 
         // Second expense via API (fast, exact split), paid by the LOCAL
@@ -559,7 +565,7 @@ test.describe.serial("Split feature", () => {
     test("e) Settle up zeroes the balance and shows up in CashFlow as a split_reimbursement excluded from the totals", async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
 
         await gotoSplit(page);
@@ -653,7 +659,7 @@ test.describe.serial("Split feature", () => {
     test("f) an expense with a linked account drains the account's full amount but CashFlow 'Outcome' only reflects the net share", async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
         const token = await getToken(page);
 
