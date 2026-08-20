@@ -86,7 +86,7 @@ run_check() {
 
     # API reachable through the deployment-specific public prefix, and the auth
     # guard rejects anonymous reads. Production uses /fininzen/api; the NPM
-    # preproduction topology uses /api.
+    # The homelab production-test topology uses /api.
     request "${API_PREFIX}/health/" "backend health" || return 1
     request_status "${API_PREFIX}/auth/profile/" "auth guard" "401" || return 1
 

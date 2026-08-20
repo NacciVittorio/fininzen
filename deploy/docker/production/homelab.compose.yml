@@ -1,13 +1,13 @@
-# Homelab preproduction override. Merge with ../production/compose.yml.
-# Caddy is deliberately disabled unless the standalone profile is requested;
-# Nginx Proxy Manager reaches frontend/backend on the shared proxy network.
+# Homelab production-test overlay. Merge with compose.yml.
+# Caddy remains disabled; Nginx Proxy Manager reaches the web and API services
+# over the shared external proxy network.
 services:
   backend:
     networks:
       default: {}
       proxy:
         aliases:
-          - fininzen-preprod-api
+          - fininzen-production-api
 
   frontend:
     build:
@@ -18,7 +18,7 @@ services:
       default: {}
       proxy:
         aliases:
-          - fininzen-preprod-web
+          - fininzen-production-web
 
   caddy:
     profiles:

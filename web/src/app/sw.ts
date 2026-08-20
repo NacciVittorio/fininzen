@@ -24,7 +24,7 @@ const serwist = new Serwist({
     navigationPreload: true,
     // Matching is first-wins in array order, and these must precede
     // `defaultCache`. The public API prefix depends on the deployment:
-    // `/fininzen/api/` behind Caddy, `/api/` behind NPM in preproduction.
+    // `/fininzen/api/` behind Caddy, `/api/` behind NPM in the homelab test.
     runtimeCaching: [
         // Auth endpoints carry session state: a reused response would cross two
         // different sessions. Placed before the API rule so it can't claim them.
