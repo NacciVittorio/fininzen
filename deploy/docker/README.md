@@ -6,7 +6,7 @@ in [wiki/DOCKER_DEPLOY.md](../../wiki/DOCKER_DEPLOY.md).
 | Cartella | Scopo |
 |---|---|
 | `local/` | PostgreSQL e Redis per lo sviluppo con applicazione sull'host. |
-| `production/` | Stack completo Caddy + Next.js + Django + PostgreSQL + Redis. |
+| `production/` | Stack completo Caddy + Next.js + Django + PostgreSQL + Redis, incluso l'overlay NPM per la produzione di test dell'homelab. |
 | `backend/` | Dockerfile ed entrypoint Django. |
 | `web/` | Dockerfile Next.js. |
 
@@ -25,3 +25,6 @@ just production-logs
 Il nome della cartella `production/` indica lo stack completo, non il deploy
 attualmente online: il server pubblico usa il percorso bare-metal documentato
 in [wiki/SYSTEMD_DEPLOY.md](../../wiki/SYSTEMD_DEPLOY.md).
+
+Per la replica di produzione di test su `L-DOCKER-P`, usare i file
+`production/homelab.*` descritti in [production/HOMELAB.md](production/HOMELAB.md).
