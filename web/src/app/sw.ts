@@ -11,7 +11,9 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const API_PREFIX = "/fininzen/api/";
+const publicApiBase =
+    process.env.NEXT_PUBLIC_API_BASE?.trim() || "/fininzen/api";
+const API_PREFIX = `${new URL(publicApiBase, self.location.origin).pathname.replace(/\/+$/, "")}/`;
 const API_CACHE = "fn-api-cache-v2";
 const LEGACY_API_CACHES = ["fn-api-cache"];
 
@@ -21,9 +23,8 @@ const serwist = new Serwist({
     clientsClaim: true,
     navigationPreload: true,
     // Matching is first-wins in array order, and these must precede
-    // `defaultCache`: its API rules test `pathname.startsWith("/api/")`, false
-    // for `/fininzen/api/...`, so without an explicit rule here these requests
-    // would fall through to its catch-all `others` rule and be cached there.
+    // `defaultCache`. The public API prefix depends on the deployment:
+    // `/fininzen/api/` behind Caddy, `/api/` behind NPM in preproduction.
     runtimeCaching: [
         // Auth endpoints carry session state: a reused response would cross two
         // different sessions. Placed before the API rule so it can't claim them.
