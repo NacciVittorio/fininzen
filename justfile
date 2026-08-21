@@ -108,9 +108,9 @@ docker-local-down:
 docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
-# ── Full Docker stack (Caddy + Next.js + Django + PG + Redis) ────────────────
-# Supported full-stack target, currently exercised in development/testing.
-# Requires deploy/docker/production/.env. Guide: wiki/DOCKER_DEPLOY.md.
+# ── Full Docker stack (Nginx + Next.js + Django + PG + Redis) ────────────────
+# Requires an external Nginx/Nginx Proxy Manager network and
+# deploy/docker/production/.env. Guide: wiki/DOCKER_DEPLOY.md.
 
 production-up:
     docker compose {{production}} up -d --build

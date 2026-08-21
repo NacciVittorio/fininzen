@@ -428,10 +428,8 @@ _extra_csrf = (
 CSRF_TRUSTED_ORIGINS = ["https://fininzen.nacci.eu"] + _extra_csrf
 
 # Browser-visible path the httpOnly refresh cookie is scoped to. It must match
-# the path the *frontend* calls, not the path Django's URLConf sees: the Next.js
-# app calls `/fininzen/api/auth/*` (Caddy strips `/fininzen` before Django), so
-# at cutover this is set to "/fininzen/api/auth/". The default keeps the legacy
-# Vite SPA (served at "/api/...") working until the cutover.
+# the path the *frontend* calls, not the path Django's URLConf sees. The Docker
+# deployment's Nginx proxy preserves `/api/auth/*`, so it uses `/api/auth/`.
 REFRESH_COOKIE_PATH = os.environ.get("REFRESH_COOKIE_PATH", "/api/auth/")
 
 LANGUAGE_CODE = "it-it"

@@ -18,7 +18,7 @@ condivise.
 | Sviluppo standard | SQLite | Django e Next.js sull'host | Percorso predefinito per lo sviluppo locale. |
 | Sviluppo con infrastruttura Docker | PostgreSQL + Redis | Database/cache in container, applicazione sull'host | Utile per verificare la compatibilità con PostgreSQL. |
 | Produzione bare-metal | SQLite | systemd + Gunicorn + Next.js + Caddy | Deploy pubblico attuale; vedi [wiki/SYSTEMD_DEPLOY.md](wiki/SYSTEMD_DEPLOY.md). |
-| Docker full-stack | PostgreSQL + Redis | Tutto in container, incluso Caddy | Alternativa supportata e testata in sviluppo; vedi [wiki/DOCKER_DEPLOY.md](wiki/DOCKER_DEPLOY.md). |
+| Docker full-stack | PostgreSQL + Redis | Container applicativi dietro Nginx/Nginx Proxy Manager | Alternativa supportata e testata in sviluppo; vedi [wiki/DOCKER_DEPLOY.md](wiki/DOCKER_DEPLOY.md). |
 
 Il nome `deploy/docker/production/` identifica lo stack Docker completo; non
 significa che sia il deploy attualmente attivo sul VPS.

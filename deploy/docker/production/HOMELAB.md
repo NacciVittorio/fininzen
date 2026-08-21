@@ -17,19 +17,17 @@ docker compose \
   --env-file deploy/docker/production/homelab.env \
   -p fininzen-production-test \
   -f deploy/docker/production/compose.yml \
-  -f deploy/docker/production/homelab.compose.yml \
   config --quiet
 docker compose \
   --env-file deploy/docker/production/homelab.env \
   -p fininzen-production-test \
   -f deploy/docker/production/compose.yml \
-  -f deploy/docker/production/homelab.compose.yml \
   up -d --build
 ```
 
 The external `nacci_proxy` network and its Nginx Proxy Manager container must
-already exist. Caddy remains inactive. PostgreSQL and Redis remain on the
-private project network and publish no host ports.
+already exist. PostgreSQL and Redis remain on the private project network and
+no Fininzen service publishes a host port.
 
 ## Nginx Proxy Manager
 
@@ -38,9 +36,10 @@ Create these hosts, both pointing to the same services:
 - `fininzen.preproduzione.homelab.nacci.eu` (private DNS only);
 - `fininzen-preproduzione.nacci.eu` (the sole Cloudflare Tunnel hostname).
 
-For each host use `/` → `http://fininzen-production-web:3000` and custom
-location `/api/` → `http://fininzen-production-api:8000`, with WebSocket, Force
-SSL, and HTTP/2 enabled. The browser API contract is `/api`.
+For each host use `/` → `http://fininzen-production-web:3000`, custom location
+`/api/` → `http://fininzen-production-api:8000`, and custom location `/static/`
+→ `http://fininzen-production-static:80`. Enable WebSocket, Force SSL, and
+HTTP/2. The browser API contract is `/api`.
 
 The environment file permits both HTTPS origins for Django. The current
 WebAuthn implementation has one RP ID and origin, so use the public hostname
@@ -55,7 +54,6 @@ docker compose \
   --env-file deploy/docker/production/homelab.env \
   -p fininzen-production-test \
   -f deploy/docker/production/compose.yml \
-  -f deploy/docker/production/homelab.compose.yml \
   exec backend python manage.py promote_admin vittorio.nacci@nacci.eu
 ```
 

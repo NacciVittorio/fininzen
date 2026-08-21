@@ -7,7 +7,6 @@ umask 077
 REPO_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/production/homelab.env}"
 BASE_COMPOSE="${REPO_ROOT}/deploy/docker/production/compose.yml"
-HOMELAB_COMPOSE="${REPO_ROOT}/deploy/docker/production/homelab.compose.yml"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
     echo "backup_homelab_production: environment file not found: ${ENV_FILE}" >&2
@@ -48,7 +47,6 @@ COMPOSE=(
     --env-file "${ENV_FILE}"
     -p fininzen-production-test
     -f "${BASE_COMPOSE}"
-    -f "${HOMELAB_COMPOSE}"
 )
 
 cleanup() {

@@ -1,8 +1,8 @@
-# Full containerized stack — Caddy + Next.js + Django + Postgres + Redis.
+# Full containerized stack — Next.js + Django + Postgres + Redis.
 #
-# This is the supported "everything in Docker" topology. It can be exposed
-# directly on a LAN or bound to loopback behind an existing TLS reverse proxy;
-# see wiki/DOCKER_DEPLOY.md.
+# An existing Nginx/Nginx Proxy Manager instance is the public reverse proxy.
+# It joins the external `proxy` network; no application port is exposed on the
+# Docker host. See wiki/DOCKER_DEPLOY.md.
 #
 #   cp deploy/docker/production/.env.example deploy/docker/production/.env   # then edit
 #   docker compose --env-file deploy/docker/production/.env \
@@ -56,10 +56,8 @@ services:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?set DJANGO_ALLOWED_HOSTS}
-      # Plain-HTTP LAN deploy: no TLS, so don't redirect to https and let the
-      # browser store the (non-Secure) auth cookies. Flip both to 1 behind TLS.
-      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-0}
-      DJANGO_SECURE_COOKIES: ${DJANGO_SECURE_COOKIES:-0}
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-1}
+      DJANGO_SECURE_COOKIES: ${DJANGO_SECURE_COOKIES:-1}
       POSTGRES_DB: ${POSTGRES_DB:-fininzen}
       POSTGRES_USER: ${POSTGRES_USER:-fininzen}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
@@ -68,9 +66,8 @@ services:
       POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-disable}
       FIELD_ENCRYPTION_KEYS: ${FIELD_ENCRYPTION_KEYS:?set FIELD_ENCRYPTION_KEYS}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      # Caddy serves the browser the /fininzen/api/auth/* path, so the refresh
-      # cookie must be scoped there or silent token refresh breaks.
-      REFRESH_COOKIE_PATH: ${REFRESH_COOKIE_PATH:-/fininzen/api/auth/}
+      # Nginx preserves the browser-visible /api/auth/* path.
+      REFRESH_COOKIE_PATH: ${REFRESH_COOKIE_PATH:-/api/auth/}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-localhost}
@@ -78,38 +75,50 @@ services:
       WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-http://localhost}
     volumes:
       - staticfiles:/app/staticfiles
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - ${PROXY_API_UPSTREAM:-fininzen-api}
 
   frontend:
     build:
       context: ../../..
       dockerfile: deploy/docker/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/fininzen/api}
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/api}
         NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL:-}
     restart: unless-stopped
     depends_on:
       - backend
     environment:
       # Server-side (SSR/RSC) calls go straight to Django over the compose
-      # network; browser calls use the relative /fininzen/api path via Caddy.
+      # network; browser calls use the relative /api path via Nginx.
       DJANGO_ORIGIN: ${DJANGO_ORIGIN:-http://backend:8000}
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - ${PROXY_WEB_UPSTREAM:-fininzen-web}
 
-  caddy:
-    image: caddy:2-alpine
+  static:
+    image: nginx:1.29-alpine
     restart: unless-stopped
     depends_on:
-      - frontend
       - backend
-    ports:
-      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - staticfiles:/srv/staticfiles:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./nginx-static.conf:/etc/nginx/conf.d/default.conf:ro
+      - staticfiles:/usr/share/nginx/html:ro
+    networks:
+      proxy:
+        aliases:
+          - ${PROXY_STATIC_UPSTREAM:-fininzen-static}
 
 volumes:
   postgres_data:
   staticfiles:
-  caddy_data:
-  caddy_config:
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:?set PROXY_NETWORK in the production environment file}

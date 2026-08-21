@@ -1,326 +1,145 @@
-# Deploy Docker — da VM vuota a stack online
+# Deploy Docker dietro Nginx
 
-> Docker è un percorso supportato e in sviluppo attivo. Il server pubblico usa
-> attualmente il deploy [bare-metal](SYSTEMD_DEPLOY.md), ma questo runbook descrive lo
-> stack completo alternativo con PostgreSQL e Redis.
-
-Guida completa per portare Fininzen in produzione su una VM Linux (es. Debian su
-Proxmox) con **tutto in Docker**: Caddy + Next.js + Django/Gunicorn + PostgreSQL + Redis, dietro un unico `docker compose`.
-
-Scenario di riferimento: deploy su **LAN affidabile in HTTP** (accesso via
-`http://<IP-VM>`). La migrazione a dominio reale + HTTPS è in fondo.
+Questo deploy esegue Next.js, Django/Gunicorn, PostgreSQL e Redis in Docker.
+**Non** include un reverse proxy pubblico: Nginx o Nginx Proxy Manager (NPM)
+gestisce TLS e le porte 80/443, ed è connesso alla stessa rete Docker esterna.
 
 ```
-browser ──http://<IP-VM>──▶ caddy:80
-                             ├─ /static/*        → volume staticfiles
-                             ├─ /fininzen/api/*  → backend:8000  (Django/Gunicorn)
-                             ├─ /api/*           → backend:8000
-                             └─ /*               → frontend:3000 (Next.js SSR)
-backend ◀── SSR (DJANGO_ORIGIN=http://backend:8000) ── frontend
-postgres ◀─ backend ─▶ redis
+browser ──HTTPS──▶ Nginx / NPM
+                       ├─ /          → fininzen-web:3000
+                       ├─ /api/      → fininzen-api:8000
+                       └─ /static/   → fininzen-static:80
+                                      ├─ frontend ──▶ backend:8000
+                                      └─ backend ──▶ postgres, redis
 ```
 
----
+PostgreSQL e Redis restano sulla rete privata del progetto. Nessun servizio
+Fininzen pubblica porte sull'host.
 
-## 0. Concetti di base (host vs container)
+## 1. Prerequisiti
 
-Con Docker ci sono **due piani di utenti** da non confondere:
+- Docker Engine e plugin Compose;
+- un container Nginx/NPM già collegato alla rete esterna che userà Fininzen;
+- hostname HTTPS pubblico o interno, con il certificato gestito da Nginx;
+- utente `dockerapp` nel gruppo `docker` e proprietario di `/opt/fininzen`.
 
-| Concetto | Cos'è | Esempio |
-|---|---|---|
-| **Utente host** | chi *gestisce* i container e possiede i file di deploy | `dockerapp` |
-| **Path del repo** | *dove* sta il progetto sul disco | `/opt/fininzen` |
-| **Utenti nei container** | chi *esegue* davvero l'app (definiti dalle immagini) | `postgres`, `redis`, root |
-
-⚠️ In un deploy 100% Docker **non** serve creare un utente di sistema `fininzen`
-con cui far girare l'app (quello è il pattern bare-metal/systemd). L'app gira
-come utente *interno* a ciascun container. Sull'host basta un normale utente nel
-gruppo `docker`.
-
-I **dati** (database, statici, certificati) non stanno in `/opt/fininzen`: stanno
-nei *volumi Docker* sotto `/var/lib/docker/volumes/`, gestiti da Docker. In
-`/opt/fininzen` vivono solo codice, `compose.yml` e `.env`.
-
----
-
-## 1. Prerequisiti sulla VM
-
-- Debian (o derivata) con **Docker Engine + plugin Compose** già installati
-  (`docker --version` e `docker compose version` devono rispondere).
-- Porta **80** libera.
-- Accesso `root` (o `sudo`) per i passi di setup iniziale.
-
-Usa sempre `su -` (con il trattino) per le operazioni da amministratore: carica
-l'ambiente completo di root, `/usr/sbin` incluso, evitando errori tipo
-`usermod: command not found`.
-
----
-
-## 2. Utente, gruppo, permessi (come root)
+Individua la rete del reverse proxy:
 
 ```bash
-su -
-apt install -y git
-
-# utente non-root dedicato alla gestione dei container
-adduser dockerapp
-usermod -aG docker dockerapp
-
-# cartella applicativa, di proprietà di dockerapp
-mkdir -p /opt/fininzen
-chown dockerapp:dockerapp /opt/fininzen
-exit
+docker network ls
+docker network inspect nacci_proxy
 ```
 
-Verifica l'appartenenza al gruppo (ha effetto solo da una **nuova** sessione):
+L'output di `inspect` deve elencare il container Nginx/NPM. Per creare una
+rete nuova, una sola volta:
 
 ```bash
-getent group docker                # deve elencare dockerapp
+docker network create nginx_proxy
 ```
 
-> **Sicurezza**: il gruppo `docker` è di fatto root-equivalente (chi può lanciare
-> container può montare il filesystem dell'host). Trattalo come accesso
-> amministrativo. Per `dockerapp` valuta di disabilitare il login con password e
-> usare solo SSH con chiave.
+## 2. Configurare l'ambiente
 
-(Opzionale) alias `ll` per tutti gli utenti:
-
-```bash
-su -
-echo "alias ll='ls -alF'" > /etc/profile.d/aliases.sh
-chmod 644 /etc/profile.d/aliases.sh
-exit
-```
-
----
-
-## 3. Chiave SSH per il clone (deploy key)
-
-Per un server che fa solo `git pull` su un repo, la scelta migliore è una
-**deploy key**: chiave SSH legata a *un solo* repo, di sola lettura. Se la VM
-viene compromessa, l'attaccante legge solo questo repo — non tutti i tuoi.
-
-Come **dockerapp**:
-
-```bash
-ssh-keygen -t ed25519 -C "dockerapp@$(hostname) fininzen deploy" -f ~/.ssh/id_ed25519 -N ""
-cat ~/.ssh/id_ed25519.pub
-```
-
-Su GitLab: repo → **Settings → Repository → Deploy keys → Add new key** →
-incolla la chiave, **lascia "Grant write permissions to this key"
-deselezionato** (serve solo leggere).
-
-Verifica:
-
-```bash
-ssh -T git@gitlab.com
-# atteso: "Welcome to GitLab, @username!" (è normale)
-```
-
----
-
-## 4. Clone del repo (come dockerapp)
+Come `dockerapp`:
 
 ```bash
 cd /opt/fininzen
-git clone git@gitlab.com:fininzengroup/fininzen.git .
-git checkout main
-ls deploy/docker/production/
+cp deploy/docker/production/.env.example deploy/docker/production/.env
+chmod 600 deploy/docker/production/.env
 ```
 
----
-
-## 5. Configurazione `.env` (come dockerapp, in `/opt/fininzen`)
+Genera i segreti e inseriscili nel file:
 
 ```bash
-cp deploy/docker/production/.env.example deploy/docker/production/.env
-chmod 600 deploy/docker/production/.env     # blinda i segreti: solo dockerapp legge/scrive
-
-# genera i due segreti (lanciali separatamente, copia ciascun output):
-python3 -c "import secrets; print(secrets.token_urlsafe(64))"                     # → DJANGO_SECRET_KEY
-python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"   # → FIELD_ENCRYPTION_KEYS
-
-hostname -I                            # → IP LAN della VM
-nano deploy/docker/production/.env
+python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"
 ```
 
-Valori da impostare:
+Imposta almeno:
 
-| Campo | Valore |
-|---|---|
+| Variabile | Valore |
+| --- | --- |
 | `DJANGO_SECRET_KEY` | primo segreto generato |
 | `FIELD_ENCRYPTION_KEYS` | secondo segreto generato |
-| `POSTGRES_PASSWORD` | password robusta a tua scelta |
-| `DJANGO_ALLOWED_HOSTS` | `backend,localhost,127.0.0.1,<IP-VM>` |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | indirizzo pubblico mostrato da Impostazioni → About (es. `assistenza@example.com`); se omesso, il link “Contattaci” non viene mostrato |
-| `CSRF_TRUSTED_ORIGINS` | `http://<IP-VM>` |
-| `WEBAUTHN_RP_ID` | `<IP-VM>` |
-| `WEBAUTHN_ORIGIN` | `http://<IP-VM>` |
-| `DJANGO_SECURE_COOKIES` | `0` (deploy HTTP — vedi nota sotto) |
-| `DJANGO_SECURE_SSL_REDIRECT` | `0` (deploy HTTP) |
+| `POSTGRES_PASSWORD` | password robusta |
+| `DJANGO_ALLOWED_HOSTS` | `backend,<hostname>` |
+| `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS` | `https://<hostname>` |
+| `WEBAUTHN_RP_ID` | `<hostname>` |
+| `WEBAUTHN_ORIGIN` | `https://<hostname>` |
+| `PROXY_NETWORK` | nome della rete Nginx/NPM, ad es. `nacci_proxy` |
 
-`token_urlsafe` e `b64encode` producono solo caratteri sicuri per un file `.env`
-(niente `#` o spazi): **non** servono virgolette attorno ai valori.
+Lascia `REFRESH_COOKIE_PATH=/api/auth/` e `NEXT_PUBLIC_API_BASE=/api`:
+Nginx inoltra il prefisso `/api` senza riscriverlo. Mantieni
+`DJANGO_SECURE_COOKIES=1` e `DJANGO_SECURE_SSL_REDIRECT=1` per HTTPS.
 
-`NEXT_PUBLIC_CONTACT_EMAIL` non è una credenziale: genera un link `mailto:` e
-viene incorporato nell'immagine del frontend durante la build. Se lo modifichi
-dopo il primo deploy, ricostruisci l'immagine con `dc up -d --build`.
+## 3. Avvio e Nginx Proxy Manager
 
-> `DJANGO_ALLOWED_HOSTS` deve includere sia `<IP-VM>` (come lo raggiunge il
-> browser) sia `backend` (come il livello SSR di Next.js raggiunge Django sulla
-> rete Docker). Senza `backend`, le pagine renderizzate lato server falliscono.
-
----
-
-## 6. Build e avvio (come dockerapp)
+Verifica prima la configurazione, poi avvia:
 
 ```bash
-cd /opt/fininzen
+docker compose --env-file deploy/docker/production/.env \
+  -f deploy/docker/production/compose.yml config --quiet
 docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml up -d --build
 ```
 
-`migrate` e `collectstatic` vengono eseguiti automaticamente dall'entrypoint del
-backend a ogni avvio. Crea poi il primo utente amministratore:
+In NPM crea un Proxy Host per l'hostname. Usa `/` →
+`http://fininzen-web:3000`, attiva WebSocket, Force SSL e HTTP/2, quindi crea
+due Custom Locations:
+
+| Location | Forward hostname | Porta |
+| --- | --- | --- |
+| `/api/` | `fininzen-api` | `8000` |
+| `/static/` | `fininzen-static` | `80` |
+
+I nomi sono configurabili tramite `PROXY_WEB_UPSTREAM`,
+`PROXY_API_UPSTREAM` e `PROXY_STATIC_UPSTREAM`. Servono quando più stack
+condividono la stessa rete Docker.
+
+Il servizio `static` usa Nginx solo per pubblicare in modo read-only gli asset
+generati da `collectstatic`; non espone alcuna porta e non sostituisce il
+reverse proxy principale.
+
+Crea il primo amministratore:
 
 ```bash
 docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml exec backend python manage.py createsuperuser
 ```
 
-Apri **`http://<IP-VM>`** dal browser.
+## 4. Operatività
 
-Alias comodo per non ripetere i flag (aggiungilo a `~/.bashrc` di dockerapp):
+Alias opzionale:
 
 ```bash
 alias dc='docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml'
 ```
 
----
+```bash
+dc ps
+dc logs -f backend
+dc logs -f frontend
+dc logs -f static
+dc up -d --build
+dc exec backend python manage.py shell
+```
 
-## 7. Job schedulati: prezzi e spese ricorrenti (IMPORTANTE)
+`migrate` e `collectstatic` sono eseguiti dall'entrypoint del backend a ogni
+avvio. Dopo un aggiornamento controlla `dc ps`, i log e l'URL pubblico con:
 
-I prezzi degli asset si aggiornano con `manage.py refresh_asset_prices`, che
-**non** deve girare durante le richieste degli utenti. Nel mondo bare-metal lo
-esegue un timer systemd; in Docker lo scheduliamo con il **cron dell'host** che
-invoca il container già in esecuzione.
+```bash
+API_PREFIX=/api scripts/smoke_test.sh https://<hostname>
+```
 
-Lo stesso vale per le spese ricorrenti: `generate_recurring_expenses` applica
-ogni giorno la finestra di anticipo configurata su ciascuna ricorrenza, mentre
-`generate_split_recurring_expenses` genera le occorrenze mancanti delle spese
-condivise. Senza questi job, le nuove occorrenze non vengono materializzate finché
-non interviene un utente.
+## 5. Job e backup
 
-Come **dockerapp**, `crontab -e`:
+Come `dockerapp`, pianifica i job applicativi con `crontab -e`:
 
 ```cron
-# Aggiorna i prezzi ogni ora (minuto 17 per evitare il picco dell'ora esatta)
 17 * * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py refresh_asset_prices >> /home/dockerapp/refresh_prices.log 2>&1
-
-# Genera ogni giorno le spese ricorrenti personali e Split mancanti
 23 3 * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py generate_recurring_expenses >> /home/dockerapp/recurring_expenses.log 2>&1
 41 3 * * * /usr/bin/docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml exec -T backend python manage.py generate_split_recurring_expenses >> /home/dockerapp/split_recurring_expenses.log 2>&1
+30 3 * * * /opt/fininzen/scripts/backup_postgres.sh >> /home/dockerapp/backup_db.log 2>&1
 ```
 
-Note:
-- `exec -T` riusa il container `backend` già attivo (niente nuovo container) e
-  disabilita la TTY (necessario sotto cron).
-- Path assoluto a `docker` perché cron ha un `PATH` minimale.
-- Gli orari 03:23 e 03:41 separano i due job giornalieri e seguono il fuso orario
-  configurato sull'host.
-- In alternativa "pure-Docker" si può aggiungere un container scheduler
-  (es. *ofelia*) al compose; il cron dell'host è più semplice ed è la scelta
-  consigliata per un homelab.
-
----
-
-## 8. Operatività quotidiana
-
-Con l'alias `dc` impostato al punto 6:
-
-```bash
-dc ps                      # stato dei servizi
-dc logs -f backend         # log del backend
-dc logs -f caddy           # log del reverse proxy
-dc exec backend python manage.py shell
-dc restart backend
-dc down                    # ferma (i dati restano nei volumi)
-dc up -d                   # riavvia
-```
-
-### Aggiornare a una nuova versione del codice
-
-```bash
-cd /opt/fininzen
-git pull
-dc up -d --build           # ricostruisce le immagini; migrate/collectstatic automatici
-```
-
-Dopo il deploy controlla `dc ps`, i log di backend e Caddy, il contenuto di
-`crontab -l` ed esegui `scripts/smoke_test.sh` sull'URL dell'installazione.
-
-### Backup del database
-
-Usa lo script dedicato: fa il `pg_dump` (formato custom) dal container in
-`<repo>/backups/`, con rotazione e cifratura opzionale (`BACKUP_ENC_PASSPHRASE`
-nel `.env`):
-
-```bash
-just production-backup           # equivale a: bash scripts/backup_postgres.sh
-```
-
-Schedulalo da cron (utente **dockerapp**) e, se vuoi una copia off-site, aggiungi
-`backup_offsite.sh` dopo (richiede `OFFSITE_RSYNC_TARGET` nel `.env`):
-
-```cron
-30 3 * * * /opt/fininzen/scripts/backup_postgres.sh      >> /home/dockerapp/backup_db.log 2>&1
-45 3 * * * /opt/fininzen/scripts/backup_offsite.sh >> /home/dockerapp/offsite.log   2>&1
-```
-
-Ripristino di un dump non cifrato su un DB vuoto:
-
-```bash
-docker compose --env-file deploy/docker/production/.env \
-  -f deploy/docker/production/compose.yml exec -T postgres \
-  sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' \
-  < backups/fininzen_AAAA-MM-GG_HHMMSS.dump
-```
-
-Per un file `.enc`, decifra prima in una directory temporanea protetta oppure
-collega `openssl enc -d` allo stesso comando. Testa periodicamente un restore su
-un DB usa e getta, non sul DB live.
-
----
-
-## 9. Note di sicurezza (deploy HTTP)
-
-- `DJANGO_SECURE_COOKIES=0` e `DJANGO_SECURE_SSL_REDIRECT=0` permettono il
-  funzionamento su HTTP: senza, Django marca i cookie di auth come `Secure`, il
-  browser li scarta su `http://` e **login/refresh si rompono in silenzio**.
-  Accettabile **solo** su LAN fidata.
-- **WebAuthn/passkey** richiede HTTPS o `localhost`: da un altro PC via
-  `http://<IP-VM>` non funziona. Login con username+password sì.
-- Nessuna porta di DB/Redis è esposta sull'host: solo Caddy pubblica la `:80`.
-- Tieni `.env` a `chmod 600` e mai committato (è in `.gitignore`).
-
----
-
-## 10. Passare a dominio reale + HTTPS
-
-1. Punta un record DNS all'IP della VM e apri le porte 80 + 443.
-2. In `deploy/docker/production/Caddyfile` sostituisci `:80 {` con `tuo.dominio {`
-   (Caddy ottiene il certificato Let's Encrypt da solo) e aggiungi `- "443:443"`
-   ai `ports` del servizio `caddy` in `compose.yml`.
-3. Nel `.env`: `DJANGO_SECURE_SSL_REDIRECT=1`, `DJANGO_SECURE_COOKIES=1`, e
-   aggiorna `CSRF_TRUSTED_ORIGINS=https://tuo.dominio` e `WEBAUTHN_*` con il
-   dominio.
-4. `dc up -d` per applicare.
-
----
-
-## Riferimenti
-
-- `deploy/docker/README.md` — riferimento rapido dei comandi dello stack.
-- [VERSIONING.md](VERSIONING.md) — schema di versionamento unico backend/frontend.
-- `wiki/archive/POSTGRES_MIGRATION.md` — snapshot storico di una migrazione SQLite → PostgreSQL.
+`just production-backup` produce un dump PostgreSQL verificato in
+`backups/`, con cifratura opzionale tramite `BACKUP_ENC_PASSPHRASE`.
