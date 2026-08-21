@@ -85,7 +85,6 @@ textarea.inp {
 .btn-p {
     background: var(--btn-primary-bg);
     color: var(--btn-primary-fg);
-    padding: 10px 18px;
     box-shadow: var(--shadow-soft);
 }
 .btn-p:hover {
@@ -95,7 +94,6 @@ textarea.inp {
 .btn-r {
     background: var(--danger);
     color: #fff;
-    padding: 10px 18px;
     border: 1px solid transparent;
 }
 .btn-r:hover {
@@ -105,7 +103,6 @@ textarea.inp {
 .btn-g {
     background: var(--card);
     color: var(--fg);
-    padding: 10px 16px;
     border: 1px solid var(--rule);
     box-shadow: none;
 }
@@ -113,7 +110,11 @@ textarea.inp {
     color: var(--accent);
 }
 .btn-sm {
-    min-height: 40px;
+    /* Kept for compatibility: standard text controls no longer shrink. */
+    font-size: var(--control-font-size);
+}
+.btn-compact {
+    min-height: 32px;
     padding: 5px 10px;
     font-size: 12px;
     border-radius: 8px;

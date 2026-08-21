@@ -118,26 +118,16 @@ export default function AssetTransactionsControls({
                     type="button"
                     data-testid="asset-tx-filters-open"
                     onClick={() => setTxFiltersSheetOpen(true)}
-                    className="pressable"
+                    className="btn btn-g pressable"
                     style={{
                         position: "relative",
-                        display: "inline-flex",
-                        alignItems: "center",
                         gap: 7,
-                        border: "1px solid var(--rule)",
-                        cursor: "pointer",
                         background: activeFilterCount
                             ? "var(--accent)"
                             : "var(--card-inset)",
                         color: activeFilterCount
                             ? "var(--btn-primary-fg)"
                             : "var(--fg)",
-                        borderRadius: 12,
-                        minHeight: 38,
-                        padding: "0 18px",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        fontFamily: "inherit",
                         flexShrink: 0,
                     }}
                 >
@@ -170,25 +160,15 @@ export default function AssetTransactionsControls({
                             ? exitAssetTxSelectionMode()
                             : enterAssetTxSelectionMode()
                     }
-                    className="pressable"
+                    className="btn btn-g pressable"
                     style={{
                         marginLeft: "auto",
-                        display: "inline-flex",
-                        alignItems: "center",
                         background: assetTxSelectionMode
                             ? "var(--accent-soft)"
                             : "var(--card-inset)",
                         color: assetTxSelectionMode
                             ? "var(--accent-deep)"
                             : "var(--fg)",
-                        border: "1px solid var(--rule)",
-                        borderRadius: 12,
-                        minHeight: 38,
-                        padding: "0 18px",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
                         flexShrink: 0,
                     }}
                     aria-pressed={assetTxSelectionMode}

@@ -103,24 +103,16 @@ export function CashflowFeedControls({
                 type="button"
                 data-testid="cf-filters-open"
                 onClick={() => setFiltersSheetOpen(true)}
+                className="btn btn-g pressable"
                 style={{
                     position: "relative",
-                    display: "inline-flex",
-                    alignItems: "center",
                     gap: 7,
-                    border: "1px solid var(--rule)",
-                    cursor: "pointer",
                     background: activeFilterCount
                         ? "var(--accent)"
                         : "var(--card-inset)",
                     color: activeFilterCount
                         ? "var(--btn-primary-fg)"
                         : "var(--fg)",
-                    borderRadius: 12,
-                    padding: "0 18px",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
                     flexShrink: 0,
                 }}
             >
@@ -151,19 +143,11 @@ export function CashflowFeedControls({
                 type="button"
                 data-testid="cf-select-mode"
                 onClick={() => enterCfSelectionMode()}
+                className="btn btn-g pressable"
                 style={{
-                    border: "1px solid var(--rule)",
-                    cursor: "pointer",
                     background: "var(--card-inset)",
                     color: "var(--fg)",
-                    borderRadius: 12,
-                    padding: "0 18px",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
                     flexShrink: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
                 }}
             >
                 {T("cf_bulk_select")}

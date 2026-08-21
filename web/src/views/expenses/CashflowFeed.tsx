@@ -174,26 +174,13 @@ export default function CashflowFeed({
 
                 <button
                     type="button"
-                    className="desktop-only"
+                    className="btn btn-primary desktop-only"
+                    data-testid="cf-add-transaction-desktop"
                     onClick={onAdd}
                     style={{
                         width: "100%",
                         boxSizing: "border-box",
-                        background: "var(--btn-primary-bg)",
-                        color: "var(--btn-primary-fg)",
-                        border: 0,
-                        borderRadius: 12,
-                        fontSize: 15,
-                        fontWeight: 600,
-                        minHeight: 46,
-                        padding: "12px 20px",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
                         marginBottom: 14,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
                     }}
                 >
                     + {T("fab_add_transaction")}
