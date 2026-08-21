@@ -113,6 +113,7 @@ textarea.inp {
     color: var(--accent);
 }
 .btn-sm {
+    min-height: 40px;
     padding: 5px 10px;
     font-size: 12px;
     border-radius: 8px;

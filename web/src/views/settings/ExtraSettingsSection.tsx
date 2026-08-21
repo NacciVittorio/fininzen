@@ -34,7 +34,7 @@ export function ExtraSettingsSection({
                 >
                     <button
                         className="btn btn-r"
-                        style={{ width: "100%", padding: "10px" }}
+                        style={{ width: "100%" }}
                         onClick={() => {
                             setResetConfirm("transactions");
                             setResetUnderstood(false);
@@ -55,7 +55,7 @@ export function ExtraSettingsSection({
                 >
                     <button
                         className="btn btn-r"
-                        style={{ width: "100%", padding: "10px" }}
+                        style={{ width: "100%" }}
                         onClick={() => {
                             setResetConfirm("portfolio");
                             setResetUnderstood(false);
@@ -102,15 +102,9 @@ export function ExtraSettingsSection({
                     className="btn"
                     style={{
                         width: "100%",
-                        padding: "10px",
                         background: "var(--accent-ring)",
                         color: "var(--accent)",
                         border: "1px solid var(--accent-ring)",
-                        borderRadius: 10,
-                        fontFamily: "inherit",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: "pointer",
                     }}
                     onClick={() => {
                         setDemoConfirm(true);
