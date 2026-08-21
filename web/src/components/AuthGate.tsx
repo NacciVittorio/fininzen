@@ -22,7 +22,7 @@ const fullScreenCentered: React.CSSProperties = {
  * then either send unauthenticated visitors to /login or render the tree.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated } = useApp();
+    const { isAuthenticated, authReady } = useApp();
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
 
@@ -31,7 +31,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (mounted && !isAuthenticated) router.replace("/login");
     }, [mounted, isAuthenticated, router]);
 
-    if (!mounted || !isAuthenticated) {
+    if (!mounted || !isAuthenticated || !authReady) {
         return <div style={fullScreenCentered}>Loading…</div>;
     }
     return <>{children}</>;

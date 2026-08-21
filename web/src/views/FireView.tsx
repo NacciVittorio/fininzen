@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useApp } from "../context/useApp";
 import { fetchFire, getPayloadError, saveFireSettings } from "../api/fire";
 import type { FireResponse, FireSettings } from "../api/fire";
@@ -31,16 +31,28 @@ export default function FireView() {
     const [quickError, setQuickError] = useState("");
     const [paramsOpen, setParamsOpen] = useState(false);
     const [matrixSheetOpen, setMatrixSheetOpen] = useState(false);
+    const loadInFlightRef = useRef<Promise<void> | null>(null);
     const isDesktop = useMediaQuery("(min-width: 1024px)");
 
     const load = useCallback(async () => {
-        setLoading(true);
+        if (loadInFlightRef.current) return loadInFlightRef.current;
+        const request = (async () => {
+            setLoading(true);
+            try {
+                setData(await fetchFire(apiFetch));
+            } catch (e) {
+                logError("FireView:", e);
+            } finally {
+                setLoading(false);
+            }
+        })();
+        loadInFlightRef.current = request;
         try {
-            setData(await fetchFire(apiFetch));
-        } catch (e) {
-            logError("FireView:", e);
+            await request;
         } finally {
-            setLoading(false);
+            if (loadInFlightRef.current === request) {
+                loadInFlightRef.current = null;
+            }
         }
     }, [apiFetch]);
 

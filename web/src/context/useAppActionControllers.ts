@@ -113,11 +113,13 @@ export function useAppActionControllers({
     const {
         accountingMonthStartDay,
         apiFetch,
+        authReady,
         decimalSeparator,
         enabledFeatures,
         fetchGrants,
         guardDemo,
         isAuthenticated,
+        pathname,
         transactionPrefs,
     } = sessionController;
     const { contextValue: dataContext } = dataControllers;
@@ -164,7 +166,9 @@ export function useAppActionControllers({
         bootstrapReady,
         fetchGrants,
         fetchProfile,
+        authReady,
         isAuthenticated,
+        pathname,
         setAppLoading,
         setBootstrapReady,
         setFetchError,

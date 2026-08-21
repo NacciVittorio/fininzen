@@ -19,6 +19,7 @@ import {
     requestLogout,
     requestMfaVerify,
     requestRegister,
+    requestTokenRefresh,
 } from "../api/auth";
 import { useSharing } from "./useSharing";
 import { useAuthenticatedFetch } from "./useAuthenticatedFetch";
@@ -127,6 +128,13 @@ export function useSessionController(providerState: AppProviderState) {
     const [isAuthenticated, setIsAuthenticated] = useState(
         () => lsGet("fn_session") === "1",
     );
+    // A remembered session has only an httpOnly refresh cookie after a reload;
+    // do not let protected views or data queries run until it has produced a
+    // new in-memory access token.
+    const [authReady, setAuthReady] = useState(
+        () => lsGet("fn_session") !== "1",
+    );
+    const sessionRestoreRef = useRef<Promise<boolean> | null>(null);
     const [isDemo, setIsDemo] = useState(() => lsGet("is_demo") === "true");
     const [authSessionNonce, setAuthSessionNonce] = useState(0);
     // ── App-lock (biometric) ──
@@ -192,7 +200,7 @@ export function useSessionController(providerState: AppProviderState) {
         }
         return false;
     }, []);
-    const [user, setUser] = useState<string | null>(null);
+    const [user, setUser] = useState<string | null>(() => lsGet("auth_email"));
 
     const login = useCallback(
         async (
@@ -229,6 +237,7 @@ export function useSessionController(providerState: AppProviderState) {
                 setDemoConfirm(false);
                 setDemoUnderstood(false);
                 setIsAuthenticated(true);
+                setAuthReady(true);
                 setIsDemo(false);
                 setUser(email);
                 setTab("dashboard");
@@ -269,6 +278,7 @@ export function useSessionController(providerState: AppProviderState) {
                 setDemoConfirm(false);
                 setDemoUnderstood(false);
                 setIsAuthenticated(true);
+                setAuthReady(true);
                 setIsDemo(false);
                 setUser(email);
                 setTab("dashboard");
@@ -309,6 +319,7 @@ export function useSessionController(providerState: AppProviderState) {
             setDemoConfirm(false);
             setDemoUnderstood(false);
             setIsAuthenticated(true);
+            setAuthReady(true);
             setIsDemo(true);
             setUser("demo@demo.com");
             setIsLocked(false);
@@ -339,6 +350,7 @@ export function useSessionController(providerState: AppProviderState) {
             setDemoConfirm(false);
             setDemoUnderstood(false);
             setIsAuthenticated(true);
+            setAuthReady(true);
             setIsDemo(false);
             setUser(email);
             setIsLocked(false);
@@ -520,6 +532,7 @@ export function useSessionController(providerState: AppProviderState) {
         setDemoConfirm(false);
         setDemoUnderstood(false);
         setIsAuthenticated(false);
+        setAuthReady(true);
         setIsDemo(false);
         setUser(null);
         setIsLocked(false);
@@ -544,6 +557,32 @@ export function useSessionController(providerState: AppProviderState) {
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);
         setAuthSessionNonce((n) => n + 1);
     }, [resetClientState, setDemoConfirm, setDemoUnderstood, setTab]);
+
+    // Restore the short-lived access token once, before mounting protected
+    // route content. The 401→refresh retry in useAuthenticatedFetch remains a
+    // safety net for tokens that expire later during an active session.
+    useEffect(() => {
+        if (!isAuthenticated || authReady) return;
+        if (sessionRestoreRef.current) return;
+        sessionRestoreRef.current = (async () => {
+            try {
+                const response = await requestTokenRefresh();
+                if (!response.ok) return false;
+                const data = (await response.json()) as TokenResponse;
+                if (!data.access) return false;
+                setAccessToken(data.access);
+                setAuthReady(true);
+                return true;
+            } catch {
+                return false;
+            } finally {
+                sessionRestoreRef.current = null;
+            }
+        })();
+        void sessionRestoreRef.current.then((restored) => {
+            if (!restored) logout();
+        });
+    }, [authReady, isAuthenticated, logout]);
 
     // ── App-lock methods ──
     // Enable: register a platform credential (prompts Face ID/Touch ID), then flag on.
@@ -634,6 +673,7 @@ export function useSessionController(providerState: AppProviderState) {
     }, [enabledFeatures, tab, isAuthenticated, setTab]);
     return {
         isAuthenticated,
+        authReady,
         isDemo,
         authSessionNonce,
         appLockEnabled,
@@ -675,6 +715,7 @@ export function useSessionController(providerState: AppProviderState) {
         sharingController,
         fetchGrants,
         switchAccount,
+        pathname,
         tab,
         setTab,
     };

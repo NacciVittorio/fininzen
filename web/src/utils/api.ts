@@ -39,7 +39,10 @@ export const getCsrfToken = (): string => {
 
 export const authHeaders = (): Record<string, string> => ({
     "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken ?? ""}`,
+    // Do not emit a malformed `Authorization: Bearer ` header while a session
+    // is being restored. Besides producing a noisy 401, some auth backends
+    // classify that differently from an unauthenticated request.
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
 });
 
 export type FetchWithTimeoutOptions = RequestInit & { timeoutMs?: number };

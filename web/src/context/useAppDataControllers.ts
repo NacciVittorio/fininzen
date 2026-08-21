@@ -51,6 +51,7 @@ export function useAppDataControllers({
         enabledFeatures,
         guardDemo,
         isAuthenticated,
+        pathname,
         logout,
         privacyPreferences,
         privacyRevealTimersRef,
@@ -71,7 +72,8 @@ export function useAppDataControllers({
     // its data (transaction feeds need categories) or its invalidators.
     const appQueries = useAppQueries({
         apiFetch,
-        isAuthenticated,
+        isAuthenticated: isAuthenticated && providerState.bootstrapReady,
+        pathname,
         user,
         viewAs,
         viewMode,

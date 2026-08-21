@@ -18,6 +18,40 @@ test.describe('Authentication', () => {
     await expect(page.locator('nav a[href="/cashflow"]')).toBeVisible();
   });
 
+  test('session restore loads only Fire data without 401 retries', async ({ page }) => {
+    const apiResponses: Array<{ path: string; status: number }> = [];
+    page.on('response', (response) => {
+      const url = new URL(response.url());
+      if (url.pathname.includes('/api/')) {
+        apiResponses.push({ path: url.pathname, status: response.status() });
+      }
+    });
+
+    await page.goto('/login');
+    const demoResponse = await page.request.post('/fininzen/api/auth/demo/');
+    expect(demoResponse.ok()).toBeTruthy();
+    await page.evaluate(() => {
+      localStorage.setItem('fn_session', '1');
+      localStorage.setItem('is_demo', 'true');
+    });
+
+    await page.goto('/fire');
+    await expect(page.getByTestId('fire-params-open')).toBeVisible({ timeout: 15000 });
+
+    expect(apiResponses.filter((response) => response.status === 401)).toEqual([]);
+    expect(apiResponses.filter(
+      (response) => response.path === '/fininzen/api/auth/token/refresh/',
+    )).toHaveLength(1);
+    expect(apiResponses.filter(
+      (response) => response.path === '/fininzen/api/auth/profile/',
+    )).toHaveLength(1);
+    expect(apiResponses.filter(
+      (response) => response.path === '/fininzen/api/portfolio/fire/',
+    )).toHaveLength(1);
+    expect(apiResponses.some((response) => response.path.includes('/expenses/'))).toBeFalsy();
+    expect(apiResponses.some((response) => response.path.includes('/portfolio/history/'))).toBeFalsy();
+  });
+
   // PARITY GAP: the Next.js app shell is currently a placeholder top-nav with no
   // demo banner (the old SPA showed a "demo mode" banner with a demo-logout CTA).
   // Re-enable once the shell reaches parity. Tracked under task #8 / shell parity.

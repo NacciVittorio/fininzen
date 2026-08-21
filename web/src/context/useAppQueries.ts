@@ -86,6 +86,7 @@ const isFixedWealthRange = (range: string): range is FixedWealthRange =>
 type UseAppQueriesArgs = {
     apiFetch: ApiFetcher;
     isAuthenticated: boolean;
+    pathname: string | null;
     user: string | null;
     viewAs: ViewAsAccount | null;
     // Filters / prefs that key the parametrised queries.
@@ -104,9 +105,76 @@ type UseAppQueriesArgs = {
     setAssetForm: AppProviderState["setAssetForm"];
 };
 
+type QueryName =
+    | "categories"
+    | "assets"
+    | "portfolioSummary"
+    | "investmentTypes"
+    | "contributionSources"
+    | "expenses"
+    | "trends"
+    | "expSummary"
+    | "recurringStatus"
+    | "monthlyInvestmentStats"
+    | "allocationData"
+    | "budgets"
+    | "recurringExpenses"
+    | "recurringInvestmentPlans"
+    | "portfolioHistory"
+    | "fireGoal"
+    | "monthlyOverview";
+
+const queryNamesForPath = (pathname: string | null): ReadonlySet<QueryName> => {
+    if (pathname === "/dashboard") {
+        return new Set([
+            "categories",
+            "assets",
+            "portfolioSummary",
+            "investmentTypes",
+            "trends",
+            "expSummary",
+            "recurringStatus",
+            "budgets",
+            "portfolioHistory",
+            "fireGoal",
+            "monthlyOverview",
+        ]);
+    }
+    if (pathname === "/cashflow") return new Set(["categories", "assets"]);
+    if (pathname === "/accounts") {
+        return new Set(["assets", "investmentTypes", "trends"]);
+    }
+    if (pathname === "/portfolio") {
+        return new Set([
+            "assets",
+            "investmentTypes",
+            "contributionSources",
+            "monthlyInvestmentStats",
+            "allocationData",
+        ]);
+    }
+    if (pathname === "/split") return new Set(["categories", "assets"]);
+    if (pathname === "/settings/planning") {
+        return new Set([
+            "categories",
+            "assets",
+            "investmentTypes",
+            "contributionSources",
+            "allocationData",
+            "budgets",
+            "recurringExpenses",
+            "recurringInvestmentPlans",
+            "fireGoal",
+        ]);
+    }
+    if (pathname === "/settings/data") return new Set(["categories", "assets"]);
+    return new Set();
+};
+
 export function useAppQueries({
     apiFetch,
     isAuthenticated,
+    pathname,
     user,
     viewAs,
     viewMode,
@@ -126,7 +194,10 @@ export function useAppQueries({
     const queryClient = useQueryClient();
     // Per-account cache namespace: mirrors the old cacheContextRef so a
     // "view as" switch reads a fresh cache entry instead of bleeding data.
-    const scope = `${user ?? "anon"}::${viewAs ? viewAs.userId : "self"}`;
+    const scope = `${user ?? "pending"}::${viewAs ? viewAs.userId : "self"}`;
+    const queryNames = queryNamesForPath(pathname);
+    const shouldFetch = (name: QueryName): boolean =>
+        isAuthenticated && queryNames.has(name);
     const includeBreakdown = wealthMetrics.some((metric) =>
         ["balance", "investing"].includes(metric),
     );
@@ -136,35 +207,35 @@ export function useAppQueries({
     const categoriesQuery = useQuery({
         queryKey: ["categories", scope],
         queryFn: () => fetchExpenseCategoriesList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("categories"),
     });
 
     const assetsQuery = useQuery({
         queryKey: ["assets", scope],
         queryFn: () => fetchPortfolioAssetsList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("assets"),
     });
 
     const summaryQuery = useQuery({
         queryKey: ["portfolioSummary", scope],
         queryFn: () => fetchPortfolioSummaryData(apiFetch),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("portfolioSummary"),
     });
 
     const investmentTypesQuery = useQuery({
         queryKey: ["investmentTypes", scope],
         queryFn: () => fetchInvestmentTypesList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("investmentTypes"),
     });
 
     const contributionSourcesQuery = useQuery({
         queryKey: ["contributionSources", scope],
         queryFn: () => fetchContributionSourcesList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("contributionSources"),
     });
 
     const expensesEnabled =
-        isAuthenticated && !(viewMode === "month" && !filterMonth);
+        shouldFetch("expenses") && !(viewMode === "month" && !filterMonth);
     const expensesQuery = useQuery({
         queryKey: [
             "expenses",
@@ -194,7 +265,7 @@ export function useAppQueries({
     const trendsQuery = useQuery({
         queryKey: ["trends", scope],
         queryFn: () => fetchExpenseTrends(apiFetch),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("trends"),
     });
 
     const expSummaryQuery = useQuery({
@@ -214,7 +285,7 @@ export function useAppQueries({
             params.set("year", String(filterYear));
             return fetchExpenseSummaryData(apiFetch, params);
         },
-        enabled: isAuthenticated && Boolean(filterMonth),
+        enabled: shouldFetch("expSummary") && Boolean(filterMonth),
     });
 
     const recurringStatusQuery = useQuery({
@@ -226,7 +297,7 @@ export function useAppQueries({
             params.set("year", String(period.year));
             return fetchRecurringStatusData(apiFetch, params);
         },
-        enabled: isAuthenticated,
+        enabled: shouldFetch("recurringStatus"),
     });
 
     const monthlyInvestmentStatsQuery = useQuery({
@@ -242,31 +313,32 @@ export function useAppQueries({
             params.set("year", String(invStatsYear));
             return fetchMonthlyInvestmentStatsData(apiFetch, params);
         },
-        enabled: isAuthenticated && Boolean(invStatsMonth),
+        enabled:
+            shouldFetch("monthlyInvestmentStats") && Boolean(invStatsMonth),
     });
 
     const allocationQuery = useQuery({
         queryKey: ["allocationData", scope],
         queryFn: () => fetchAllocationTargets(apiFetch),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("allocationData"),
     });
 
     const budgetsQuery = useQuery({
         queryKey: ["budgets", scope],
         queryFn: () => fetchBudgetsList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("budgets"),
     });
 
     const recurringExpensesQuery = useQuery({
         queryKey: ["recurringExpenses", scope],
         queryFn: () => fetchRecurringExpensesList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("recurringExpenses"),
     });
 
     const recurringInvestmentPlansQuery = useQuery({
         queryKey: ["recurringInvestmentPlans", scope],
         queryFn: () => fetchRecurringInvestmentPlansList(apiFetch).then(toList),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("recurringInvestmentPlans"),
     });
 
     const portfolioHistoryQuery = useQuery({
@@ -300,7 +372,7 @@ export function useAppQueries({
             // response to an empty series so consumers' .map()/.length never throw.
             return Array.isArray(data) ? data : EMPTY_HISTORY;
         },
-        enabled: isAuthenticated,
+        enabled: shouldFetch("portfolioHistory"),
     });
 
     const fireGoalQuery = useQuery({
@@ -309,13 +381,13 @@ export function useAppQueries({
             const goal = (await fetchFire(apiFetch)).settings?.net_worth_goal;
             return goal != null ? Number.parseFloat(String(goal)) : null;
         },
-        enabled: isAuthenticated,
+        enabled: shouldFetch("fireGoal"),
     });
 
     const monthlyOverviewQuery = useQuery({
         queryKey: ["monthlyOverview", scope, monthlyOverviewYear],
         queryFn: () => fetchMonthlyOverviewData(apiFetch, monthlyOverviewYear),
-        enabled: isAuthenticated,
+        enabled: shouldFetch("monthlyOverview"),
     });
 
     // ── Derived data fields (stable defaults while loading/disabled) ──
