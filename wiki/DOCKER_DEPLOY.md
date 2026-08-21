@@ -9,9 +9,9 @@ gestisce TLS e le porte 80/443, ed è connesso alla stessa rete Docker esterna.
 browser ──HTTPS──▶ Nginx / NPM
                        ├─ /          → fininzen-web:3000
                        ├─ /api/      → fininzen-api:8000
-                       └─ /static/   → fininzen-static:80
-                                      ├─ frontend ──▶ backend:8000
-                                      └─ backend ──▶ postgres, redis
+                       ├─ /static/   → volume production_staticfiles
+                       ├─ frontend ──▶ backend:8000
+                       └─ backend ──▶ postgres, redis
 ```
 
 PostgreSQL e Redis restano sulla rete privata del progetto. Nessun servizio
@@ -83,21 +83,32 @@ docker compose --env-file deploy/docker/production/.env \
 ```
 
 In NPM crea un Proxy Host per l'hostname. Usa `/` →
-`http://fininzen-production-web:3000`, attiva WebSocket, Force SSL e HTTP/2, quindi crea
-due Custom Locations:
+`http://fininzen-production-web:3000`, attiva WebSocket, Force SSL e HTTP/2,
+quindi crea la Custom Location `/api/` verso
+`http://fininzen-production-api:8000`.
 
-| Location | Forward hostname | Porta |
-| --- | --- | --- |
-| `/api/` | `fininzen-production-api` | `8000` |
-| `/static/` | `fininzen-production-static` | `80` |
-
-I nomi sono configurabili tramite `PROXY_WEB_UPSTREAM`,
-`PROXY_API_UPSTREAM` e `PROXY_STATIC_UPSTREAM`. Servono quando più stack
+I nomi sono configurabili tramite `PROXY_WEB_UPSTREAM` e
+`PROXY_API_UPSTREAM`. Servono quando più stack
 condividono la stessa rete Docker.
 
-Il servizio `static` usa Nginx solo per pubblicare in modo read-only gli asset
-generati da `collectstatic`; non espone alcuna porta e non sostituisce il
-reverse proxy principale.
+Nginx non è gestito da Fininzen. Nel suo stack Docker monta il volume già
+creato da Fininzen in sola lettura e servi `/static/` da quel path. Con il
+progetto Compose predefinito il volume è `production_staticfiles`:
+
+```yaml
+services:
+  nginx:
+    volumes:
+      - production_staticfiles:/srv/fininzen/staticfiles:ro
+
+volumes:
+  production_staticfiles:
+    external: true
+```
+
+Nel file di configurazione dell'Nginx esterno, `/static/` deve usare
+`alias /srv/fininzen/staticfiles/;`. Se cambi il project name Compose, aggiorna
+anche il nome del volume esterno.
 
 Crea il primo amministratore:
 

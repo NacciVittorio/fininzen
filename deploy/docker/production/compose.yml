@@ -101,19 +101,6 @@ services:
         aliases:
           - ${PROXY_WEB_UPSTREAM:-fininzen-web}
 
-  static:
-    image: nginx:1.29-alpine
-    restart: unless-stopped
-    depends_on:
-      - backend
-    volumes:
-      - ./nginx-static.conf:/etc/nginx/conf.d/default.conf:ro
-      - staticfiles:/usr/share/nginx/html:ro
-    networks:
-      proxy:
-        aliases:
-          - ${PROXY_STATIC_UPSTREAM:-fininzen-static}
-
 volumes:
   postgres_data:
   staticfiles:
