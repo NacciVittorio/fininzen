@@ -1,6 +1,7 @@
 # Deploy Docker dietro Nginx
 
-Questo deploy esegue Next.js, Django/Gunicorn, PostgreSQL e Redis in Docker.
+Questo deploy esegue Next.js, Django/Gunicorn, PostgreSQL e Redis in Docker su
+`L-DOCKER-P`.
 **Non** include un reverse proxy pubblico: Nginx o Nginx Proxy Manager (NPM)
 gestisce TLS e le porte 80/443, ed è connesso alla stessa rete Docker esterna.
 
@@ -61,11 +62,10 @@ Imposta almeno:
 | `DJANGO_SECRET_KEY` | primo segreto generato |
 | `FIELD_ENCRYPTION_KEYS` | secondo segreto generato |
 | `POSTGRES_PASSWORD` | password robusta |
-| `DJANGO_ALLOWED_HOSTS` | `backend,<hostname>` |
-| `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS` | `https://<hostname>` |
-| `WEBAUTHN_RP_ID` | `<hostname>` |
-| `WEBAUTHN_ORIGIN` | `https://<hostname>` |
-| `PROXY_NETWORK` | nome della rete Nginx/NPM, ad es. `nacci_proxy` |
+| `DJANGO_ALLOWED_HOSTS` | hostname già predisposti; aggiornarli solo se cambiano domini |
+| `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS` | hostname HTTPS già predisposti |
+| `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN` | hostname pubblico per le passkey |
+| `PROXY_NETWORK` | `nacci_proxy` |
 
 Lascia `REFRESH_COOKIE_PATH=/api/auth/` e `NEXT_PUBLIC_API_BASE=/api`:
 Nginx inoltra il prefisso `/api` senza riscriverlo. Mantieni
@@ -83,13 +83,13 @@ docker compose --env-file deploy/docker/production/.env \
 ```
 
 In NPM crea un Proxy Host per l'hostname. Usa `/` →
-`http://fininzen-web:3000`, attiva WebSocket, Force SSL e HTTP/2, quindi crea
+`http://fininzen-production-web:3000`, attiva WebSocket, Force SSL e HTTP/2, quindi crea
 due Custom Locations:
 
 | Location | Forward hostname | Porta |
 | --- | --- | --- |
-| `/api/` | `fininzen-api` | `8000` |
-| `/static/` | `fininzen-static` | `80` |
+| `/api/` | `fininzen-production-api` | `8000` |
+| `/static/` | `fininzen-production-static` | `80` |
 
 I nomi sono configurabili tramite `PROXY_WEB_UPSTREAM`,
 `PROXY_API_UPSTREAM` e `PROXY_STATIC_UPSTREAM`. Servono quando più stack
@@ -142,4 +142,6 @@ Come `dockerapp`, pianifica i job applicativi con `crontab -e`:
 ```
 
 `just production-backup` produce un dump PostgreSQL verificato in
-`backups/`, con cifratura opzionale tramite `BACKUP_ENC_PASSPHRASE`.
+`backups/`, con cifratura opzionale tramite `BACKUP_ENC_PASSPHRASE`. Per un
+bundle cifrato con age, configura `AGE_RECIPIENT` nello stesso `.env` ed esegui
+`scripts/backup_production_bundle.sh`.

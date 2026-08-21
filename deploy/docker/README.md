@@ -26,5 +26,4 @@ Il nome della cartella `production/` indica lo stack completo, non il deploy
 attualmente online: il server pubblico usa il percorso bare-metal documentato
 in [wiki/SYSTEMD_DEPLOY.md](../../wiki/SYSTEMD_DEPLOY.md).
 
-Per la replica di produzione di test su `L-DOCKER-P`, usa
-`production/homelab.env` come descritto in [production/HOMELAB.md](production/HOMELAB.md).
+Per `L-DOCKER-P` usa unicamente `production/.env`, creato da `.env.example`.

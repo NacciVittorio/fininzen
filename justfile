@@ -136,6 +136,9 @@ production-refresh-prices:
 production-backup:
     bash scripts/backup_postgres.sh
 
+production-backup-bundle:
+    bash scripts/backup_production_bundle.sh
+
 # ── Code quality ─────────────────────────────────────────────────────────────
 
 test-backend:
