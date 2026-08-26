@@ -8,7 +8,7 @@ export default function AboutSettingsView() {
     const { T } = useSettings();
 
     return (
-        <div className="page-narrow">
+        <div className="page-narrow settings-page">
             <SettingsSectionHeader
                 label={T("settings_about")}
                 backLabel={T("tab_settings")}

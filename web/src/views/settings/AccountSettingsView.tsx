@@ -28,7 +28,7 @@ export default function AccountSettingsView() {
     } = useSettings();
 
     return (
-        <div className="page-narrow">
+        <div className="page-narrow settings-page">
             <SettingsSectionHeader
                 label={T("settings_user")}
                 backLabel={T("tab_settings")}

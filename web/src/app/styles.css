@@ -610,6 +610,50 @@ textarea.inp {
     padding: 0 4px 8px;
 }
 
+/* ── Settings: shared narrow drill-down surface ─────────────────────────── */
+.settings-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.settings-root .lt-header__bar--bare {
+    margin-bottom: -48px;
+}
+.settings-root__group {
+    margin-bottom: 20px;
+}
+.settings-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+}
+.settings-section-header {
+    margin-bottom: 20px;
+}
+.settings-section-header__back {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 8px 8px 0;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font: 600 15px/1 var(--font-sans);
+    cursor: pointer;
+}
+.settings-section-header .page-title {
+    margin: 0;
+}
+.settings-page .grouped-list__item {
+    min-height: 52px;
+}
+.settings-page .card--settings {
+    padding: 16px;
+}
+
 /* ── Split experience ─────────────────────────────────────────────────── */
 .split-header-actions,
 .split-sheet-footer,

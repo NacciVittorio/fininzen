@@ -10,6 +10,7 @@ import {
     groupAssets,
 } from "./derivedDataModel";
 import type { Translator } from "../types";
+import type { IconName } from "../components/ui/Icons";
 import type { AppProviderState } from "./useAppProviderState";
 import type { AppQueries } from "./useAppQueries";
 import type { SessionController } from "./useSessionController";
@@ -38,7 +39,7 @@ type UseDerivedAppDataArgs = DerivedProviderState &
 
 export type SettingsNavigationItem = {
     key: string;
-    icon: string;
+    icon: IconName;
     label: string;
     href: string;
 };
@@ -145,31 +146,31 @@ export function useDerivedAppData({
     const settingsNavItems = [
         {
             key: "account",
-            icon: "👤",
+            icon: "user",
             label: T("settings_user"),
             href: "/settings/account",
         },
         (hasConfigurableDataFeatures || enabledFeatures.fire) && {
             key: "planning",
-            icon: "🗂️",
+            icon: "planning",
             label: T("settings_planning"),
             href: "/settings/planning",
         },
         {
             key: "preferences",
-            icon: "⚙️",
+            icon: "settings",
             label: T("settings_preferences"),
             href: "/settings/preferences",
         },
         {
             key: "data",
-            icon: "📥",
+            icon: "data",
             label: T("settings_data"),
             href: "/settings/data",
         },
         {
             key: "about",
-            icon: "ℹ️",
+            icon: "info",
             label: T("settings_about"),
             href: "/settings/about",
         },

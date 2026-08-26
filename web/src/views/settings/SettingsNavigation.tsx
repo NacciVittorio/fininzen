@@ -19,7 +19,7 @@ export function SettingsRoot({
 }) {
     return (
         <div>
-            <div className="grouped-list" style={{ marginBottom: 20 }}>
+            <div className="grouped-list settings-root__group">
                 {navItems.map((item) => (
                     <Link
                         key={item.key}
@@ -41,14 +41,8 @@ export function SettingsRoot({
                                 minWidth: 0,
                             }}
                         >
-                            <span
-                                style={{
-                                    fontSize: 17,
-                                    width: 24,
-                                    textAlign: "center",
-                                }}
-                            >
-                                {item.icon}
+                            <span className="settings-nav-icon">
+                                <Icon name={item.icon} size={18} />
                             </span>
                             <span
                                 style={{
@@ -74,7 +68,7 @@ export function SettingsRoot({
             </div>
 
             {isAdmin && (
-                <div className="grouped-list" style={{ marginBottom: 20 }}>
+                <div className="grouped-list settings-root__group">
                     <Link
                         href="/admin"
                         data-testid="settings-root-admin"
@@ -90,13 +84,7 @@ export function SettingsRoot({
                                 minWidth: 0,
                             }}
                         >
-                            <span
-                                style={{
-                                    fontSize: 17,
-                                    width: 24,
-                                    textAlign: "center",
-                                }}
-                            >
+                            <span className="settings-nav-icon">
                                 <Icon name="shield" />
                             </span>
                             <span
@@ -119,7 +107,7 @@ export function SettingsRoot({
                 </div>
             )}
 
-            <div className="grouped-list" style={{ marginBottom: 20 }}>
+            <div className="grouped-list settings-root__group">
                 <button
                     type="button"
                     data-testid="settings-root-logout"
@@ -153,29 +141,14 @@ export function SettingsSectionHeader({
     backHref?: string;
     onBack?: () => void;
 }) {
-    const backStyle = {
-        background: "none",
-        border: 0,
-        color: "var(--accent)",
-        cursor: "pointer",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "8px 8px 8px 0",
-        fontSize: 15,
-        fontWeight: 600,
-        fontFamily: "inherit",
-        minHeight: 44,
-    } as const;
-
     return (
-        <div style={{ marginBottom: 16 }}>
+        <div className="settings-section-header">
             {backHref ? (
                 <Link
                     href={backHref}
                     data-testid="settings-back"
-                    className="pressable"
-                    style={{ ...backStyle, textDecoration: "none" }}
+                    className="settings-section-header__back pressable"
+                    style={{ textDecoration: "none" }}
                 >
                     ‹ {backLabel}
                 </Link>
@@ -184,8 +157,7 @@ export function SettingsSectionHeader({
                     type="button"
                     data-testid="settings-back"
                     onClick={onBack}
-                    className="pressable"
-                    style={backStyle}
+                    className="settings-section-header__back pressable"
                 >
                     ‹ {backLabel}
                 </button>

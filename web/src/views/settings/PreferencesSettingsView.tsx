@@ -13,7 +13,7 @@ export default function PreferencesSettingsView() {
     const { T, isFeatureEnabled } = useSettings();
 
     return (
-        <div className="page-narrow">
+        <div className="page-narrow settings-page">
             <SettingsSectionHeader
                 label={T("settings_preferences")}
                 backLabel={T("tab_settings")}

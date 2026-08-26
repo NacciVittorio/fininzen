@@ -8,7 +8,7 @@ export default function SettingsView() {
     const { T, settingsNavItems, logout, profile } = useSettings();
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="page-narrow settings-page settings-root">
             <LargeTitleHeader title={T("tab_settings")} />
             <SettingsRoot
                 navItems={settingsNavItems}

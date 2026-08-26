@@ -7,7 +7,8 @@ import type {
     RecurringExpense,
     RecurringInvestmentPlan,
 } from "../../api/types";
-import { GroupedList } from "../../components/ui";
+import { GroupedList, Icon } from "../../components/ui";
+import type { IconName } from "../../components/ui/Icons";
 import { useSettings } from "../../context/useSettings";
 import { useContributionSourceManagement } from "./useContributionSourceManagement";
 import { CategoryManagementSection } from "./CategoryManagementSection";
@@ -148,39 +149,39 @@ export default function PlanningSettingsView() {
         isFeatureEnabled("accounts") ||
         isFeatureEnabled("investments");
 
-    const items: { key: PlanningKey; icon: string; label: string }[] = [
+    const items: { key: PlanningKey; icon: IconName; label: string }[] = [
         hasConfigurableDataFeatures && {
             key: "categories",
-            icon: "📂",
+            icon: "category",
             label: T("settings_categories"),
         },
         isFeatureEnabled("cashflow") && {
             key: "budget",
-            icon: "🎯",
+            icon: "target",
             label: T("settings_budget"),
         },
         isFeatureEnabled("cashflow") && {
             key: "recurring",
-            icon: "🔄",
+            icon: "refresh",
             label: T("settings_recurring"),
         },
         isFeatureEnabled("investments") && {
             key: "pac",
-            icon: "📆",
+            icon: "calendar",
             label: T("settings_pac"),
         },
         isFeatureEnabled("investments") && {
             key: "allocation",
-            icon: "📊",
+            icon: "allocation",
             label: T("settings_allocation"),
         },
         isFeatureEnabled("fire") && {
             key: "fire",
-            icon: "🔥",
+            icon: "fire",
             label: T("settings_fire"),
         },
     ].filter(
-        (item): item is { key: PlanningKey; icon: string; label: string } =>
+        (item): item is { key: PlanningKey; icon: IconName; label: string } =>
             Boolean(item),
     );
 
@@ -239,7 +240,7 @@ export default function PlanningSettingsView() {
     if (!hasVisibleItems) return null;
 
     return (
-        <div className="page-narrow">
+        <div className="page-narrow settings-page">
             {!activeItem ? (
                 <>
                     <SettingsSectionHeader
@@ -251,7 +252,7 @@ export default function PlanningSettingsView() {
                         {items.map((item) => (
                             <GroupedList.Item
                                 key={item.key}
-                                icon={item.icon}
+                                icon={<Icon name={item.icon} size={18} />}
                                 label={item.label}
                                 chevron
                                 onClick={() => setPlanningMenu(item.key)}
