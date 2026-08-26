@@ -7,8 +7,6 @@ umask 077
 REPO_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${REPO_ROOT}/deploy/docker/production/.env}"
 BASE_COMPOSE="${REPO_ROOT}/deploy/docker/production/compose.yml"
-PROJECT_NAME="${COMPOSE_PROJECT_NAME:-production}"
-
 if [[ ! -f "${ENV_FILE}" ]]; then
     echo "backup_production_bundle: environment file not found: ${ENV_FILE}" >&2
     exit 1
@@ -18,6 +16,8 @@ set -a
 # shellcheck disable=SC1090
 source "${ENV_FILE}"
 set +a
+
+PROJECT_NAME="${COMPOSE_PROJECT_NAME:-production}"
 
 for command_name in age docker find git mktemp mv sort tar; do
     if ! command -v "${command_name}" >/dev/null 2>&1; then

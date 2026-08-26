@@ -94,10 +94,12 @@ COMPOSE_PROJECT_NAME=production
 ```
 
 Il progetto Compose predefinito è `production`: perciò il volume degli statici
-si chiama `production_staticfiles`. Se cambi `COMPOSE_PROJECT_NAME`, devi
-aggiornare anche il mount del volume nel reverse proxy esterno e valorizzare
-`FININZEN_COMPOSE_PROJECT_NAME` allo stesso valore quando usi
-`scripts/deploy.sh`.
+si chiama `production_staticfiles`. Se il server usa già un altro project name
+(per esempio `production-test`), riportalo in `COMPOSE_PROJECT_NAME` dentro
+`.env`; lo script `scripts/deploy.sh` lo legge automaticamente. Se il valore
+non è presente, lo script prova anche a rilevare dai label Docker un project
+name già attivo per questo checkout. In ogni caso devi aggiornare anche il
+mount del volume nel reverse proxy esterno.
 
 ## 3. Primo avvio dello stack
 
@@ -105,11 +107,11 @@ Esegui la validazione e l'avvio come `dockerapp`:
 
 ```bash
 cd /opt/fininzen
-docker compose -p production --env-file deploy/docker/production/.env \
+docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml config --quiet
-docker compose -p production --env-file deploy/docker/production/.env \
+docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml up -d --build
-docker compose -p production --env-file deploy/docker/production/.env \
+docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml ps
 ```
 
@@ -117,14 +119,14 @@ L'entrypoint del backend esegue automaticamente `migrate` e `collectstatic`
 all'avvio. Controlla i log se un container resta in riavvio:
 
 ```bash
-docker compose -p production --env-file deploy/docker/production/.env \
+docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml logs --tail=100 backend frontend
 ```
 
 Il primo amministratore si crea dopo che il backend è in esecuzione:
 
 ```bash
-docker compose -p production --env-file deploy/docker/production/.env \
+docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml exec backend \
   python manage.py createsuperuser
 ```
@@ -184,7 +186,7 @@ testarne periodicamente il ripristino.
 Per un aggiornamento manuale equivalente:
 
 ```bash
-docker compose -p production --env-file deploy/docker/production/.env \
+docker compose --env-file deploy/docker/production/.env \
   -f deploy/docker/production/compose.yml up -d --build
 ```
 
@@ -193,7 +195,7 @@ docker compose -p production --env-file deploy/docker/production/.env \
 Per evitare di ripetere i parametri:
 
 ```bash
-alias fininzen-dc='docker compose -p production --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml'
+alias fininzen-dc='docker compose --env-file /opt/fininzen/deploy/docker/production/.env -f /opt/fininzen/deploy/docker/production/compose.yml'
 ```
 
 Comandi utili:
@@ -225,9 +227,9 @@ generato da `scripts/backup_production_bundle.sh`.
 I job applicativi possono essere eseguiti dal cron dell'utente `dockerapp`:
 
 ```cron
-17 * * * * cd /opt/fininzen && docker compose -p production --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml exec -T backend python manage.py refresh_asset_prices >> /home/dockerapp/refresh_prices.log 2>&1
-23 3 * * * cd /opt/fininzen && docker compose -p production --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml exec -T backend python manage.py generate_recurring_expenses >> /home/dockerapp/recurring_expenses.log 2>&1
-41 3 * * * cd /opt/fininzen && docker compose -p production --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml exec -T backend python manage.py generate_split_recurring_expenses >> /home/dockerapp/split_recurring_expenses.log 2>&1
+17 * * * * cd /opt/fininzen && docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml exec -T backend python manage.py refresh_asset_prices >> /home/dockerapp/refresh_prices.log 2>&1
+23 3 * * * cd /opt/fininzen && docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml exec -T backend python manage.py generate_recurring_expenses >> /home/dockerapp/recurring_expenses.log 2>&1
+41 3 * * * cd /opt/fininzen && docker compose --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml exec -T backend python manage.py generate_split_recurring_expenses >> /home/dockerapp/split_recurring_expenses.log 2>&1
 30 3 * * * cd /opt/fininzen && ENV_FILE=deploy/docker/production/.env scripts/backup_postgres.sh >> /home/dockerapp/backup_db.log 2>&1
 ```
 

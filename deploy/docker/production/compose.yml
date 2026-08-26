@@ -5,7 +5,7 @@
 # host. See wiki/DOCKER_DEPLOY.md.
 #
 #   cp deploy/docker/production/.env.example deploy/docker/production/.env   # then edit
-#   docker compose -p production --env-file deploy/docker/production/.env \
+#   docker compose --env-file deploy/docker/production/.env \
 #     -f deploy/docker/production/compose.yml up -d --build
 services:
   postgres:

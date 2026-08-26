@@ -6,7 +6,7 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 venv_python := "venv/bin/python"
 web_dir := "web"
 web_bin := "web/node_modules/.bin"
-production := "-p production --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
+production := "--env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
 
 default: doctor lint test
 
