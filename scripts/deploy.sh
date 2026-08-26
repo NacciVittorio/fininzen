@@ -123,7 +123,10 @@ collect_running_services
 # Older installations may have been started with a different or prefixed
 # project name (for example `fininzen-production-test`) than the value in the
 # environment file. Discover the active project from Compose labels before
-# failing, even when the configured project name found no containers.
+# failing, even when the configured project name found no containers. The
+# secondary working-directory/config-file labels are not consistent across
+# Compose versions, so test every currently running Compose project against the
+# Fininzen compose file.
 if (( ${#RUNNING_SERVICES[@]} == 0 )); then
     while IFS= read -r discovered_project; do
         [[ -z "${discovered_project}" || "${discovered_project}" == "${PROJECT_NAME}" ]] && continue
@@ -141,14 +144,9 @@ if (( ${#RUNNING_SERVICES[@]} == 0 )); then
             break
         fi
     done < <(
-        {
-            run_as_deploy_user docker ps \
-                --filter "label=com.docker.compose.project.working_dir=${REPO_ROOT}" \
-                --format '{{.Label "com.docker.compose.project"}}'
-            run_as_deploy_user docker ps \
-                --filter "label=com.docker.compose.project.config_files=${COMPOSE_FILE}" \
-                --format '{{.Label "com.docker.compose.project"}}'
-        } | sort -u
+        run_as_deploy_user docker ps \
+            --format '{{.Label "com.docker.compose.project"}}' \
+            | sort -u
     )
     if [[ ! " ${RUNNING_SERVICES[*]} " =~ [[:space:]]postgres[[:space:]] ]]; then
         RUNNING_SERVICES=()
