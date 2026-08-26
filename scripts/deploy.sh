@@ -86,7 +86,6 @@ fi
 COMPOSE=(
     docker compose
     -p "${PROJECT_NAME}"
-    --project-directory "${REPO_ROOT}"
     --env-file "${ENV_FILE}"
     -f "${COMPOSE_FILE}"
 )
