@@ -5,15 +5,20 @@ import { Card, GroupedList, ModalError } from "../../components/ui";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
 import { useFormatters } from "../../utils/useFormatters";
+import SplitActionRow from "./SplitActionRow";
 
 type SplitRecentActivitySectionProps = {
     onOpenExpense: (expense: SplitExpense) => void;
     onOpenSettlement: (settlement: SplitSettlement) => void;
+    onDeleteSettlement?: (settlement: SplitSettlement) => void;
+    canDeleteSettlement?: (settlement: SplitSettlement) => boolean;
 };
 
 export default function SplitRecentActivitySection({
     onOpenExpense,
     onOpenSettlement,
+    onDeleteSettlement,
+    canDeleteSettlement,
 }: SplitRecentActivitySectionProps) {
     const { T, categories } = useApp();
     const { formatEur } = useFormatters();
@@ -21,9 +26,16 @@ export default function SplitRecentActivitySection({
         useSplit();
     const recent = splitActivity.slice(0, 5);
 
-    const groupName = (groupId: number | null) =>
+    const groupName = (
+        groupId: number | null,
+        kind: "expense" | "settlement",
+    ) =>
         groupId == null
-            ? T("split_standalone_label")
+            ? T(
+                  kind === "settlement"
+                      ? "split_cross_group_label"
+                      : "split_standalone_label",
+              )
             : (groups.find((group) => group.id === groupId)?.name ??
               T("split_groups_title"));
 
@@ -73,10 +85,32 @@ export default function SplitRecentActivitySection({
                             testId={`split-activity-expense-${item.id}`}
                             icon={category?.icon ?? "🧾"}
                             label={item.expense.description}
-                            subtitle={`${groupName(item.groupId)} · ${item.date}`}
+                            subtitle={`${groupName(item.groupId, item.kind)} · ${item.date}`}
                             value={formatEur(item.expense.amount)}
                             chevron
                             onClick={() => onOpenExpense(item.expense)}
+                        />
+                    );
+                }
+
+                if (item.groupId == null) {
+                    return (
+                        <SplitActionRow
+                            key={`settlement-${item.id}`}
+                            rowId={`activity-settlement-${item.id}`}
+                            testId={`split-activity-settlement-${item.id}`}
+                            icon="💸"
+                            label={T("split_activity_settlement")}
+                            subtitle={`${groupName(item.groupId, item.kind)} · ${item.date}`}
+                            value={formatEur(item.settlement.amount)}
+                            onDelete={
+                                onDeleteSettlement &&
+                                (!canDeleteSettlement ||
+                                    canDeleteSettlement(item.settlement))
+                                    ? () => onDeleteSettlement(item.settlement)
+                                    : undefined
+                            }
+                            deleteTestId={`split-activity-settlement-delete-${item.id}`}
                         />
                     );
                 }
@@ -87,7 +121,7 @@ export default function SplitRecentActivitySection({
                         testId={`split-activity-settlement-${item.id}`}
                         icon="💸"
                         label={T("split_activity_settlement")}
-                        subtitle={`${groupName(item.groupId)} · ${item.date}`}
+                        subtitle={`${groupName(item.groupId, item.kind)} · ${item.date}`}
                         value={formatEur(item.settlement.amount)}
                         chevron={item.groupId != null}
                         onClick={() => onOpenSettlement(item.settlement)}

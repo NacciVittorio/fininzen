@@ -740,6 +740,94 @@ test.describe.serial("Split feature", () => {
         });
     });
 
+    test("e2) a settlement created from the overview is reflected in the group without a duplicate payment", async ({
+        page,
+    }) => {
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
+        await loginAsTestUser(page, EMAIL_A, PASS_A);
+
+        await gotoSplit(page, "overview");
+        const overviewRow = page.locator(
+            `[data-testid="split-balance-row-contact:${localContactId}"]`,
+        );
+        await expect(overviewRow).toContainText(/20,00/, { timeout: 8000 });
+        await overviewRow.getByRole("button", { name: /Settle|Salda/ }).click();
+
+        const sheet = page.locator('[role="dialog"]');
+        await expect(
+            sheet.locator('[data-testid="split-settle-amount"]'),
+        ).toHaveValue(/20,00/);
+        await sheet
+            .locator('[data-testid="split-settle-notes"]')
+            .fill(`E2E overview settle ${RUN_ID}`);
+        await waitForApi(page, "POST", "/split/settlements/", () =>
+            sheet.locator('[data-testid="split-settle-submit"]').click(),
+        );
+        await expect(sheet).toHaveCount(0);
+
+        // Re-enter the feature after a full page reload: the group detail must
+        // derive the settled state from persisted allocations, not only from
+        // the overview's in-memory refresh.
+        await page.reload();
+        await gotoSplit(page, "groups");
+        const groupRow = page
+            .locator('[data-testid^="split-group-row-"]')
+            .filter({ hasText: groupName });
+        await expect(groupRow).toBeVisible({ timeout: 8000 });
+        await groupRow.click();
+        await expect(
+            page.locator('[data-testid="split-group-balances"]'),
+        ).toContainText(/All settled up|Tutto saldato/, { timeout: 8000 });
+
+        await page.click('[data-testid="split-group-back"]');
+        await gotoSplit(page, "overview");
+        const crossGroupActivity = page
+            .locator('[data-testid^="split-activity-settlement-"]')
+            .filter({ hasText: /20,00/ })
+            .last();
+        await expect(crossGroupActivity).toContainText(
+            /Across groups|Tra gruppi/,
+            { timeout: 8000 },
+        );
+    });
+
+    test("e3) an authorized user can delete a groupless settlement from overview history", async ({
+        page,
+    }) => {
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
+        await loginAsTestUser(page, EMAIL_A, PASS_A);
+
+        await gotoSplit(page, "overview");
+        const settlementRow = page
+            .locator('[data-testid^="split-activity-settlement-"]')
+            .filter({ hasText: /20,00/ })
+            .last();
+        await expect(settlementRow).toContainText(/Across groups|Tra gruppi/, {
+            timeout: 8000,
+        });
+        const settlementId = await idFromTestId(settlementRow);
+
+        await revealSwipeActions(page, settlementRow);
+        const deleteAction = page.locator(
+            `[data-testid="split-activity-settlement-delete-${settlementId}"]`,
+        );
+        await expect(deleteAction).toBeVisible({ timeout: 8000 });
+        await deleteAction.click();
+        await expect(
+            page.locator(
+                '[data-testid="split-activity-settlement-delete-confirm"]',
+            ),
+        ).toBeVisible();
+        await waitForApi(page, "DELETE", "/split/settlements/", () =>
+            page
+                .locator(
+                    '[data-testid="split-activity-settlement-delete-confirm"]',
+                )
+                .click(),
+        );
+        await expect(settlementRow).toHaveCount(0, { timeout: 8000 });
+    });
+
     test("f) an expense with a linked account drains the account's full amount but CashFlow 'Outcome' only reflects the net share", async ({
         page,
     }) => {

@@ -3,10 +3,13 @@ splitting/balances.py — Calcolo saldi e semplificazione debiti Split (piano
 sez. 3.2/3.3).
 
 `compute_balances` è puro: nessuna query implicita oltre a quelle sui
-queryset passati dal chiamante. Usata per il saldo di UN gruppo
+queryset passati dal chiamante. Usata come base per il saldo di UN gruppo
 (`splitting/views/groups.py::SplitGroupViewSet.balances`/`.simplify`) — un
 libro mastro condiviso dove ogni membro vede lo stesso saldo assoluto altrui,
 esattamente come la pagina di un gruppo su Splitwise.
+
+`compute_group_balances` aggiunge a quella base la quota dei settlement
+cross-group derivata dalle `SplitSettlementAllocation` delle quote del gruppo.
 
 `compute_relative_balances` calcola invece il saldo *pairwise*, relativo a
 UNA identità (positivo = l'altra persona deve soldi a lei; negativo = lei
@@ -19,6 +22,8 @@ interpretabile "rispetto a me".
 
 from collections import defaultdict
 from decimal import Decimal
+
+from django.db.models import Sum
 
 from .services import _display_name_for, _q2
 
@@ -67,6 +72,59 @@ def compute_balances(share_qs, settlement_qs=None):
             balances[
                 _identity_key(settlement.payee_user_id, settlement.payee_contact_id)
             ] -= settlement.amount
+    return {k: _q2(v) for k, v in balances.items() if v != 0}
+
+
+def compute_group_balances(share_qs, settlement_qs=None):
+    """Calcola il saldo di un gruppo includendo i settlement cross-group.
+
+    Un settlement creato dalla overview ha ``group=None`` perché può saldare
+    un aggregato composto da più gruppi. Le allocazioni derivate indicano
+    quale parte di quel pagamento ha consumato le quote di questo gruppo;
+    solo quella parte va quindi applicata qui. I settlement già associati al
+    gruppo continuano a essere applicati per intero tramite ``settlement_qs``.
+
+    Il settlement cross-group viene cercato indipendentemente dall'utente
+    corrente: una volta allocato su una quota del gruppo, il suo effetto sul
+    libro mastro condiviso deve essere visibile a tutti i membri autorizzati.
+    """
+    from .models import SplitSettlement, SplitSettlementAllocation
+
+    balances = defaultdict(Decimal, compute_balances(share_qs, settlement_qs))
+    share_ids = list(share_qs.values_list("id", flat=True))
+    if not share_ids:
+        return dict(balances)
+
+    allocated_by_settlement = dict(
+        SplitSettlementAllocation.objects.filter(
+            share_id__in=share_ids,
+            settlement__group__isnull=True,
+        )
+        .values("settlement_id")
+        .annotate(total=Sum("amount"))
+        .values_list("settlement_id", "total")
+    )
+    if not allocated_by_settlement:
+        return dict(balances)
+
+    settlements = SplitSettlement.objects.filter(
+        id__in=allocated_by_settlement.keys()
+    ).only(
+        "id",
+        "payer_user_id",
+        "payer_contact_id",
+        "payee_user_id",
+        "payee_contact_id",
+    )
+    for settlement in settlements:
+        amount = allocated_by_settlement[settlement.id]
+        balances[
+            _identity_key(settlement.payer_user_id, settlement.payer_contact_id)
+        ] += amount
+        balances[
+            _identity_key(settlement.payee_user_id, settlement.payee_contact_id)
+        ] -= amount
+
     return {k: _q2(v) for k, v in balances.items() if v != 0}
 
 

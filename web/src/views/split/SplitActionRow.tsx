@@ -47,6 +47,7 @@ export default function SplitActionRow({
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLButtonElement>(null);
     const actions: SwipeAction[] = [];
+    const mainAction = onOpen ?? onEdit;
 
     for (const action of extraActions) {
         actions.push({
@@ -87,23 +88,69 @@ export default function SplitActionRow({
             openRowId={openRowId}
             onRequestOpen={setOpenRowId}
             actions={actions}
-            onTap={onOpen ?? onEdit}
-            rowClassName="grouped-list__item"
-            ariaLabel={typeof label === "string" ? label : undefined}
+            role="group"
+            rowClassName="split-action-row"
         >
-            <span className="split-action-row__leading">
-                {icon && <span className="split-action-row__icon">{icon}</span>}
-                <span className="split-action-row__copy">
-                    <span className="split-action-row__label">{label}</span>
-                    {subtitle && (
-                        <span className="split-action-row__subtitle">
-                            {subtitle}
+            {mainAction ? (
+                <button
+                    type="button"
+                    className="split-action-row__main"
+                    aria-label={typeof label === "string" ? label : undefined}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        mainAction();
+                    }}
+                >
+                    <span className="split-action-row__leading">
+                        {icon && (
+                            <span className="split-action-row__icon">
+                                {icon}
+                            </span>
+                        )}
+                        <span className="split-action-row__copy">
+                            <span className="split-action-row__label">
+                                {label}
+                            </span>
+                            {subtitle && (
+                                <span className="split-action-row__subtitle">
+                                    {subtitle}
+                                </span>
+                            )}
                         </span>
+                    </span>
+                    {value != null && (
+                        <span className="split-action-row__value">{value}</span>
                     )}
-                </span>
-            </span>
-            {value != null && (
-                <span className="split-action-row__value">{value}</span>
+                    {chevron && (
+                        <span className="split-action-row__chevron">›</span>
+                    )}
+                </button>
+            ) : (
+                <div className="split-action-row__main">
+                    <span className="split-action-row__leading">
+                        {icon && (
+                            <span className="split-action-row__icon">
+                                {icon}
+                            </span>
+                        )}
+                        <span className="split-action-row__copy">
+                            <span className="split-action-row__label">
+                                {label}
+                            </span>
+                            {subtitle && (
+                                <span className="split-action-row__subtitle">
+                                    {subtitle}
+                                </span>
+                            )}
+                        </span>
+                    </span>
+                    {value != null && (
+                        <span className="split-action-row__value">{value}</span>
+                    )}
+                    {chevron && (
+                        <span className="split-action-row__chevron">›</span>
+                    )}
+                </div>
             )}
             {(extraActions.length > 0 || onEdit || onDelete) && (
                 <>
@@ -173,7 +220,6 @@ export default function SplitActionRow({
                     </Popover>
                 </>
             )}
-            {chevron && <span className="split-action-row__chevron">›</span>}
         </SwipeRow>
     );
 }

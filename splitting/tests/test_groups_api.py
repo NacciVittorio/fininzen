@@ -6,7 +6,13 @@ membership (mai ViewAsMixin — piano sez. 0.2), roster membri, endpoint
 
 from decimal import Decimal
 
-from splitting.models import SplitContact, SplitGroup, SplitParticipant
+from splitting.models import (
+    SplitContact,
+    SplitExpense,
+    SplitGroup,
+    SplitParticipant,
+    SplitSettlement,
+)
 
 
 # ── CRUD + permessi/membership ──────────────────────────────────────────
@@ -455,6 +461,115 @@ class TestGroupBalancesAndSimplifyEndpoints:
 
         assert res.status_code == 200
         assert res.json() == []
+
+    def test_group_balances_endpoint_reflects_allocated_cross_group_settlement(
+        self, client, split_group_with_two_users, test_user, second_user
+    ):
+        """Un settlement creato dalla overview (group=None) riduce anche il
+        saldo del gruppo sulle quote a cui è stato allocato, senza richiedere
+        un secondo settlement dentro il gruppo."""
+        from splitting.allocations import allocate_new_settlement
+        from splitting.services import apply_split_shares
+
+        group, _owner_p, _member_p = split_group_with_two_users
+        expense = SplitExpense.objects.create(
+            group=group,
+            description="Cena cross-group",
+            amount=Decimal("40.00"),
+            date="2026-07-01",
+            split_method=SplitExpense.EQUAL,
+            created_by=test_user,
+        )
+        apply_split_shares(
+            expense,
+            [
+                {"user_id": test_user.id, "is_payer": True},
+                {"user_id": second_user.id},
+            ],
+            SplitExpense.EQUAL,
+            added_by=test_user,
+        )
+        settlement = SplitSettlement.objects.create(
+            group=None,
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("20.00"),
+            date="2026-07-02",
+            created_by=second_user,
+        )
+        allocate_new_settlement(settlement)
+
+        res = client.get(f"/api/split/groups/{group.id}/balances/")
+
+        assert res.status_code == 200
+        assert res.json() == []
+
+    def test_cross_group_settlement_is_allocated_once_across_groups(
+        self, client, split_group_with_two_users, test_user, second_user
+    ):
+        """Una singola allocazione cross-group attraversa le spese in ordine
+        FIFO e non viene applicata per intero a ogni gruppo coinvolto."""
+        from splitting.allocations import allocate_new_settlement
+        from splitting.services import apply_split_shares
+
+        group_a, _owner_p, _member_p = split_group_with_two_users
+        group_b = SplitGroup.objects.create(name="Second group", created_by=test_user)
+        SplitParticipant.objects.create(
+            group=group_b, user=test_user, added_by=test_user
+        )
+        SplitParticipant.objects.create(
+            group=group_b, user=second_user, added_by=test_user
+        )
+
+        for group, amount, date in (
+            (group_a, Decimal("40.00"), "2026-07-01"),
+            (group_b, Decimal("60.00"), "2026-07-02"),
+        ):
+            expense = SplitExpense.objects.create(
+                group=group,
+                description="Spesa condivisa",
+                amount=amount,
+                date=date,
+                split_method=SplitExpense.EQUAL,
+                created_by=test_user,
+            )
+            apply_split_shares(
+                expense,
+                [
+                    {"user_id": test_user.id, "is_payer": True},
+                    {"user_id": second_user.id},
+                ],
+                SplitExpense.EQUAL,
+                added_by=test_user,
+            )
+
+        settlement = SplitSettlement.objects.create(
+            group=None,
+            payer_user=second_user,
+            payee_user=test_user,
+            amount=Decimal("30.00"),
+            date="2026-07-03",
+            created_by=second_user,
+        )
+        allocate_new_settlement(settlement)
+
+        group_a_res = client.get(f"/api/split/groups/{group_a.id}/balances/")
+        group_b_res = client.get(f"/api/split/groups/{group_b.id}/balances/")
+        simplify_res = client.get(f"/api/split/groups/{group_b.id}/simplify/")
+
+        assert group_a_res.status_code == 200
+        assert group_a_res.json() == []
+        assert group_b_res.status_code == 200
+        group_b_balances = {
+            row["user_id"]: Decimal(row["balance"])
+            for row in group_b_res.json()
+        }
+        assert group_b_balances == {
+            test_user.id: Decimal("20.00"),
+            second_user.id: Decimal("-20.00"),
+        }
+        assert simplify_res.status_code == 200
+        assert simplify_res.json()[0]["amount"] == "20.00"
 
     def test_simplify_endpoint(self, client, test_user, second_user, third_user):
         from splitting.services import apply_split_shares

@@ -16,7 +16,7 @@ from ..allocations import (
     rebuild_allocations_for_directed_pair,
 )
 from ..balances import (
-    compute_balances,
+    compute_group_balances,
     serialize_balances,
     serialize_simplified_transactions,
     simplify_debts,
@@ -154,7 +154,7 @@ class SplitGroupViewSet(viewsets.ModelViewSet):
         group = self.get_object()
         share_qs = SplitExpenseShare.objects.filter(expense__group=group)
         settlement_qs = SplitSettlement.objects.filter(group=group)
-        balances = compute_balances(share_qs, settlement_qs)
+        balances = compute_group_balances(share_qs, settlement_qs)
         return Response(serialize_balances(balances))
 
     @action(detail=True, methods=["get"], url_path="simplify")
@@ -165,7 +165,7 @@ class SplitGroupViewSet(viewsets.ModelViewSet):
         group = self.get_object()
         share_qs = SplitExpenseShare.objects.filter(expense__group=group)
         settlement_qs = SplitSettlement.objects.filter(group=group)
-        balances = compute_balances(share_qs, settlement_qs)
+        balances = compute_group_balances(share_qs, settlement_qs)
         transactions = simplify_debts(balances)
         return Response(serialize_simplified_transactions(transactions))
 

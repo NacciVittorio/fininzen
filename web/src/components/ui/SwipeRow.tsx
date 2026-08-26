@@ -208,11 +208,14 @@ export default function SwipeRow({
             <div
                 className={rowClassName}
                 role={role}
-                tabIndex={0}
+                tabIndex={role === "button" ? 0 : -1}
                 aria-label={ariaLabel}
                 aria-checked={ariaChecked}
                 onKeyDown={(ev) => {
-                    if (ev.key === " " || ev.key === "Enter") {
+                    if (
+                        role === "button" &&
+                        (ev.key === " " || ev.key === "Enter")
+                    ) {
                         ev.preventDefault();
                         onTap?.();
                     }
@@ -232,7 +235,7 @@ export default function SwipeRow({
                         startX.current == null
                             ? "transform 0.26s cubic-bezier(.32,.72,0,1)"
                             : "none",
-                    cursor: "pointer",
+                    cursor: canSwipe || onTap ? "pointer" : "default",
                     touchAction: "pan-y",
                     position: "relative",
                     ...rowStyle,

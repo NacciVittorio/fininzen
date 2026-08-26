@@ -1237,6 +1237,7 @@ const it: Record<string, string> = {
     split_recent_activity_empty: "Nessuna attività recente.",
     split_activity_settlement: "Rimborso",
     split_standalone_label: "Spesa veloce",
+    split_cross_group_label: "Tra gruppi",
     split_new_action: "Nuovo elemento Split",
     split_actions_label: "Altre azioni",
     split_group_actions: "Azioni gruppo",

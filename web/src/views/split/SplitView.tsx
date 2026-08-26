@@ -12,16 +12,26 @@ import {
     SpeedDialFab,
 } from "../../components/ui";
 import { fetchSplitExpense, fetchSplitSettlement } from "../../api/split";
-import type { SplitBalanceEntry, SplitExpense } from "../../api/split";
+import type {
+    SplitBalanceEntry,
+    SplitExpense,
+    SplitSettlement,
+} from "../../api/split";
 import { useFormatters } from "../../utils/useFormatters";
 import SplitBalancesOverviewView from "./SplitBalancesOverviewView";
 import SplitContactsSection from "./SplitContactsSection";
 import SplitExpenseFormModal from "./SplitExpenseFormModal";
 import SplitGroupDetailView from "./SplitGroupDetailView";
 import SplitGroupListView from "./SplitGroupListView";
+import SplitDeleteConfirmation from "./SplitDeleteConfirmation";
 import SplitSettleUpModal from "./SplitSettleUpModal";
 import SplitStandaloneExpensesSection from "./SplitStandaloneExpensesSection";
 import SplitRecentActivitySection from "./SplitRecentActivitySection";
+import {
+    canModifySettlement,
+    resolveMySplitUserId,
+    splitIdentityLabel,
+} from "./splitIdentity";
 
 type SplitSection = "overview" | "groups" | "contacts";
 
@@ -64,7 +74,7 @@ function SplitDeepLinkParams({
 // SplitGroupCard/SplitGroupListView) — this component itself never fetches
 // group detail, it only reacts to that piece of shared state.
 export default function SplitView() {
-    const { T, apiFetch } = useApp();
+    const { T, apiFetch, user, bankAccounts } = useApp();
     const { formatEur } = useFormatters();
     const router = useRouter();
     const {
@@ -75,6 +85,10 @@ export default function SplitView() {
         loadSplitOverview,
         loadSplitContacts,
         loadSplitActivity,
+        groups,
+        partnerLinksSent,
+        partnerLinksReceived,
+        removeSplitSettlement,
     } = useSplit();
 
     const [section, setSection] = useState<SplitSection>("overview");
@@ -84,6 +98,9 @@ export default function SplitView() {
     const [settleEntry, setSettleEntry] = useState<SplitBalanceEntry | null>(
         null,
     );
+    const [deleteSettlementTarget, setDeleteSettlementTarget] =
+        useState<SplitSettlement | null>(null);
+    const [deletingSettlement, setDeletingSettlement] = useState(false);
     // Set once a CashFlow "?openExpense=" deep link resolves the expense's
     // own group — consumed by whichever branch below ends up rendering
     // (SplitGroupDetailView for a group expense, or the standalone quick-
@@ -206,6 +223,24 @@ export default function SplitView() {
         Math.abs(overviewNet),
     )}`;
 
+    const mySplitUserId = resolveMySplitUserId({
+        myEmail: user,
+        groups,
+        partnerLinksSent,
+        partnerLinksReceived,
+    });
+
+    const handleDeleteSettlement = async () => {
+        if (!deleteSettlementTarget) return;
+        setDeletingSettlement(true);
+        const removed = await removeSplitSettlement(deleteSettlementTarget.id);
+        setDeletingSettlement(false);
+        if (removed) {
+            setDeleteSettlementTarget(null);
+            await Promise.all([loadSplitOverview(), loadSplitActivity()]);
+        }
+    };
+
     if (selectedGroupId != null) {
         return (
             <>
@@ -324,6 +359,12 @@ export default function SplitView() {
                         />
                         <SplitRecentActivitySection
                             onOpenExpense={openExpense}
+                            onDeleteSettlement={setDeleteSettlementTarget}
+                            canDeleteSettlement={(settlement) =>
+                                canModifySettlement(settlement, {
+                                    mySplitUserId,
+                                })
+                            }
                             onOpenSettlement={(settlement) => {
                                 if (settlement.group != null) {
                                     loadSplitGroupDetail(settlement.group);
@@ -377,7 +418,8 @@ export default function SplitView() {
                         showQuickExpense ||
                         showGroupComposer ||
                         showContactComposer ||
-                        settleEntry != null
+                        settleEntry != null ||
+                        deleteSettlementTarget != null
                     }
                 />
 
@@ -394,6 +436,51 @@ export default function SplitView() {
                         loadSplitActivity();
                     }}
                 />
+                {deleteSettlementTarget && (
+                    <SplitDeleteConfirmation
+                        title={T("modal_delete_settlement")}
+                        summary={`${splitIdentityLabel(
+                            {
+                                display_name:
+                                    deleteSettlementTarget.payer_contact_name,
+                                email: deleteSettlementTarget.payer_user_email,
+                            },
+                            { myEmail: user, T },
+                        )} → ${splitIdentityLabel(
+                            {
+                                display_name:
+                                    deleteSettlementTarget.payee_contact_name,
+                                email: deleteSettlementTarget.payee_user_email,
+                            },
+                            { myEmail: user, T },
+                        )} — ${formatEur(deleteSettlementTarget.amount)}`}
+                        warning={
+                            deleteSettlementTarget.linked_asset != null
+                                ? T(
+                                      "split_delete_settlement_linked_asset_warning",
+                                  )
+                                      .replace(
+                                          "{account}",
+                                          bankAccounts.find(
+                                              (account) =>
+                                                  account.id ===
+                                                  deleteSettlementTarget.linked_asset,
+                                          )?.name ?? "",
+                                      )
+                                      .replace(
+                                          "{amount}",
+                                          formatEur(
+                                              deleteSettlementTarget.amount,
+                                          ),
+                                      )
+                                : undefined
+                        }
+                        confirmTestId="split-activity-settlement-delete-confirm"
+                        busy={deletingSettlement}
+                        onClose={() => setDeleteSettlementTarget(null)}
+                        onConfirm={handleDeleteSettlement}
+                    />
+                )}
                 <SplitSettleUpModal
                     open={settleEntry != null}
                     entry={settleEntry}
