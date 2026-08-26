@@ -18,10 +18,6 @@ REPO_ROOT="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${FININZEN_ENV_FILE:-${REPO_ROOT}/deploy/docker/production/.env}"
 COMPOSE_FILE="${FININZEN_COMPOSE_FILE:-${REPO_ROOT}/deploy/docker/production/compose.yml}"
 PROJECT_NAME="${FININZEN_COMPOSE_PROJECT_NAME:-}"
-PROJECT_NAME_CONFIGURED=0
-if [[ -n "${PROJECT_NAME}" ]]; then
-    PROJECT_NAME_CONFIGURED=1
-fi
 PUBLIC_URL="${FININZEN_PUBLIC_URL:-}"
 API_PREFIX="${FININZEN_API_PREFIX:-/api}"
 RUNNING_SERVICES=()
@@ -78,7 +74,6 @@ if [[ -z "${PROJECT_NAME}" ]]; then
             PROJECT_NAME="$(trim_whitespace "${env_value}")"
             PROJECT_NAME="${PROJECT_NAME#\"}"
             PROJECT_NAME="${PROJECT_NAME%\"}"
-            PROJECT_NAME_CONFIGURED=1
         fi
     done < "${ENV_FILE}"
 fi
@@ -120,14 +115,16 @@ collect_running_services() {
     while IFS= read -r service_name; do
         [[ -n "${service_name}" ]] && RUNNING_SERVICES+=("${service_name}")
     done < <(run_as_deploy_user "${COMPOSE[@]}" ps --services --filter status=running)
+    return 0
 }
 
 collect_running_services
 
-# Older installations may have been started with an explicit project name
-# (for example `production-test`) before COMPOSE_PROJECT_NAME was added to the
-# environment file. Discover that project from Compose labels before failing.
-if (( ${#RUNNING_SERVICES[@]} == 0 && !PROJECT_NAME_CONFIGURED )); then
+# Older installations may have been started with a different or prefixed
+# project name (for example `fininzen-production-test`) than the value in the
+# environment file. Discover the active project from Compose labels before
+# failing, even when the configured project name found no containers.
+if (( ${#RUNNING_SERVICES[@]} == 0 )); then
     while IFS= read -r discovered_project; do
         [[ -z "${discovered_project}" || "${discovered_project}" == "${PROJECT_NAME}" ]] && continue
         PROJECT_NAME="${discovered_project}"
