@@ -1,11 +1,11 @@
 # Full containerized stack — Next.js + Django + Postgres + Redis.
 #
-# An existing Nginx/Nginx Proxy Manager instance is the public reverse proxy.
-# It joins the external `proxy` network; no application port is exposed on the
-# Docker host. See wiki/DOCKER_DEPLOY.md.
+# An existing reverse proxy is public infrastructure outside Fininzen. It joins
+# the external `proxy` network; no application port is exposed on the Docker
+# host. See wiki/DOCKER_DEPLOY.md.
 #
 #   cp deploy/docker/production/.env.example deploy/docker/production/.env   # then edit
-#   docker compose --env-file deploy/docker/production/.env \
+#   docker compose -p production --env-file deploy/docker/production/.env \
 #     -f deploy/docker/production/compose.yml up -d --build
 services:
   postgres:

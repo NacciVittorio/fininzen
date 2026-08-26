@@ -6,7 +6,7 @@ in [wiki/DOCKER_DEPLOY.md](../../wiki/DOCKER_DEPLOY.md).
 | Cartella | Scopo |
 |---|---|
 | `local/` | PostgreSQL e Redis per lo sviluppo con applicazione sull'host. |
-| `production/` | Stack Next.js + Django + PostgreSQL + Redis dietro un Nginx/Nginx Proxy Manager esterno. |
+| `production/` | Stack Next.js + Django + PostgreSQL + Redis dietro un reverse proxy esterno. |
 | `backend/` | Dockerfile ed entrypoint Django. |
 | `web/` | Dockerfile Next.js. |
 
@@ -22,8 +22,9 @@ just production-ps
 just production-logs
 ```
 
-Il nome della cartella `production/` indica lo stack completo, non il deploy
-attualmente online: il server pubblico usa il percorso bare-metal documentato
-in [wiki/SYSTEMD_DEPLOY.md](../../wiki/SYSTEMD_DEPLOY.md).
+Il nome della cartella `production/` indica lo stack completo. Il deploy
+automatico dello stack è in [`scripts/deploy.sh`](../../scripts/deploy.sh); il
+percorso bare-metal separato usa [`scripts/deploy-bare-metal.sh`](../../scripts/deploy-bare-metal.sh)
+ed è documentato in [wiki/SYSTEMD_DEPLOY.md](../../wiki/SYSTEMD_DEPLOY.md).
 
-Per `L-DOCKER-P` usa unicamente `production/.env`, creato da `.env.example`.
+Per un deploy Docker usa unicamente `production/.env`, creato da `.env.example`.

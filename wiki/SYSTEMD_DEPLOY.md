@@ -192,7 +192,7 @@ stato `failed`.
 Dopo un `git push` dal Mac, sul VPS (come root):
 
 ```bash
-/opt/fininzen/scripts/deploy.sh main
+/opt/fininzen/scripts/deploy-bare-metal.sh main
 ```
 
 Fa: backup SQLite → pull → migrate/collectstatic/build → reinstalla le unit →

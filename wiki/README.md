@@ -8,7 +8,7 @@ copre installazione e sviluppo locale.
 | Modalità | Ruolo attuale | Fonte operativa |
 |---|---|---|
 | Bare-metal, systemd e SQLite | Deploy pubblico in produzione | [SYSTEMD_DEPLOY.md](SYSTEMD_DEPLOY.md) |
-| Docker full-stack, PostgreSQL e Redis | Alternativa supportata, in test e sviluppo | [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) |
+| Docker full-stack, PostgreSQL e Redis | Deploy containerizzato con reverse proxy esterno | [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) |
 
 Le due guide sono indipendenti: non combinare comandi, file `.env`, backup o
 scheduler di una modalità con l'altra.

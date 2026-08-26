@@ -6,7 +6,7 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 venv_python := "venv/bin/python"
 web_dir := "web"
 web_bin := "web/node_modules/.bin"
-production := "--env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
+production := "-p production --env-file deploy/docker/production/.env -f deploy/docker/production/compose.yml"
 
 default: doctor lint test
 
@@ -108,8 +108,8 @@ docker-local-down:
 docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
-# ── Full Docker stack (Nginx + Next.js + Django + PG + Redis) ────────────────
-# Requires an external Nginx/Nginx Proxy Manager network and
+# ── Full Docker stack (reverse proxy esterno + Next.js + Django + PG + Redis) ─
+# Requires an external reverse-proxy network and
 # deploy/docker/production/.env. Guide: wiki/DOCKER_DEPLOY.md.
 
 production-up:
