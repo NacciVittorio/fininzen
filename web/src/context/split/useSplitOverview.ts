@@ -2,8 +2,13 @@ import { useCallback, useRef, useState } from "react";
 import {
     fetchSplitBalancesOverview,
     fetchSplitExpensesList,
+    fetchSplitSettlementsList,
 } from "../../api/split";
-import type { SplitBalanceEntry, SplitExpense } from "../../api/split";
+import type {
+    SplitBalanceEntry,
+    SplitExpense,
+    SplitSettlement,
+} from "../../api/split";
 import type { ApiFetcher } from "../../api/client";
 import type { Translator } from "../../types";
 import { splitApiErrorMessage } from "./splitApiError";
@@ -15,6 +20,24 @@ type UseSplitOverviewArgs = {
     T: Translator;
     apiFetch: ApiFetcher;
 };
+
+export type SplitActivityItem =
+    | {
+          kind: "expense";
+          id: number;
+          date: string;
+          createdAt: string;
+          groupId: number | null;
+          expense: SplitExpense;
+      }
+    | {
+          kind: "settlement";
+          id: number;
+          date: string;
+          createdAt: string;
+          groupId: number | null;
+          settlement: SplitSettlement;
+      };
 
 // Cross-group balance overview (piano sez. 6: GET /balances/overview/) — the
 // number the Split root view (SplitView.tsx) headlines: net "you're owed" vs
@@ -54,49 +77,78 @@ export function useSplitOverview({ T, apiFetch }: UseSplitOverviewArgs) {
         }
     }, [apiFetch, T]);
 
-    // Standalone ("quick") expenses — group=null. SplitExpenseViewSet has no
-    // `?group=` filter (same limitation noted on useSplitGroupDetail's
-    // groupExpenses), so this fetches the full accessible collection and
-    // filters client-side for the ones with no group at all.
+    // Global Split activity. The API intentionally stays unchanged: expenses
+    // and settlements are fetched from their existing collections, merged in
+    // the client, then sorted by business date and creation timestamp.
+    const [splitActivity, setSplitActivity] = useState<SplitActivityItem[]>([]);
+    const [splitActivityLoading, setSplitActivityLoading] = useState(false);
+    const [splitActivityError, setSplitActivityError] = useState<string | null>(
+        null,
+    );
+
+    // Standalone ("quick") expenses remain a derived slice of that same
+    // expense collection so there is no second source of truth.
     const [standaloneExpenses, setStandaloneExpenses] = useState<
         SplitExpense[]
     >([]);
-    const [standaloneExpensesLoading, setStandaloneExpensesLoading] =
-        useState(false);
-    const [standaloneExpensesError, setStandaloneExpensesError] = useState<
-        string | null
-    >(null);
-    const standaloneRequestSeqRef = useRef(0);
-    const standaloneAbortRef = useRef<AbortController | null>(null);
+    const activityRequestSeqRef = useRef(0);
+    const activityAbortRef = useRef<AbortController | null>(null);
 
-    const loadStandaloneExpenses = useCallback(async () => {
-        const requestSeq = ++standaloneRequestSeqRef.current;
-        if (standaloneAbortRef.current) standaloneAbortRef.current.abort();
+    const loadSplitActivity = useCallback(async () => {
+        const requestSeq = ++activityRequestSeqRef.current;
+        if (activityAbortRef.current) activityAbortRef.current.abort();
         const controller = new AbortController();
-        standaloneAbortRef.current = controller;
-        setStandaloneExpensesLoading(true);
-        setStandaloneExpensesError(null);
+        activityAbortRef.current = controller;
+        setSplitActivityLoading(true);
+        setSplitActivityError(null);
         try {
-            const expenses = await fetchSplitExpensesList(
-                apiFetch,
-                controller.signal,
+            const [expenses, settlements] = await Promise.all([
+                fetchSplitExpensesList(apiFetch, controller.signal),
+                fetchSplitSettlementsList(apiFetch, controller.signal),
+            ]);
+            if (requestSeq !== activityRequestSeqRef.current) return;
+
+            const activity: SplitActivityItem[] = [
+                ...expenses.map((expense): SplitActivityItem => ({
+                    kind: "expense",
+                    id: expense.id,
+                    date: expense.date,
+                    createdAt: expense.created_at,
+                    groupId: expense.group ?? null,
+                    expense,
+                })),
+                ...settlements.map((settlement): SplitActivityItem => ({
+                    kind: "settlement",
+                    id: settlement.id,
+                    date: settlement.date,
+                    createdAt: settlement.created_at,
+                    groupId: settlement.group ?? null,
+                    settlement,
+                })),
+            ].sort(
+                (a, b) =>
+                    b.date.localeCompare(a.date) ||
+                    b.createdAt.localeCompare(a.createdAt),
             );
-            if (requestSeq !== standaloneRequestSeqRef.current) return;
+
+            setSplitActivity(activity);
             setStandaloneExpenses(expenses.filter((e) => e.group == null));
         } catch (error) {
             if (isAbortError(error)) return;
-            if (requestSeq === standaloneRequestSeqRef.current) {
-                setStandaloneExpensesError(splitApiErrorMessage(error, T));
+            if (requestSeq === activityRequestSeqRef.current) {
+                setSplitActivityError(splitApiErrorMessage(error, T));
             }
         } finally {
-            if (standaloneAbortRef.current === controller) {
-                standaloneAbortRef.current = null;
+            if (activityAbortRef.current === controller) {
+                activityAbortRef.current = null;
             }
-            if (requestSeq === standaloneRequestSeqRef.current) {
-                setStandaloneExpensesLoading(false);
+            if (requestSeq === activityRequestSeqRef.current) {
+                setSplitActivityLoading(false);
             }
         }
     }, [apiFetch, T]);
+
+    const loadStandaloneExpenses = loadSplitActivity;
 
     return {
         overview,
@@ -104,9 +156,13 @@ export function useSplitOverview({ T, apiFetch }: UseSplitOverviewArgs) {
         overviewError,
         setOverviewError,
         loadSplitOverview,
+        splitActivity,
+        splitActivityLoading,
+        splitActivityError,
+        loadSplitActivity,
         standaloneExpenses,
-        standaloneExpensesLoading,
-        standaloneExpensesError,
+        standaloneExpensesLoading: splitActivityLoading,
+        standaloneExpensesError: splitActivityError,
         loadStandaloneExpenses,
     };
 }

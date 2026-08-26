@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
 import { Card, GroupedList, ModalError } from "../../components/ui";
@@ -11,6 +11,7 @@ import type { SplitExpense } from "../../api/split";
 import { canModifyExpense, resolveMySplitUserId } from "./splitIdentity";
 import SplitExpenseFormModal from "./SplitExpenseFormModal";
 import SplitSettlementBadge from "./SplitSettlementBadge";
+import SplitActionRow from "./SplitActionRow";
 
 // Standalone ("quick") expenses — group=null (piano Batch 2.2/QA finding:
 // creating one from SplitView's "+ Nuova spesa veloce" CTA left it
@@ -49,10 +50,6 @@ export default function SplitStandaloneExpensesSection() {
     );
     const [deleteTarget, setDeleteTarget] = useState<SplitExpense | null>(null);
     const [deletingExpense, setDeletingExpense] = useState(false);
-
-    useEffect(() => {
-        loadStandaloneExpenses();
-    }, [loadStandaloneExpenses]);
 
     const handleDeleteExpense = async () => {
         if (!deleteTarget) return;
@@ -106,64 +103,57 @@ export default function SplitStandaloneExpensesSection() {
                         const editable = canModifyExpense(expense, {
                             mySplitUserId,
                         });
+                        const value = (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "flex-end",
+                                    gap: 4,
+                                }}
+                            >
+                                <span>{formatEur(expense.amount)}</span>
+                                <SplitSettlementBadge
+                                    percentage={
+                                        expense.settlement_progress.percentage
+                                    }
+                                    T={T}
+                                    testId={`split-standalone-expense-settlement-badge-${expense.id}`}
+                                />
+                            </div>
+                        );
                         return (
-                            <GroupedList.Item
+                            <SplitActionRow
                                 key={expense.id}
+                                rowId={`standalone-expense-${expense.id}`}
                                 testId={`split-standalone-expense-row-${expense.id}`}
                                 icon={category?.icon ?? "🧾"}
                                 label={expense.description}
                                 subtitle={expense.date}
-                                value={
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "flex-end",
-                                            gap: 4,
-                                        }}
-                                    >
-                                        <span>{formatEur(expense.amount)}</span>
-                                        <SplitSettlementBadge
-                                            percentage={
-                                                expense.settlement_progress
-                                                    .percentage
-                                            }
-                                            T={T}
-                                            testId={`split-standalone-expense-settlement-badge-${expense.id}`}
-                                        />
-                                    </div>
+                                value={value}
+                                onOpen={
+                                    editable
+                                        ? () => {
+                                              setEditingExpense(expense);
+                                              setShowExpenseModal(true);
+                                          }
+                                        : undefined
                                 }
-                                action={
-                                    editable ? (
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                gap: 8,
-                                            }}
-                                        >
-                                            <button
-                                                type="button"
-                                                className="btn btn-g btn-sm"
-                                                onClick={() => {
-                                                    setEditingExpense(expense);
-                                                    setShowExpenseModal(true);
-                                                }}
-                                            >
-                                                {T("btn_edit")}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="btn btn-r btn-sm"
-                                                data-testid={`split-standalone-expense-delete-${expense.id}`}
-                                                onClick={() =>
-                                                    setDeleteTarget(expense)
-                                                }
-                                            >
-                                                {T("btn_delete")}
-                                            </button>
-                                        </div>
-                                    ) : undefined
+                                onEdit={
+                                    editable
+                                        ? () => {
+                                              setEditingExpense(expense);
+                                              setShowExpenseModal(true);
+                                          }
+                                        : undefined
                                 }
+                                onDelete={
+                                    editable
+                                        ? () => setDeleteTarget(expense)
+                                        : undefined
+                                }
+                                editTestId={`split-standalone-expense-edit-${expense.id}`}
+                                deleteTestId={`split-standalone-expense-delete-${expense.id}`}
                             />
                         );
                     })}

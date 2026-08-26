@@ -12,8 +12,10 @@ import type { SplitBalanceEntry } from "../../api/split";
 // — the number SplitView headlines, plus one "Salda" per person.
 export default function SplitBalancesOverviewView({
     onSettle,
+    showNet = true,
 }: {
     onSettle: (entry: SplitBalanceEntry) => void;
+    showNet?: boolean;
 }) {
     const { T, user } = useApp();
     const { formatEur } = useFormatters();
@@ -40,24 +42,26 @@ export default function SplitBalancesOverviewView({
             >
                 {T("split_balance_overview_title")}
             </div>
-            <div
-                data-testid="split-balances-overview-net"
-                style={{
-                    fontSize: 28,
-                    fontWeight: 700,
-                    fontFamily: "var(--font-mono)",
-                    color:
-                        net === 0
-                            ? "var(--fg)"
-                            : net > 0
-                              ? "var(--success)"
-                              : "var(--danger)",
-                    marginBottom: 14,
-                }}
-            >
-                {net >= 0 ? "+" : "-"}
-                {formatEur(Math.abs(net))}
-            </div>
+            {showNet && (
+                <div
+                    data-testid="split-balances-overview-net"
+                    style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        fontFamily: "var(--font-mono)",
+                        color:
+                            net === 0
+                                ? "var(--fg)"
+                                : net > 0
+                                  ? "var(--success)"
+                                  : "var(--danger)",
+                        marginBottom: 14,
+                    }}
+                >
+                    {net >= 0 ? "+" : "-"}
+                    {formatEur(Math.abs(net))}
+                </div>
+            )}
 
             {overviewError && (
                 <div

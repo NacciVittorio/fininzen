@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { BottomSheet, ModalError } from "../../components/ui";
+import { BottomSheet, ModalError, SheetTitle } from "../../components/ui";
 import CategorySelect from "../../components/CategorySelect";
 import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
@@ -373,18 +373,34 @@ export default function SplitExpenseFormModal({
     };
 
     return (
-        <BottomSheet open onClose={onClose} ariaLabel={title}>
-            <div style={{ padding: "0 18px" }}>
-                <div
-                    style={{
-                        fontSize: 18,
-                        fontWeight: 600,
-                        color: "var(--fg)",
-                        padding: "2px 2px 14px",
-                    }}
-                >
-                    {title}
+        <BottomSheet
+            open
+            onClose={onClose}
+            ariaLabel={title}
+            header={
+                <SheetTitle style={{ marginBottom: 0 }}>{title}</SheetTitle>
+            }
+            footer={
+                <div className="split-sheet-footer">
+                    <button className="btn btn-g" onClick={onClose}>
+                        {T("btn_cancel")}
+                    </button>
+                    <button
+                        className="btn btn-p"
+                        data-testid="split-expense-submit"
+                        disabled={splitExpenseFormSubmitting || hasComputeError}
+                        onClick={handleSubmit}
+                    >
+                        {splitExpenseFormSubmitting
+                            ? "…"
+                            : expense
+                              ? T("btn_update")
+                              : T("btn_add")}
+                    </button>
                 </div>
+            }
+        >
+            <div style={{ padding: "0 18px" }}>
                 <div
                     style={{
                         display: "flex",
@@ -787,33 +803,6 @@ export default function SplitExpenseFormModal({
                             {displayError}
                         </ModalError>
                     )}
-
-                    <div
-                        className="row"
-                        style={{
-                            justifyContent: "flex-end",
-                            gap: 8,
-                            marginTop: 8,
-                        }}
-                    >
-                        <button className="btn btn-g" onClick={onClose}>
-                            {T("btn_cancel")}
-                        </button>
-                        <button
-                            className="btn btn-p"
-                            data-testid="split-expense-submit"
-                            disabled={
-                                splitExpenseFormSubmitting || hasComputeError
-                            }
-                            onClick={handleSubmit}
-                        >
-                            {splitExpenseFormSubmitting
-                                ? "…"
-                                : expense
-                                  ? T("btn_update")
-                                  : T("btn_add")}
-                        </button>
-                    </div>
                 </div>
             </div>
         </BottomSheet>

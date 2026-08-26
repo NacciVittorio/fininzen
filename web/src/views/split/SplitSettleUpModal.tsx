@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { BottomSheet, ModalError } from "../../components/ui";
+import { BottomSheet, ModalError, SheetTitle } from "../../components/ui";
 import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
 import AmountCalculator from "../../components/AmountCalculator";
@@ -187,18 +187,32 @@ export default function SplitSettleUpModal({
     };
 
     return (
-        <BottomSheet open onClose={onClose} ariaLabel={T("split_settle_up")}>
-            <div style={{ padding: "0 18px" }}>
-                <div
-                    style={{
-                        fontSize: 18,
-                        fontWeight: 600,
-                        color: "var(--fg)",
-                        padding: "2px 2px 14px",
-                    }}
-                >
+        <BottomSheet
+            open
+            onClose={onClose}
+            ariaLabel={T("split_settle_up")}
+            header={
+                <SheetTitle style={{ marginBottom: 0 }}>
                     {T("split_settle_up")}
+                </SheetTitle>
+            }
+            footer={
+                <div className="split-sheet-footer">
+                    <button className="btn btn-g" onClick={onClose}>
+                        {T("btn_cancel")}
+                    </button>
+                    <button
+                        className="btn btn-p"
+                        data-testid="split-settle-submit"
+                        disabled={submitting || mySplitUserId == null}
+                        onClick={handleSubmit}
+                    >
+                        {submitting ? "…" : T("split_settle_up")}
+                    </button>
                 </div>
+            }
+        >
+            <div style={{ padding: "0 18px" }}>
                 <div
                     style={{
                         display: "flex",
@@ -295,26 +309,6 @@ export default function SplitSettleUpModal({
                             {displayError}
                         </ModalError>
                     )}
-                    <div
-                        className="row"
-                        style={{
-                            justifyContent: "flex-end",
-                            gap: 8,
-                            marginTop: 8,
-                        }}
-                    >
-                        <button className="btn btn-g" onClick={onClose}>
-                            {T("btn_cancel")}
-                        </button>
-                        <button
-                            className="btn btn-p"
-                            data-testid="split-settle-submit"
-                            disabled={submitting || mySplitUserId == null}
-                            onClick={handleSubmit}
-                        >
-                            {submitting ? "…" : T("split_settle_up")}
-                        </button>
-                    </div>
                 </div>
             </div>
         </BottomSheet>

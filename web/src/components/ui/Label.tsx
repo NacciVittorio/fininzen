@@ -1,11 +1,12 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ElementType, ReactNode } from "react";
 
 type LabelProps = {
     accent?: boolean;
     bold?: boolean;
     className?: string;
+    htmlFor?: string;
     style?: CSSProperties;
     children?: ReactNode;
 };
@@ -14,6 +15,7 @@ export default function Label({
     accent = false,
     bold = false,
     className = "",
+    htmlFor,
     style,
     children,
 }: LabelProps) {
@@ -25,9 +27,10 @@ export default function Label({
     ]
         .filter(Boolean)
         .join(" ");
+    const Tag: ElementType = htmlFor ? "label" : "div";
     return (
-        <div className={cls} style={style}>
+        <Tag className={cls} style={style} htmlFor={htmlFor}>
             {children}
-        </div>
+        </Tag>
     );
 }

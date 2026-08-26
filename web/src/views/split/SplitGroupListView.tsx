@@ -1,183 +1,147 @@
 "use client";
 
 import { useState } from "react";
+import type { SplitGroup } from "../../api/split";
+import { Card, ModalError } from "../../components/ui";
+import Modal from "../../components/Modal";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { Card } from "../../components/ui";
-import SplitGroupCard from "./SplitGroupCard";
+import SplitActionRow from "./SplitActionRow";
+import SplitGroupFormSheet from "./SplitGroupFormSheet";
 
-const GROUP_ICON_CHOICES = [
-    "👥",
-    "🏠",
-    "✈️",
-    "🍽️",
-    "🎉",
-    "💼",
-    "🚗",
-    "🏖️",
-] as const;
-
-export default function SplitGroupListView() {
+export default function SplitGroupListView({
+    createOpen,
+    onCreateOpenChange,
+}: {
+    createOpen?: boolean;
+    onCreateOpenChange?: (open: boolean) => void;
+}) {
     const { T } = useApp();
     const {
         groups,
         groupsLoading,
         groupsError,
-        addSplitGroup,
         loadSplitGroupDetail,
+        removeSplitGroup,
     } = useSplit();
-    const [creating, setCreating] = useState(false);
-    const [name, setName] = useState("");
-    const [icon, setIcon] = useState<string>(GROUP_ICON_CHOICES[0]);
-    const [saving, setSaving] = useState(false);
+    const [localCreateOpen, setLocalCreateOpen] = useState(false);
+    const [editingGroup, setEditingGroup] = useState<SplitGroup | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<SplitGroup | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const sheetOpen = Boolean(createOpen ?? localCreateOpen) || !!editingGroup;
 
-    const handleCreate = async () => {
-        const trimmed = name.trim();
-        if (!trimmed) return;
-        setSaving(true);
-        const created = await addSplitGroup({ name: trimmed, icon });
-        setSaving(false);
-        if (created) {
-            setName("");
-            setIcon(GROUP_ICON_CHOICES[0]);
-            setCreating(false);
-        }
+    const setCreateOpen = (open: boolean) => {
+        if (onCreateOpenChange) onCreateOpenChange(open);
+        else setLocalCreateOpen(open);
+        if (!open) setEditingGroup(null);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        const removed = await removeSplitGroup(deleteTarget.id);
+        setDeleting(false);
+        if (removed) setDeleteTarget(null);
     };
 
     return (
-        <div>
-            <div
-                className="between"
-                style={{ marginBottom: 10, alignItems: "center" }}
-            >
-                <div className="grouped-list__title" style={{ margin: 0 }}>
+        <section data-testid="split-groups-section">
+            <div className="split-section-heading">
+                <div className="grouped-list__title" style={{ padding: 0 }}>
                     {T("split_groups_title")}
                 </div>
-                {!creating && (
-                    <button
-                        type="button"
-                        className="btn btn-p btn-sm"
-                        data-testid="split-group-new-btn"
-                        onClick={() => setCreating(true)}
-                    >
-                        + {T("split_group_new")}
-                    </button>
-                )}
+                <button
+                    type="button"
+                    className="btn btn-p btn-sm desktop-only"
+                    data-testid="split-group-new-btn"
+                    onClick={() => setCreateOpen(true)}
+                >
+                    + {T("split_group_new")}
+                </button>
             </div>
 
-            {creating && (
-                <Card style={{ padding: 14, marginBottom: 14 }}>
-                    <div
-                        className="row"
-                        style={{
-                            gap: 8,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                        }}
-                    >
-                        <div
-                            className="row"
-                            style={{ gap: 6, flexWrap: "wrap" }}
-                        >
-                            {GROUP_ICON_CHOICES.map((choice) => (
-                                <button
-                                    key={choice}
-                                    type="button"
-                                    onClick={() => setIcon(choice)}
-                                    aria-pressed={icon === choice}
-                                    aria-label={`${T("split_group_icon_choice_label")} ${choice}`}
-                                    style={{
-                                        fontSize: 18,
-                                        width: 34,
-                                        height: 34,
-                                        borderRadius: 8,
-                                        border:
-                                            icon === choice
-                                                ? "2px solid var(--accent)"
-                                                : "1px solid var(--rule)",
-                                        background: "var(--card-inset)",
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    {choice}
-                                </button>
-                            ))}
-                        </div>
-                        <input
-                            className="inp"
-                            style={{ flex: 1, minWidth: 160 }}
-                            placeholder={T("split_group_name_placeholder")}
-                            value={name}
-                            data-testid="split-group-name-input"
-                            onChange={(event) => setName(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === "Enter") handleCreate();
-                            }}
-                        />
-                        <button
-                            type="button"
-                            className="btn btn-p btn-sm"
-                            data-testid="split-group-create-submit"
-                            disabled={saving || !name.trim()}
-                            onClick={handleCreate}
-                        >
-                            {saving ? "…" : T("btn_add")}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-g btn-sm"
-                            onClick={() => setCreating(false)}
-                        >
-                            {T("btn_cancel")}
-                        </button>
-                    </div>
-                </Card>
-            )}
-
             {groupsError && (
-                <div
-                    style={{
-                        color: "var(--danger)",
-                        fontSize: 13,
-                        marginBottom: 10,
-                    }}
-                >
-                    {groupsError}
+                <div style={{ marginBottom: 12 }}>
+                    <ModalError>{groupsError}</ModalError>
                 </div>
             )}
 
             {groupsLoading && groups.length === 0 ? (
-                <Card
-                    style={{
-                        padding: 20,
-                        textAlign: "center",
-                        color: "var(--fg-soft)",
-                    }}
-                >
-                    {T("loading")}
-                </Card>
+                <Card className="split-empty-state">{T("loading")}</Card>
             ) : groups.length === 0 ? (
                 <Card
-                    style={{
-                        padding: 20,
-                        textAlign: "center",
-                        color: "var(--fg-soft)",
-                    }}
+                    className="split-empty-state"
                     data-testid="split-groups-empty"
                 >
                     {T("split_groups_empty")}
                 </Card>
             ) : (
                 <div className="grouped-list">
-                    {groups.map((group) => (
-                        <SplitGroupCard
-                            key={group.id}
-                            group={group}
-                            onSelect={() => loadSplitGroupDetail(group.id)}
-                        />
-                    ))}
+                    {groups.map((group) => {
+                        const memberCount = group.members.filter(
+                            (member) => member.is_active,
+                        ).length;
+                        return (
+                            <SplitActionRow
+                                key={group.id}
+                                rowId={`group-${group.id}`}
+                                testId={`split-group-row-${group.id}`}
+                                icon={
+                                    <span style={{ fontSize: 20 }}>
+                                        {group.icon}
+                                    </span>
+                                }
+                                label={group.name}
+                                subtitle={`${memberCount} ${T("split_members_label")}`}
+                                chevron
+                                onOpen={() => loadSplitGroupDetail(group.id)}
+                                onEdit={() => setEditingGroup(group)}
+                                onDelete={() => setDeleteTarget(group)}
+                                editTestId={`split-group-edit-${group.id}`}
+                                deleteTestId={`split-group-delete-${group.id}`}
+                            />
+                        );
+                    })}
                 </div>
             )}
-        </div>
+
+            <SplitGroupFormSheet
+                open={sheetOpen}
+                group={editingGroup}
+                onClose={() => setCreateOpen(false)}
+            />
+
+            {deleteTarget && (
+                <Modal
+                    title={T("modal_delete_group")}
+                    onClose={() => setDeleteTarget(null)}
+                >
+                    <div className="split-confirm-content">
+                        <div>{deleteTarget.name}</div>
+                        <div className="split-confirm-hint">
+                            {T("action_cannot_be_undone")}
+                        </div>
+                        <div className="split-confirm-actions">
+                            <button
+                                type="button"
+                                className="btn btn-g"
+                                onClick={() => setDeleteTarget(null)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-r"
+                                data-testid="split-group-delete-confirm"
+                                disabled={deleting}
+                                onClick={confirmDelete}
+                            >
+                                {deleting ? "…" : T("btn_delete")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+        </section>
     );
 }

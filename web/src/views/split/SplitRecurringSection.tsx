@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { BottomSheet, Card, ModalError } from "../../components/ui";
+import {
+    BottomSheet,
+    GroupedList,
+    Icon,
+    ModalError,
+    SheetTitle,
+} from "../../components/ui";
 import CategorySelect from "../../components/CategorySelect";
 import Select from "../../components/Select";
 import FieldLabel from "../../components/FieldLabel";
@@ -33,6 +39,8 @@ import type {
     SplitRecurringExpense,
     SplitRecurringFrequency,
 } from "../../api/split";
+import SplitActionRow from "./SplitActionRow";
+import SplitDeleteConfirmation from "./SplitDeleteConfirmation";
 
 const METHODS: SplitMethod[] = ["equal", "exact", "percentage", "shares"];
 
@@ -85,8 +93,10 @@ const emptyForm = (): RecurringFormState => ({
 // create/update, not SplitRecurringExpense).
 export default function SplitRecurringSection({
     group,
+    createRequest = 0,
 }: {
     group: SplitGroup;
+    createRequest?: number;
 }) {
     const {
         T,
@@ -120,10 +130,14 @@ export default function SplitRecurringSection({
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
+    const [deleteTarget, setDeleteTarget] =
+        useState<SplitRecurringExpense | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const [generateMsg, setGenerateMsg] = useState<{
         created: number;
         skipped: number;
     } | null>(null);
+    const lastCreateRequestRef = useRef(0);
 
     useEffect(() => {
         loadSplitRecurring();
@@ -257,6 +271,16 @@ export default function SplitRecurringSection({
         setShowForm(true);
     };
 
+    useEffect(() => {
+        if (!createRequest || createRequest === lastCreateRequestRef.current) {
+            return;
+        }
+        lastCreateRequestRef.current = createRequest;
+        openCreateForm();
+        // openCreateForm intentionally seeds from the roster at request time.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [createRequest]);
+
     const openEditForm = (recurring: SplitRecurringExpense) => {
         setForm({
             id: recurring.id,
@@ -367,6 +391,14 @@ export default function SplitRecurringSection({
         if (result) setGenerateMsg(result);
     };
 
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        const removed = await removeSplitRecurring(deleteTarget.id);
+        setDeleting(false);
+        if (removed) setDeleteTarget(null);
+    };
+
     return (
         <div data-testid="split-recurring-section">
             <div
@@ -435,9 +467,7 @@ export default function SplitRecurringSection({
                     {T("no_recurring")}
                 </div>
             ) : (
-                <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
+                <GroupedList>
                     {groupRecurrings.map((recurring) => {
                         const category = categories.find(
                             (c) => c.id === recurring.category,
@@ -445,101 +475,64 @@ export default function SplitRecurringSection({
                         const account = assets.find(
                             (a) => a.id === recurring.linked_asset,
                         );
+                        const subtitle = `${T(
+                            `frequency_${recurring.frequency ?? "MONTHLY"}`,
+                        )} · ${T("recurring_day")} ${recurring.day_of_month}${
+                            account ? ` · ${account.name}` : ""
+                        }${
+                            recurring.status !== "ACTIVE"
+                                ? ` · ${recurring.status}`
+                                : ""
+                        }`;
                         return (
-                            <Card
+                            <SplitActionRow
                                 key={recurring.id}
-                                style={{ padding: "12px 16px" }}
-                                data-testid={`split-recurring-row-${recurring.id}`}
-                            >
-                                <div className="between">
-                                    <div>
-                                        <div
-                                            style={{
-                                                fontSize: 14,
-                                                fontWeight: 500,
-                                            }}
-                                        >
-                                            {category?.icon}{" "}
-                                            {recurring.description}
-                                        </div>
-                                        <div
-                                            style={{
-                                                fontSize: 11,
-                                                color: "var(--fg-soft)",
-                                                marginTop: 3,
-                                            }}
-                                        >
-                                            {T(
-                                                `frequency_${recurring.frequency ?? "MONTHLY"}`,
-                                            )}{" "}
-                                            · {T("recurring_day")}{" "}
-                                            {recurring.day_of_month}
-                                            {account && ` · ${account.name}`}
-                                            {recurring.status !== "ACTIVE" && (
-                                                <span
-                                                    style={{
-                                                        color: "var(--danger)",
-                                                        marginLeft: 6,
-                                                    }}
-                                                >
-                                                    ● {recurring.status}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div
-                                        className="row"
-                                        style={{ alignItems: "center", gap: 8 }}
-                                    >
-                                        <span
-                                            style={{
-                                                fontSize: 15,
-                                                fontWeight: 600,
-                                                fontFamily: "var(--font-mono)",
-                                                color: "var(--danger)",
-                                            }}
-                                        >
-                                            -{formatEur(recurring.amount)}
-                                        </span>
-                                        <button
-                                            className="btn btn-g btn-sm"
-                                            onClick={() =>
-                                                openEditForm(recurring)
-                                            }
-                                        >
-                                            {T("btn_edit")}
-                                        </button>
-                                        <button
-                                            className="btn btn-g btn-sm"
-                                            onClick={() =>
-                                                toggleSplitRecurring(
-                                                    recurring.id,
-                                                    recurring.status !==
-                                                        "ACTIVE",
-                                                )
-                                            }
-                                        >
-                                            {recurring.status === "ACTIVE"
+                                rowId={`recurring-${recurring.id}`}
+                                testId={`split-recurring-row-${recurring.id}`}
+                                icon={category?.icon ?? "↻"}
+                                label={recurring.description}
+                                subtitle={subtitle}
+                                value={
+                                    <strong style={{ color: "var(--danger)" }}>
+                                        -{formatEur(recurring.amount)}
+                                    </strong>
+                                }
+                                onOpen={() => openEditForm(recurring)}
+                                onEdit={() => openEditForm(recurring)}
+                                onDelete={() => setDeleteTarget(recurring)}
+                                editTestId={`split-recurring-edit-${recurring.id}`}
+                                deleteTestId={`split-recurring-delete-${recurring.id}`}
+                                extraActions={[
+                                    {
+                                        key: "toggle",
+                                        label:
+                                            recurring.status === "ACTIVE"
                                                 ? T("btn_disable")
-                                                : T("btn_enable")}
-                                        </button>
-                                        <button
-                                            className="btn btn-r btn-sm"
-                                            data-testid={`split-recurring-delete-${recurring.id}`}
-                                            onClick={() =>
-                                                removeSplitRecurring(
-                                                    recurring.id,
-                                                )
-                                            }
-                                        >
-                                            {T("btn_delete")}
-                                        </button>
-                                    </div>
-                                </div>
-                            </Card>
+                                                : T("btn_enable"),
+                                        icon: <Icon name="refresh" size={17} />,
+                                        testId: `split-recurring-toggle-${recurring.id}`,
+                                        onPress: () =>
+                                            toggleSplitRecurring(
+                                                recurring.id,
+                                                recurring.status !== "ACTIVE",
+                                            ),
+                                    },
+                                ]}
+                            />
                         );
                     })}
-                </div>
+                </GroupedList>
+            )}
+
+            {deleteTarget && (
+                <SplitDeleteConfirmation
+                    title={T("modal_delete_recurring")}
+                    summary={`${deleteTarget.description} — ${formatEur(deleteTarget.amount)}`}
+                    confirmTestId="split-recurring-delete-confirm"
+                    busy={deleting}
+                    onClose={() => setDeleteTarget(null)}
+                    onConfirm={handleDelete}
+                />
             )}
 
             {showForm && (
@@ -551,20 +544,37 @@ export default function SplitRecurringSection({
                             ? T("modal_edit_recurring")
                             : T("modal_add_recurring")
                     }
-                >
-                    <div style={{ padding: "0 18px" }}>
-                        <div
-                            style={{
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "var(--fg)",
-                                padding: "2px 2px 14px",
-                            }}
-                        >
+                    header={
+                        <SheetTitle style={{ marginBottom: 0 }}>
                             {form.id
                                 ? T("modal_edit_recurring")
                                 : T("modal_add_recurring")}
+                        </SheetTitle>
+                    }
+                    footer={
+                        <div className="split-sheet-footer">
+                            <button
+                                className="btn btn-g"
+                                onClick={() => setShowForm(false)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                className="btn btn-p"
+                                data-testid="split-recurring-submit"
+                                disabled={submitting || hasComputeError}
+                                onClick={handleSubmit}
+                            >
+                                {submitting
+                                    ? "…"
+                                    : form.id
+                                      ? T("btn_update")
+                                      : T("btn_add")}
+                            </button>
                         </div>
+                    }
+                >
+                    <div style={{ padding: "0 18px" }}>
                         <div
                             style={{
                                 display: "flex",
@@ -1021,34 +1031,6 @@ export default function SplitRecurringSection({
                                     {displayFormError}
                                 </ModalError>
                             )}
-
-                            <div
-                                className="row"
-                                style={{
-                                    justifyContent: "flex-end",
-                                    gap: 8,
-                                    marginTop: 8,
-                                }}
-                            >
-                                <button
-                                    className="btn btn-g"
-                                    onClick={() => setShowForm(false)}
-                                >
-                                    {T("btn_cancel")}
-                                </button>
-                                <button
-                                    className="btn btn-p"
-                                    data-testid="split-recurring-submit"
-                                    disabled={submitting || hasComputeError}
-                                    onClick={handleSubmit}
-                                >
-                                    {submitting
-                                        ? "…"
-                                        : form.id
-                                          ? T("btn_update")
-                                          : T("btn_add")}
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </BottomSheet>

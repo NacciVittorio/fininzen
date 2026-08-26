@@ -4,9 +4,16 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "../../context/useApp";
 import { useSplit } from "../../context/split/useSplit";
-import { PageHeader } from "../../components/ui";
+import {
+    Icon,
+    LargeTitleHeader,
+    PullToRefresh,
+    SegmentedControl,
+    SpeedDialFab,
+} from "../../components/ui";
 import { fetchSplitExpense, fetchSplitSettlement } from "../../api/split";
 import type { SplitBalanceEntry, SplitExpense } from "../../api/split";
+import { useFormatters } from "../../utils/useFormatters";
 import SplitBalancesOverviewView from "./SplitBalancesOverviewView";
 import SplitContactsSection from "./SplitContactsSection";
 import SplitExpenseFormModal from "./SplitExpenseFormModal";
@@ -14,8 +21,9 @@ import SplitGroupDetailView from "./SplitGroupDetailView";
 import SplitGroupListView from "./SplitGroupListView";
 import SplitSettleUpModal from "./SplitSettleUpModal";
 import SplitStandaloneExpensesSection from "./SplitStandaloneExpensesSection";
+import SplitRecentActivitySection from "./SplitRecentActivitySection";
 
-type SplitSection = "groups" | "contacts";
+type SplitSection = "overview" | "groups" | "contacts";
 
 // Reads the CashFlow "Apri in Split" deep-link params (?openExpense=/
 // ?openSettlement=, see CfDetailSheet.tsx/CashflowDeleteConfirmModal.tsx,
@@ -57,18 +65,22 @@ function SplitDeepLinkParams({
 // group detail, it only reacts to that piece of shared state.
 export default function SplitView() {
     const { T, apiFetch } = useApp();
+    const { formatEur } = useFormatters();
     const router = useRouter();
     const {
+        overview,
         selectedGroupId,
         loadSplitGroups,
         loadSplitGroupDetail,
         loadSplitOverview,
         loadSplitContacts,
-        loadStandaloneExpenses,
+        loadSplitActivity,
     } = useSplit();
 
-    const [section, setSection] = useState<SplitSection>("groups");
+    const [section, setSection] = useState<SplitSection>("overview");
     const [showQuickExpense, setShowQuickExpense] = useState(false);
+    const [showGroupComposer, setShowGroupComposer] = useState(false);
+    const [showContactComposer, setShowContactComposer] = useState(false);
     const [settleEntry, setSettleEntry] = useState<SplitBalanceEntry | null>(
         null,
     );
@@ -93,7 +105,14 @@ export default function SplitView() {
     useEffect(() => {
         loadSplitGroups();
         loadSplitContacts();
-    }, [loadSplitGroups, loadSplitContacts]);
+        loadSplitOverview();
+        loadSplitActivity();
+    }, [
+        loadSplitActivity,
+        loadSplitContacts,
+        loadSplitGroups,
+        loadSplitOverview,
+    ]);
 
     // Strips the deep-link params once handled, so a refresh or a "back"
     // navigation into /split doesn't re-trigger the same lookup.
@@ -153,6 +172,40 @@ export default function SplitView() {
         [apiFetch, loadSplitGroupDetail, clearDeepLinkParams],
     );
 
+    const handlePullRefresh = useCallback(async () => {
+        await Promise.all([
+            loadSplitGroups(),
+            loadSplitContacts(),
+            loadSplitOverview(),
+            loadSplitActivity(),
+        ]);
+    }, [
+        loadSplitActivity,
+        loadSplitContacts,
+        loadSplitGroups,
+        loadSplitOverview,
+    ]);
+
+    const openExpense = useCallback(
+        (expense: SplitExpense) => {
+            setPendingEditExpense(expense);
+            if (expense.group != null) {
+                loadSplitGroupDetail(expense.group);
+            } else {
+                setShowQuickExpense(true);
+            }
+        },
+        [loadSplitGroupDetail],
+    );
+
+    const overviewNet = overview.reduce(
+        (sum, entry) => sum + Number(entry.balance),
+        0,
+    );
+    const overviewNetText = `${overviewNet >= 0 ? "+" : "-"}${formatEur(
+        Math.abs(overviewNet),
+    )}`;
+
     if (selectedGroupId != null) {
         return (
             <>
@@ -173,78 +226,185 @@ export default function SplitView() {
     }
 
     return (
-        <div>
-            <Suspense fallback={null}>
-                <SplitDeepLinkParams
-                    onOpenExpense={handleOpenExpense}
-                    onOpenSettlement={handleOpenSettlement}
+        <PullToRefresh onRefresh={handlePullRefresh}>
+            <div>
+                <Suspense fallback={null}>
+                    <SplitDeepLinkParams
+                        onOpenExpense={handleOpenExpense}
+                        onOpenSettlement={handleOpenSettlement}
+                    />
+                </Suspense>
+
+                <LargeTitleHeader
+                    eyebrow={T("split_balance_overview_title")}
+                    title={
+                        <span
+                            className="app-net-worth hero-number"
+                            data-testid="split-balances-overview-net"
+                            style={{
+                                color:
+                                    overviewNet === 0
+                                        ? "var(--fg)"
+                                        : overviewNet > 0
+                                          ? "var(--success)"
+                                          : "var(--danger)",
+                            }}
+                        >
+                            {overviewNetText}
+                        </span>
+                    }
+                    compactTitle={T("tab_split")}
+                    compactValue={overviewNetText}
+                    subtitle={T("split_overview_subtitle")}
+                    actions={
+                        <div className="split-header-actions desktop-only">
+                            <button
+                                type="button"
+                                className="btn btn-p"
+                                data-testid="split-quick-expense-desktop"
+                                onClick={() => setShowQuickExpense(true)}
+                            >
+                                + {T("split_expense_new_quick")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-g"
+                                data-testid="split-group-new-desktop"
+                                onClick={() => {
+                                    setSection("groups");
+                                    setShowGroupComposer(true);
+                                }}
+                            >
+                                {T("split_group_new")}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-g"
+                                data-testid="split-contact-new-desktop"
+                                onClick={() => {
+                                    setSection("contacts");
+                                    setShowContactComposer(true);
+                                }}
+                            >
+                                {T("split_contact_new")}
+                            </button>
+                        </div>
+                    }
                 />
-            </Suspense>
 
-            <PageHeader
-                title={T("tab_split")}
-                subtitle={T("split_overview_subtitle")}
-                actions={
-                    <button
-                        type="button"
-                        className="btn btn-p"
-                        data-testid="split-quick-expense-cta"
-                        onClick={() => setShowQuickExpense(true)}
-                    >
-                        + {T("split_expense_new_quick")}
-                    </button>
-                }
-            />
+                <div style={{ marginBottom: 20, display: "flex" }}>
+                    <SegmentedControl
+                        value={section}
+                        onChange={(value) => setSection(value as SplitSection)}
+                        options={[
+                            {
+                                value: "overview",
+                                label: T("split_overview_title"),
+                                testId: "split-tab-overview",
+                            },
+                            {
+                                value: "groups",
+                                label: T("split_groups_title"),
+                                testId: "split-tab-groups",
+                            },
+                            {
+                                value: "contacts",
+                                label: T("split_contacts_title"),
+                                testId: "split-tab-contacts",
+                            },
+                        ]}
+                    />
+                </div>
 
-            <div className="row" style={{ gap: 8, marginBottom: 16 }}>
-                <button
-                    type="button"
-                    className={`btn btn-sm ${section === "groups" ? "btn-p" : "btn-g"}`}
-                    data-testid="split-tab-groups"
-                    onClick={() => setSection("groups")}
-                >
-                    {T("split_groups_title")}
-                </button>
-                <button
-                    type="button"
-                    className={`btn btn-sm ${section === "contacts" ? "btn-p" : "btn-g"}`}
-                    data-testid="split-tab-contacts"
-                    onClick={() => setSection("contacts")}
-                >
-                    {T("split_contacts_title")}
-                </button>
+                {section === "overview" ? (
+                    <>
+                        <SplitBalancesOverviewView
+                            onSettle={setSettleEntry}
+                            showNet={false}
+                        />
+                        <SplitRecentActivitySection
+                            onOpenExpense={openExpense}
+                            onOpenSettlement={(settlement) => {
+                                if (settlement.group != null) {
+                                    loadSplitGroupDetail(settlement.group);
+                                }
+                            }}
+                        />
+                        <SplitStandaloneExpensesSection />
+                    </>
+                ) : section === "groups" ? (
+                    <SplitGroupListView
+                        createOpen={showGroupComposer}
+                        onCreateOpenChange={setShowGroupComposer}
+                    />
+                ) : (
+                    <SplitContactsSection
+                        createOpen={showContactComposer}
+                        onCreateOpenChange={setShowContactComposer}
+                    />
+                )}
+
+                <SpeedDialFab
+                    className="mobile-only"
+                    mainLabel={T("split_new_action")}
+                    actions={[
+                        {
+                            label: T("split_expense_new_quick"),
+                            icon: <Icon name="category" size={19} />,
+                            testId: "split-quick-expense-cta",
+                            onClick: () => setShowQuickExpense(true),
+                        },
+                        {
+                            label: T("split_group_new"),
+                            icon: <Icon name="split" size={19} />,
+                            testId: "split-speed-new-group",
+                            onClick: () => {
+                                setSection("groups");
+                                setShowGroupComposer(true);
+                            },
+                        },
+                        {
+                            label: T("split_contact_new"),
+                            icon: <Icon name="plus" size={19} />,
+                            testId: "split-speed-new-contact",
+                            onClick: () => {
+                                setSection("contacts");
+                                setShowContactComposer(true);
+                            },
+                        },
+                    ]}
+                    hidden={
+                        showQuickExpense ||
+                        showGroupComposer ||
+                        showContactComposer ||
+                        settleEntry != null
+                    }
+                />
+
+                <SplitExpenseFormModal
+                    open={showQuickExpense}
+                    group={null}
+                    expense={pendingEditExpense}
+                    onClose={() => {
+                        setShowQuickExpense(false);
+                        setPendingEditExpense(null);
+                    }}
+                    onSaved={() => {
+                        loadSplitOverview();
+                        loadSplitActivity();
+                    }}
+                />
+                <SplitSettleUpModal
+                    open={settleEntry != null}
+                    entry={settleEntry}
+                    group={null}
+                    onClose={() => setSettleEntry(null)}
+                    onSettled={() => {
+                        loadSplitOverview();
+                        loadSplitActivity();
+                    }}
+                />
             </div>
-
-            {section === "groups" ? (
-                <>
-                    <SplitBalancesOverviewView onSettle={setSettleEntry} />
-                    <SplitGroupListView />
-                    <SplitStandaloneExpensesSection />
-                </>
-            ) : (
-                <SplitContactsSection />
-            )}
-
-            <SplitExpenseFormModal
-                open={showQuickExpense}
-                group={null}
-                expense={pendingEditExpense}
-                onClose={() => {
-                    setShowQuickExpense(false);
-                    setPendingEditExpense(null);
-                }}
-                onSaved={() => {
-                    loadSplitOverview();
-                    loadStandaloneExpenses();
-                }}
-            />
-            <SplitSettleUpModal
-                open={settleEntry != null}
-                entry={settleEntry}
-                group={null}
-                onClose={() => setSettleEntry(null)}
-                onSettled={() => loadSplitOverview()}
-            />
-        </div>
+        </PullToRefresh>
     );
 }

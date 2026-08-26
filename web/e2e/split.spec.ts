@@ -141,20 +141,44 @@ async function blurAmountField(page: Page): Promise<void> {
     await page.keyboard.press("Tab");
 }
 
-async function gotoSplit(page: Page): Promise<void> {
+async function gotoSplit(
+    page: Page,
+    view: "overview" | "groups" | "contacts" = "groups",
+): Promise<void> {
     await page.click('nav a[href="/split"]');
     await expect(page).toHaveURL(/\/split$/);
-    await expect(page.locator('[data-testid="split-tab-groups"]')).toBeVisible({
-        timeout: 10000,
-    });
+    await expect(
+        page.locator('[data-testid="split-tab-overview"]'),
+    ).toBeVisible({ timeout: 10000 });
+    if (view !== "overview") {
+        await page.click(`[data-testid="split-tab-${view}"]`);
+    }
 }
 
 async function gotoSplitContacts(page: Page): Promise<void> {
-    await gotoSplit(page);
-    await page.click('[data-testid="split-tab-contacts"]');
+    await gotoSplit(page, "contacts");
     await expect(
-        page.locator('[data-testid="split-partner-request-email"]'),
+        page.locator('[data-testid="split-contacts-section"]'),
     ).toBeVisible({ timeout: 8000 });
+}
+
+async function openSpeedAction(page: Page, testId: string): Promise<void> {
+    await page.click('[data-testid="speed-dial-main"]');
+    await expect(page.locator(`[data-testid="${testId}"]`)).toBeVisible();
+    await page.click(`[data-testid="${testId}"]`);
+}
+
+async function revealSwipeActions(page: Page, row: Locator): Promise<void> {
+    const box = await row.boundingBox();
+    if (!box) throw new Error("swipe row has no bounding box");
+    const y = box.y + box.height / 2;
+    // Start inside the row body, away from the fixed mobile FAB that occupies
+    // the lower-right corner and can legitimately overlap a row near the end
+    // of the feed.
+    await page.mouse.move(box.x + box.width * 0.65, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 24, y, { steps: 8 });
+    await page.mouse.up();
 }
 
 test.describe.serial("Split feature", () => {
@@ -200,7 +224,25 @@ test.describe.serial("Split feature", () => {
         await loginAsTestUser(page, EMAIL_A, PASS_A);
         tokenA = await getToken(page);
 
+        await gotoSplit(page, "overview");
+        await expect(
+            page.locator('[data-testid="split-tab-overview"]'),
+        ).toHaveAttribute("aria-selected", "true");
+        await expect(
+            page.locator('[data-testid="split-recent-activity-empty"]'),
+        ).toBeVisible();
+        await page.click('[data-testid="split-tab-groups"]');
+        await expect(
+            page.locator('[data-testid="split-groups-section"]'),
+        ).toBeVisible();
+        await page.click('[data-testid="split-tab-contacts"]');
+        await expect(
+            page.locator('[data-testid="split-contacts-section"]'),
+        ).toBeVisible();
+
         await gotoSplitContacts(page);
+        await openSpeedAction(page, "split-speed-new-contact");
+        await page.click('[data-testid="split-contact-mode-fininzen"]');
         await page.fill('[data-testid="split-partner-request-email"]', EMAIL_B);
         await waitForApi(page, "POST", "/split/partner-links/", () =>
             page.click('[data-testid="split-partner-request-send"]'),
@@ -256,13 +298,13 @@ test.describe.serial("Split feature", () => {
         contactBId = await idFromTestId(contactBRow);
 
         // Also seed a local (account-less) contact for the group in test b).
+        await openSpeedAction(page, "split-speed-new-contact");
         await page.fill(
             '[data-testid="split-contact-name-input"]',
             localContactName,
         );
-        await page.click('[data-testid="split-contact-new-submit"]');
         await waitForApi(page, "POST", "/split/contacts/", () =>
-            page.click('[data-testid="split-contact-new-confirm"]'),
+            page.click('[data-testid="split-contact-new-submit"]'),
         );
         const localRow = page
             .locator('[data-testid^="split-contact-row-"]')
@@ -278,7 +320,7 @@ test.describe.serial("Split feature", () => {
         await loginAsTestUser(page, EMAIL_A, PASS_A);
 
         await gotoSplit(page);
-        await page.click('[data-testid="split-group-new-btn"]');
+        await openSpeedAction(page, "split-speed-new-group");
         await page.fill('[data-testid="split-group-name-input"]', groupName);
         await waitForApi(page, "POST", "/split/groups/", () =>
             page.click('[data-testid="split-group-create-submit"]'),
@@ -295,6 +337,7 @@ test.describe.serial("Split feature", () => {
         ).toBeVisible({ timeout: 8000 });
 
         // Add B (the linked contact) then the local contact to the roster.
+        await openSpeedAction(page, "split-group-new-member");
         await expect(
             page.locator('[data-testid="split-add-member-select"]'),
         ).toBeVisible({ timeout: 8000 });
@@ -314,6 +357,7 @@ test.describe.serial("Split feature", () => {
             }),
         ).toBeVisible({ timeout: 8000 });
 
+        await openSpeedAction(page, "split-group-new-member");
         await page.click('[data-testid="split-add-member-select"]');
         await page.click(
             `[data-testid="split-add-member-select-option-${localContactId}"]`,
@@ -347,7 +391,7 @@ test.describe.serial("Split feature", () => {
 
         // New expense, equal split (default method) across all 3 members —
         // amount chosen so 90 / 3 == 30.00 exactly, no rounding remainder.
-        await page.click('[data-testid="split-group-new-expense"]');
+        await openSpeedAction(page, "split-group-new-expense");
         const sheet = page.locator('[role="dialog"]');
         await expect(
             sheet.locator('[data-testid="split-expense-description"]'),
@@ -385,6 +429,17 @@ test.describe.serial("Split feature", () => {
         await expect(aRow).toContainText(/\+\s?60,00/, { timeout: 8000 });
         await expect(bRow).toContainText(/-\s?30,00/, { timeout: 8000 });
         await expect(localRow).toContainText(/-\s?30,00/, { timeout: 8000 });
+
+        await page.click('[data-testid="split-group-back"]');
+        await expect(
+            page.locator('[data-testid="split-tab-groups"]'),
+        ).toHaveAttribute("aria-selected", "true");
+        await page.click('[data-testid="split-tab-overview"]');
+        await expect(
+            page
+                .locator('[data-testid^="split-activity-expense-"]')
+                .filter({ hasText: equalExpenseDesc }),
+        ).toBeVisible({ timeout: 8000 });
     });
 
     test("c) exact/percentage/shares split methods compute the live per-participant preview correctly", async ({
@@ -400,10 +455,12 @@ test.describe.serial("Split feature", () => {
         await expect(groupRow).toBeVisible({ timeout: 8000 });
         await groupRow.click();
         await expect(
-            page.locator('[data-testid="split-group-new-expense"]'),
-        ).toBeVisible({ timeout: 8000 });
+            page.locator('[data-testid="speed-dial-main"]'),
+        ).toBeVisible({
+            timeout: 8000,
+        });
 
-        await page.click('[data-testid="split-group-new-expense"]');
+        await openSpeedAction(page, "split-group-new-expense");
         const sheet = page.locator('[role="dialog"]');
         await expect(
             sheet.locator('[data-testid="split-expense-amount"]'),
@@ -486,6 +543,33 @@ test.describe.serial("Split feature", () => {
         // created (it would double up the balances test (b) just asserted).
         await sheet.getByRole("button", { name: /Cancel|Annulla/ }).click();
         await expect(sheet).toHaveCount(0);
+    });
+
+    test("c2) group detail keeps recurring expenses accessible and exposes the contextual speed dial", async ({
+        page,
+    }) => {
+        await loginAsTestUser(page, EMAIL_A, PASS_A);
+        await gotoSplit(page);
+        const groupRow = page
+            .locator('[data-testid^="split-group-row-"]')
+            .filter({ hasText: groupName });
+        await expect(groupRow).toBeVisible({ timeout: 8000 });
+        await groupRow.click();
+
+        await expect(
+            page.locator('[data-testid="split-recurring-section"]'),
+        ).toBeVisible({ timeout: 8000 });
+        await openSpeedAction(page, "split-group-new-recurring");
+        const recurringSheet = page.locator('[role="dialog"]');
+        await expect(
+            recurringSheet.locator(
+                '[data-testid="split-recurring-description"]',
+            ),
+        ).toBeVisible({ timeout: 8000 });
+        await recurringSheet
+            .getByRole("button", { name: /Cancel|Annulla/ })
+            .click();
+        await expect(recurringSheet).toHaveCount(0);
     });
 
     test("d) Simplify debts on the 3-person group nets cross-debts into at most n-1 transactions", async ({
@@ -747,7 +831,7 @@ test.describe.serial("Split feature", () => {
         // equal split — A's net personal quota is exactly half.
         await gotoSplit(page);
         linkedExpenseDesc = `E2E split linked-account ${RUN_ID}`;
-        await page.click('[data-testid="split-quick-expense-cta"]');
+        await openSpeedAction(page, "split-quick-expense-cta");
         const sheet = page.locator('[role="dialog"]');
         await expect(
             sheet.locator('[data-testid="split-expense-description"]'),
@@ -849,6 +933,7 @@ test.describe.serial("Split feature", () => {
         await expect(settlementRow).toContainText(/35,00/);
         const settlementId = await idFromTestId(settlementRow);
 
+        await revealSwipeActions(page, settlementRow);
         await page.click(
             `[data-testid="split-settlement-delete-${settlementId}"]`,
         );
@@ -870,7 +955,7 @@ test.describe.serial("Split feature", () => {
         test.setTimeout(30000);
         await loginAsTestUser(page, EMAIL_A, PASS_A);
 
-        await gotoSplit(page);
+        await gotoSplit(page, "overview");
         const expenseRow = page
             .locator('[data-testid^="split-standalone-expense-row-"]')
             .filter({ hasText: linkedExpenseDesc });
@@ -878,7 +963,7 @@ test.describe.serial("Split feature", () => {
         const expenseId = await idFromTestId(expenseRow);
 
         // Edit: change the description, confirm it's reflected in the list.
-        await expenseRow.locator("button", { hasText: "Edit" }).click();
+        await expenseRow.click();
         const sheet = page.locator('[role="dialog"]');
         await expect(
             sheet.locator('[data-testid="split-expense-description"]'),
@@ -898,6 +983,7 @@ test.describe.serial("Split feature", () => {
 
         // Delete: row disappears, empty state shows (only standalone expense
         // A has in this run).
+        await revealSwipeActions(page, editedRow);
         await page.click(
             `[data-testid="split-standalone-expense-delete-${expenseId}"]`,
         );
@@ -910,5 +996,46 @@ test.describe.serial("Split feature", () => {
         await expect(
             page.locator('[data-testid="split-standalone-expenses-empty"]'),
         ).toBeVisible({ timeout: 8000 });
+    });
+
+    test("i) Split has no horizontal overflow at the mobile, navigation and wide desktop breakpoints in light and dark themes", async ({
+        page,
+    }) => {
+        test.setTimeout(COMPLEX_SPLIT_TEST_TIMEOUT);
+        await loginAsTestUser(page, EMAIL_A, PASS_A);
+
+        for (const theme of ["light", "dark"] as const) {
+            await page.evaluate((value) => {
+                localStorage.setItem("theme_preference", value);
+            }, theme);
+            for (const width of [390, 760, 761, 1200]) {
+                await page.setViewportSize({ width, height: 844 });
+                await page.goto("/split");
+                await expect(
+                    page.locator('[data-testid="split-tab-overview"]'),
+                ).toBeVisible({ timeout: 10000 });
+                await expect(page.locator("html")).toHaveAttribute(
+                    "data-theme",
+                    theme,
+                );
+                const dimensions = await page.evaluate(() => ({
+                    clientWidth: document.documentElement.clientWidth,
+                    scrollWidth: document.documentElement.scrollWidth,
+                }));
+                expect(dimensions.scrollWidth).toBe(dimensions.clientWidth);
+
+                if (width <= 760) {
+                    await expect(
+                        page.locator('[data-testid="speed-dial-main"]'),
+                    ).toBeVisible();
+                } else {
+                    await expect(
+                        page.locator(
+                            '[data-testid="split-quick-expense-desktop"]',
+                        ),
+                    ).toBeVisible();
+                }
+            }
+        }
     });
 });
