@@ -68,7 +68,7 @@ variables:
     - when: never
 
 .python:
-  image: python:3.12-slim
+  image: python:3.14-slim
   cache:
     key: pip-$CI_COMMIT_REF_SLUG
     paths:
@@ -101,7 +101,7 @@ variables:
 github-ci-gate:
   extends: .ci-rules
   stage: gate
-  image: python:3.12-slim
+  image: python:3.14-slim
   variables:
     GITHUB_REPOSITORY: NacciVittorio/fininzen
   script:
@@ -167,7 +167,7 @@ backend-postgres:
 api-contract:
   extends: .ci-rules
   stage: test
-  image: nikolaik/python-nodejs:python3.12-nodejs22
+  image: nikolaik/python-nodejs:python3.14-nodejs22
   cache:
     - key: pip-$CI_COMMIT_REF_SLUG
       paths:
@@ -189,7 +189,7 @@ api-contract:
 e2e-test:
   extends: .ci-rules
   stage: test
-  image: nikolaik/python-nodejs:python3.12-nodejs22
+  image: nikolaik/python-nodejs:python3.14-nodejs22
   cache:
     - key: pip-$CI_COMMIT_REF_SLUG
       paths:
@@ -259,7 +259,7 @@ release:
 # the MRs still open here. Keep the two in sync if the env vars below change.
 renovate:
   stage: lint
-  image: renovate/renovate:latest@sha256:bb8dbd817302a65fd0daea5601a27e4e0124172eb2fea25cf724d3a79b09e044
+  image: renovate/renovate:latest@sha256:27f008cc48b952dff1fdceed42ef91f243f31e64596dc7f5a8754467961243ad
   interruptible: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $RENOVATE_TOKEN
