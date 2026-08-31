@@ -35,7 +35,7 @@ update: install
 # ── Database ─────────────────────────────────────────────────────────────────
 
 makemigrations:
-    {{venv_python}} manage.py makemigrations fininzen expenses portfolio
+    {{venv_python}} manage.py makemigrations fininzen expenses portfolio splitting
 
 migrate:
     {{venv_python}} manage.py migrate
@@ -168,7 +168,7 @@ test-e2e *ARGS:
 test: test-backend test-e2e
 
 lint:
-    ruff check .
+    {{venv_python}} -m ruff check .
     npm run lint --prefix {{web_dir}}
 
 # Regenerate the committed OpenAPI schema from the DRF views. The web typed
@@ -183,7 +183,7 @@ stamp-release-notes:
     {{venv_python}} scripts/stamp_release_notes.py
 
 format:
-    ruff format .
+    {{venv_python}} -m ruff format .
     npm run format --prefix {{web_dir}}
 
 # HIGH-33: install the git pre-commit hooks (ruff + prettier) from
