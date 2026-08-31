@@ -23,6 +23,26 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: UNRELEASED,
+        date: "",
+        highlights: {
+            it: [
+                "Fininzen raggiunge la prima versione stabile: gestione finanziaria personale, Cash Flow, conti, investimenti e pianificazione FIRE sono ora riuniti in una release 1.0 verificata end-to-end.",
+                "Arriva Split per gestire spese condivise con contatti e gruppi, quote personalizzate, saldi semplificati, rimborsi e spese ricorrenti.",
+                "Le spese e i rimborsi di Split possono aggiornare in modo coerente Cash Flow e conti collegati, senza duplicare entrate o uscite nei totali.",
+                "Le Impostazioni sono state riorganizzate in Account, Pianificazione, Preferenze, Dati e About, con percorsi diretti più chiari.",
+                "Nuovi token API e inserimento rapido delle spese, consenso a privacy e termini, ed esportazione completa dei propri dati rafforzano integrazioni e controllo dell'account.",
+            ],
+            en: [
+                "Fininzen reaches its first stable release: personal finance, Cash Flow, accounts, investments, and FIRE planning now come together in an end-to-end verified 1.0 release.",
+                "Meet Split for shared expenses with contacts and groups, custom shares, simplified balances, settlements, and recurring expenses.",
+                "Split expenses and settlements can update Cash Flow and linked accounts consistently without duplicating income or expenses in totals.",
+                "Settings have been reorganized into Account, Planning, Preferences, Data, and About, with clearer direct routes.",
+                "New API tokens and quick expense entry, privacy and terms consent, and a complete data export strengthen integrations and account control.",
+            ],
+        },
+    },
+    {
         version: "0.13.3",
         date: "2026-08-17",
         highlights: {
