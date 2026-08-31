@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { SegmentedControl, ToggleSwitch } from "../../components/ui";
+import {
+    GroupedList,
+    SegmentedControl,
+    ToggleSwitch,
+} from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
 import type { FeatureKey } from "../../context/appContextHelpers";
 import type { ThemePreference } from "../../context/useThemeLang";
@@ -46,6 +50,11 @@ export function GeneralSettingsSection() {
                 description: T("feature_cashflow_desc"),
             },
             {
+                key: "split",
+                label: T("tab_split"),
+                description: T("feature_split_desc"),
+            },
+            {
                 key: "accounts",
                 label: T("tab_accounts"),
                 description: T("feature_accounts_desc"),
@@ -69,57 +78,37 @@ export function GeneralSettingsSection() {
 
     return (
         <div>
-            <div className="grouped-list__title">{T("features_title")}</div>
-            <div className="grouped-list" style={{ marginBottom: 8 }}>
-                {featureItems.map((feature) => (
-                    <div key={feature.key} className="grouped-list__item">
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                                style={{
-                                    fontSize: 14,
-                                    fontWeight: 500,
-                                    color: "var(--fg)",
-                                }}
-                            >
-                                {feature.label}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: 12,
-                                    color: "var(--fg-soft)",
-                                    marginTop: 2,
-                                    lineHeight: 1.35,
-                                }}
-                            >
-                                {feature.description}
-                            </div>
-                        </div>
-                        <ToggleSwitch
-                            id={`feature-${feature.key}`}
-                            checked={!!enabledFeatures[feature.key]}
-                            onChange={(checked) =>
-                                updateEnabledFeature(feature.key, checked)
-                            }
-                        />
-                    </div>
-                ))}
-            </div>
-            <div
-                style={{
-                    fontSize: 12,
-                    color: "var(--fg-soft)",
-                    lineHeight: 1.45,
-                    padding: "0 4px",
-                    marginBottom: 24,
-                }}
+            <GroupedList
+                title={T("features_title")}
+                footer={T("features_desc")}
             >
-                {T("features_desc")}
-            </div>
+                {featureItems.map((feature) => (
+                    <GroupedList.Item
+                        key={feature.key}
+                        label={feature.label}
+                        subtitle={feature.description}
+                        action={
+                            <ToggleSwitch
+                                id={`feature-${feature.key}`}
+                                checked={!!enabledFeatures[feature.key]}
+                                onChange={(checked) =>
+                                    updateEnabledFeature(feature.key, checked)
+                                }
+                            />
+                        }
+                    />
+                ))}
+            </GroupedList>
 
-            <div className="grouped-list__title">
-                {T("general_preferences")}
-            </div>
-            <div className="grouped-list" style={{ marginBottom: 8 }}>
+            <GroupedList
+                title={T("general_preferences")}
+                footer={
+                    T(
+                        "accounting_month_start_desc",
+                        "Monthly cash flow totals use this day as the start of the month.",
+                    ) + ` ${range.from} - ${range.to}`
+                }
+            >
                 <SegmentedPreferenceRow label={T("theme_label", "Theme")}>
                     <SegmentedControl
                         options={[
@@ -156,81 +145,64 @@ export function GeneralSettingsSection() {
                         }
                     />
                 </SegmentedPreferenceRow>
-                <div className="grouped-list__item">
-                    <span
-                        style={{
-                            fontSize: 14,
-                            fontWeight: 500,
-                            color: "var(--fg)",
-                        }}
-                    >
-                        {T("currency_title")}
-                    </span>
-                    <span style={{ fontSize: 13, color: "var(--fg-soft)" }}>
-                        {T("currency_eur_label")}
-                    </span>
-                </div>
-                <div className="grouped-list__item">
-                    <span
-                        style={{
-                            fontSize: 14,
-                            fontWeight: 500,
-                            color: "var(--fg)",
-                            flex: 1,
-                            minWidth: 0,
-                        }}
-                    >
-                        {T(
-                            "accounting_month_start_label",
-                            "Accounting month start",
-                        )}
-                    </span>
-                    {accountingSaved && (
-                        <span style={{ fontSize: 12, color: "var(--success)" }}>
-                            {T("decimal_separator_saved")}
-                        </span>
+                <GroupedList.Item
+                    label={T("currency_title")}
+                    value={T("currency_eur_label")}
+                />
+                <GroupedList.Item
+                    label={T(
+                        "accounting_month_start_label",
+                        "Accounting month start",
                     )}
-                    <select
-                        className="inp"
-                        value={accountingMonthStartDay}
-                        onChange={async (event) => {
-                            const ok = await updateAccountingMonthStartDay(
-                                Number(event.target.value),
-                            );
-                            if (ok) {
-                                setAccountingSaved(true);
-                                setTimeout(
-                                    () => setAccountingSaved(false),
-                                    2000,
-                                );
-                            }
-                        }}
-                        style={{ maxWidth: 90 }}
-                    >
-                        {Array.from(
-                            { length: 31 },
-                            (_, index) => index + 1,
-                        ).map((day) => (
-                            <option key={day} value={day}>
-                                {day}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-            <div
-                style={{
-                    fontSize: 12,
-                    color: "var(--fg-soft)",
-                    lineHeight: 1.45,
-                    padding: "0 4px",
-                }}
-            >
-                {T(
-                    "accounting_month_start_desc",
-                    "Monthly cash flow totals use this day as the start of the month.",
-                ) + ` ${range.from} - ${range.to}`}
-            </div>
+                    action={
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                            }}
+                        >
+                            {accountingSaved && (
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        color: "var(--success)",
+                                    }}
+                                >
+                                    {T("decimal_separator_saved")}
+                                </span>
+                            )}
+                            <select
+                                className="inp"
+                                value={accountingMonthStartDay}
+                                onChange={async (event) => {
+                                    const ok =
+                                        await updateAccountingMonthStartDay(
+                                            Number(event.target.value),
+                                        );
+                                    if (ok) {
+                                        setAccountingSaved(true);
+                                        setTimeout(
+                                            () => setAccountingSaved(false),
+                                            2000,
+                                        );
+                                    }
+                                }}
+                                style={{ maxWidth: 90 }}
+                            >
+                                {Array.from(
+                                    { length: 31 },
+                                    (_, index) => index + 1,
+                                ).map((day) => (
+                                    <option key={day} value={day}>
+                                        {day}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    }
+                />
+            </GroupedList>
         </div>
     );
 }
@@ -243,14 +215,10 @@ function SegmentedPreferenceRow({
     children?: ReactNode;
 }) {
     return (
-        <div
-            className="grouped-list__item"
+        <GroupedList.Item
+            label={label}
+            action={children}
             style={{ flexWrap: "wrap", rowGap: 8 }}
-        >
-            <span style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                {label}
-            </span>
-            {children}
-        </div>
+        />
     );
 }

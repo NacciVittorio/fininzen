@@ -12,8 +12,7 @@ module, add it to ALLOWED below — and think hard about whether you should.
 NOTE: this pins the *import surface*, not request-path isolation. Today
 ``portfolio/prices.py`` is still imported by some views (lazy fetch on cache
 miss), so yfinance is loaded in the web process. Moving all live fetching behind
-the out-of-band refresh job is a separate, larger refactor (see
-wiki/HEAVY_DEPS.md).
+the out-of-band refresh job is a separate, larger refactor.
 """
 
 import re

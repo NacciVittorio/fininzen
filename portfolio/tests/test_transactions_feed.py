@@ -96,6 +96,46 @@ def test_feed_includes_asset_info(client, asset_a, make_tx):
     assert item["total_value"] == "100.00"
 
 
+def test_feed_keeps_currency_for_each_bank_account_transaction(
+    client, bank_type, make_tx, test_user
+):
+    usd_account = Asset.objects.create(
+        name="USD account",
+        investment_type=bank_type,
+        tracking_type=Asset.MANUAL,
+        currency="USD",
+        owner=test_user,
+    )
+    chf_account = Asset.objects.create(
+        name="CHF account",
+        investment_type=bank_type,
+        tracking_type=Asset.MANUAL,
+        currency="CHF",
+        owner=test_user,
+    )
+    make_tx(
+        usd_account,
+        date="2026-01-01",
+        transaction_type=AssetTransaction.CASH_IN,
+        price_per_share=Decimal("100"),
+    )
+    make_tx(
+        chf_account,
+        date="2026-01-02",
+        transaction_type=AssetTransaction.CASH_IN,
+        price_per_share=Decimal("200"),
+    )
+
+    res = client.get("/api/portfolio/transactions/?include_bank=true")
+
+    assert res.status_code == 200
+    currencies = {
+        item["asset"]["name"]: item["asset"]["currency"]
+        for item in res.json()["results"]
+    }
+    assert currencies == {"USD account": "USD", "CHF account": "CHF"}
+
+
 def test_feed_includes_sell_tax_cost_basis(client, asset_a, make_tx):
     make_tx(
         asset_a,

@@ -11,14 +11,41 @@ type GroupedListProps = {
     title?: ReactNode;
     footer?: ReactNode;
     children?: ReactNode;
+    tone?: "danger";
     style?: CSSProperties;
 };
 
-function GroupedList({ title, footer, children, style }: GroupedListProps) {
+function GroupedList({
+    title,
+    footer,
+    children,
+    tone,
+    style,
+}: GroupedListProps) {
     return (
         <section style={{ marginBottom: 20, ...style }}>
-            {title && <div className="grouped-list__title">{title}</div>}
-            <div className="grouped-list">{children}</div>
+            {title && (
+                <div
+                    className="grouped-list__title"
+                    style={
+                        tone === "danger"
+                            ? { color: "var(--danger)" }
+                            : undefined
+                    }
+                >
+                    {title}
+                </div>
+            )}
+            <div
+                className="grouped-list"
+                style={
+                    tone === "danger"
+                        ? { boxShadow: "inset 0 0 0 1px var(--danger-ring)" }
+                        : undefined
+                }
+            >
+                {children}
+            </div>
             {footer && (
                 <div
                     style={{

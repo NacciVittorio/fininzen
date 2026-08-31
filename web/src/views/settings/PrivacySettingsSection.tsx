@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleSwitch } from "../../components/ui";
+import { GroupedList, ToggleSwitch } from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
 import type { FeatureKey } from "../../context/appContextHelpers";
 
@@ -78,25 +78,12 @@ export function PrivacySettingsSection() {
                 {T("privacy_desc")}
             </div>
             {privacyGroups.map((group) => (
-                <div key={group.scope} style={{ marginBottom: 20 }}>
-                    <div className="grouped-list__title">{group.title}</div>
-                    <div className="grouped-list">
-                        {group.items.map(([key, label]) => (
-                            <div
-                                key={`${group.scope}.${key}`}
-                                className="grouped-list__item"
-                            >
-                                <span
-                                    style={{
-                                        fontSize: 14,
-                                        fontWeight: 500,
-                                        color: "var(--fg)",
-                                        flex: 1,
-                                        minWidth: 0,
-                                    }}
-                                >
-                                    {label}
-                                </span>
+                <GroupedList key={group.scope} title={group.title}>
+                    {group.items.map(([key, label]) => (
+                        <GroupedList.Item
+                            key={`${group.scope}.${key}`}
+                            label={label}
+                            action={
                                 <ToggleSwitch
                                     id={`privacy-${group.scope}-${key}`}
                                     checked={isPrivacyPreferenceEnabled(
@@ -111,10 +98,10 @@ export function PrivacySettingsSection() {
                                         )
                                     }
                                 />
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                            }
+                        />
+                    ))}
+                </GroupedList>
             ))}
         </div>
     );

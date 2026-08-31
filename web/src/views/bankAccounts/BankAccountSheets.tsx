@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import CurrencySelect from "../../components/CurrencySelect";
 import FieldLabel from "../../components/FieldLabel";
 import { BottomSheet, SheetTitle } from "../../components/ui";
 import type { Asset, InvestmentType } from "../../api/types";
@@ -383,9 +384,24 @@ export default function BankAccountSheets({
                             </select>
                         </div>
 
+                        <div>
+                            <FieldLabel text={T("label_currency")} />
+                            <CurrencySelect
+                                value={assetForm.currency}
+                                onChange={(currency) =>
+                                    setAssetForm((previous) => ({
+                                        ...previous,
+                                        currency,
+                                    }))
+                                }
+                            />
+                        </div>
+
                         {!editingAssetId && (
                             <div>
-                                <FieldLabel text={T("label_initial_balance")} />
+                                <FieldLabel
+                                    text={`${T("label_initial_balance")} (${assetForm.currency})`}
+                                />
                                 <input
                                     className="inp"
                                     type="number"

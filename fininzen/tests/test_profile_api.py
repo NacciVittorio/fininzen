@@ -23,6 +23,7 @@ def test_profile_get_creates_default_profile(client, test_user):
         "accounts": True,
         "investments": True,
         "fire": True,
+        "split": True,
     }
     assert data["accounting_month_start_day"] == 1
     assert UserProfile.objects.get(user=test_user).decimal_separator == ","
@@ -94,7 +95,10 @@ def test_profile_patch_updates_enabled_features(client, test_user):
     )
 
     assert res.status_code == 200
-    assert res.json()["enabled_features"] == features
+    # The response is normalized on read (normalize_enabled_features), so any
+    # key omitted from the PATCH payload — "split" here — comes back
+    # defaulted to True even though it was never sent or stored.
+    assert res.json()["enabled_features"] == {**features, "split": True}
     assert UserProfile.objects.get(user=test_user).enabled_features == features
 
 
@@ -375,6 +379,75 @@ def test_profile_patch_allows_clearing_last_seen_release(client, test_user):
     assert UserProfile.objects.get(user=test_user).last_seen_release == ""
 
 
+def test_profile_get_returns_terms_accepted_at_null_for_legacy_profile(
+    client, test_user
+):
+    res = client.get("/api/auth/profile/")
+
+    assert res.status_code == 200
+    assert res.json()["terms_accepted_at"] is None
+    assert res.json()["terms_rejected_at"] is None
+
+
+def test_profile_patch_accepts_terms_stamps_timestamp(client, test_user):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": True},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert res.json()["terms_accepted_at"] is not None
+    profile = UserProfile.objects.get(user=test_user)
+    assert profile.terms_accepted_at is not None
+    assert profile.terms_rejected_at is None
+
+
+def test_profile_patch_rejects_terms_stamps_rejected_at_without_accepting(
+    client, test_user
+):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": False},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    profile = UserProfile.objects.get(user=test_user)
+    assert profile.terms_rejected_at is not None
+    assert profile.terms_accepted_at is None
+
+
+def test_profile_patch_accept_after_reject_clears_rejected_at(client, test_user):
+    client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": False},
+        content_type="application/json",
+    )
+
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted": True},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    profile = UserProfile.objects.get(user=test_user)
+    assert profile.terms_accepted_at is not None
+    assert profile.terms_rejected_at is None
+
+
+def test_profile_patch_terms_accepted_at_is_read_only(client, test_user):
+    res = client.patch(
+        "/api/auth/profile/",
+        data={"terms_accepted_at": "2020-01-01T00:00:00Z"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert UserProfile.objects.get(user=test_user).terms_accepted_at is None
+
+
 @pytest.mark.parametrize("value", ["pippo", "1.2", "0.6.0-beta", "0.6.0 OR 1=1"])
 def test_profile_patch_rejects_invalid_last_seen_release(client, value):
     res = client.patch(
@@ -410,15 +483,18 @@ def test_register_marks_current_release_as_seen(db):
             "email": "newcomer@test.com",
             "password": "SuperSecret123!",
             "password2": "SuperSecret123!",
+            "terms_accepted": True,
         },
         format="json",
     )
 
     assert res.status_code == 201
     user = User.objects.get(username="newcomer@test.com")
+    profile = UserProfile.objects.get(user=user)
     # A brand-new account starts caught up, so its first login doesn't announce
     # changes that predate the account.
-    assert UserProfile.objects.get(user=user).last_seen_release == settings.APP_VERSION
+    assert profile.last_seen_release == settings.APP_VERSION
+    assert profile.terms_accepted_at is not None
 
 
 def test_profile_patch_rejects_invalid_privacy_preferences(client, test_user):

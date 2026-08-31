@@ -19,7 +19,13 @@ export function CsvUploadCard({
     handleCsvSepChange: (sep: string) => void;
 }) {
     return (
-        <div className="card">
+        <div
+            style={{
+                borderTop: "1px solid var(--rule)",
+                marginTop: 14,
+                paddingTop: 14,
+            }}
+        >
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
                 {T("upload_file")}
             </div>

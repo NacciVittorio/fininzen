@@ -1,8 +1,14 @@
 "use client";
 
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 
-const ICON_PATHS: Record<string, ReactNode> = {
+const ICON_PATHS = {
+    user: (
+        <>
+            <circle cx="12" cy="8" r="3.5" />
+            <path d="M5 21a7 7 0 0 1 14 0" />
+        </>
+    ),
     dashboard: (
         <>
             <path d="M4 19V9" />
@@ -41,10 +47,56 @@ const ICON_PATHS: Record<string, ReactNode> = {
             <path d="M12 22c4 0 7-2.7 7-6.6 0-2.3-1.2-4.2-3.2-5.8.1 2.2-1 3.4-2.4 4.1.3-3.5-1.5-6.2-4.4-8.7.3 3.5-2.1 5.7-3.2 7.6A5.4 5.4 0 0 0 5 15.4C5 19.3 8 22 12 22z" />
         </>
     ),
+    split: (
+        <>
+            <circle cx="7" cy="6" r="2.5" />
+            <circle cx="17" cy="6" r="2.5" />
+            <path d="M3.5 19a3.5 3.5 0 0 1 7 0" />
+            <path d="M13.5 19a3.5 3.5 0 0 1 7 0" />
+            <path d="M12 4v16" strokeDasharray="2.5 2.5" />
+        </>
+    ),
     settings: (
         <>
             <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
             <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1z" />
+        </>
+    ),
+    planning: (
+        <>
+            <rect x="4" y="4" width="6" height="6" rx="1" />
+            <rect x="14" y="4" width="6" height="6" rx="1" />
+            <rect x="4" y="14" width="6" height="6" rx="1" />
+            <rect x="14" y="14" width="6" height="6" rx="1" />
+        </>
+    ),
+    data: (
+        <>
+            <ellipse cx="12" cy="5" rx="7" ry="3" />
+            <path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5" />
+            <path d="M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7" />
+        </>
+    ),
+    info: (
+        <>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5" />
+            <path d="M12 8h.01" />
+        </>
+    ),
+    target: (
+        <>
+            <circle cx="12" cy="12" r="8" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+        </>
+    ),
+    allocation: (
+        <>
+            <path d="M4 19V9" />
+            <path d="M10 19V5" />
+            <path d="M16 19v-7" />
+            <path d="M22 19H2" />
         </>
     ),
     category: (
@@ -164,6 +216,8 @@ const ICON_PATHS: Record<string, ReactNode> = {
     ),
 };
 
+export type IconName = keyof typeof ICON_PATHS;
+
 type IconProps = ComponentPropsWithoutRef<"svg"> & {
     name: string;
     size?: number;
@@ -176,7 +230,7 @@ export default function Icon({
     strokeWidth = 2,
     ...props
 }: IconProps) {
-    const path = ICON_PATHS[name];
+    const path = ICON_PATHS[name as IconName];
     if (!path) return null;
     return (
         <svg

@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApp } from "../context/useApp";
 import { API } from "../utils/api";
 import { useFormatters } from "../utils/useFormatters";
 import { PullToRefresh } from "../components/ui";
 import type { CfItem } from "../components/cashflow/CfTransactionRow";
+import CashflowViewToggle from "../components/cashflow/CashflowViewToggle";
 import type { CashflowFeedItem, EntityId } from "../context/feedTypes";
 import { getCurrentMonthDateRange } from "../context/feedDefaults";
 import CashflowFeed from "./expenses/CashflowFeed";
@@ -20,6 +22,7 @@ import {
 } from "./transactionFeedModel";
 
 export default function ExpensesView() {
+    const router = useRouter();
     const { formatEur } = useFormatters();
     const {
         T,
@@ -64,6 +67,7 @@ export default function ExpensesView() {
         loadAllCf,
         deleteCfExpense,
         deleteCfTx,
+        deleteCfSplitSettlement,
         openCfEditTransfer,
         closeCfEditTransfer,
         submitCfEditTransfer,
@@ -311,12 +315,16 @@ export default function ExpensesView() {
 
     // Day dividers carry the day's signed net. Transfers and adjustments move
     // money between accounts rather than in or out, so they count as zero.
+    // "split" is a shared expense's net personal quota — real outcome money,
+    // same convention as CfTransactionRow's isOutcome. "split_reimbursement"
+    // stays neutral like transfer/adjustment: it's a settle-up, not a spend.
     const cfDecoratedItems = useMemo(
         () =>
             decorateDatedItems(cfItems, MONTHS, T, undefined, (row) => {
                 const amount = Number.parseFloat(String(row.amount ?? 0)) || 0;
                 if (row.type === "income") return amount;
-                if (row.type === "outcome") return -amount;
+                if (row.type === "outcome" || row.type === "split")
+                    return -amount;
                 return 0;
             }),
         [cfItems, MONTHS, T],
@@ -351,7 +359,10 @@ export default function ExpensesView() {
     }, [loadCfFeed, refreshAfter]);
 
     // Edit a cashflow item — opens the right editor per source_type. Shared by the
-    // detail-sheet Edit button and the row right-swipe Edit action.
+    // detail-sheet Edit button and the row right-swipe Edit action. For split
+    // rows this is really "Apri in Split" (see CfDetailSheet/CfTransactionRow,
+    // piano Batch 1): a shared expense's edit form and a settlement's own
+    // group page both live in the Split tab, not here.
     const handleEditCfItem = (it: CfItem) => {
         setDetailItem(null);
         const item = it as CashflowFeedItem;
@@ -370,6 +381,13 @@ export default function ExpensesView() {
         } else if (item.source_type === "adjustment" && item.account) {
             const asset = assets.find((a) => a.id === item.account?.id);
             if (asset) openAdjustBalance(asset);
+        } else if (item.source_type === "split_expense") {
+            router.push(`/split?openExpense=${item.source_id}`);
+        } else if (
+            item.source_type === "split_settlement" &&
+            item.group_id != null
+        ) {
+            router.push(`/split?openSettlement=${item.source_id}`);
         }
     };
 
@@ -393,6 +411,12 @@ export default function ExpensesView() {
                     setCfFilters={setCfFilters}
                     activeFilterCount={activeFilterCount}
                     setFiltersSheetOpen={setFiltersSheetOpen}
+                    viewToggle={
+                        <CashflowViewToggle
+                            cfFilters={cfFilters}
+                            setCfFilters={setCfFilters}
+                        />
+                    }
                     cfSelectionMode={cfSelectionMode}
                     enterCfSelectionMode={enterCfSelectionMode}
                     unverifiedCount={unverifiedCount}
@@ -444,6 +468,7 @@ export default function ExpensesView() {
                     deleteCfExpense as (sourceId?: EntityId) => Promise<unknown>
                 }
                 deleteCfTx={deleteCfTx}
+                deleteCfSplitSettlement={deleteCfSplitSettlement}
                 showExpModal={showExpModal}
                 closeExpenseModal={closeExpenseModal}
                 expModalTitle={expModalTitle}

@@ -16,6 +16,8 @@ export type ProfileResponse = {
     status?: "pending" | "approved" | "rejected" | null;
     role?: "user" | "admin" | null;
     mfa_enabled?: boolean;
+    terms_accepted_at?: string | null;
+    terms_rejected_at?: string | null;
     [key: string]: unknown;
 };
 

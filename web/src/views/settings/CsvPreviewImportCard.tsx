@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { Card } from "../../components/ui";
 import { getPreviewCsvFields, hasRequiredCsvMapping } from "./csvImportConfig";
 import type { CsvImportType, CsvMapping } from "./csvImportConfig";
 import type { CsvImportResponse } from "../../context/useImportAndTicker";
@@ -35,7 +36,7 @@ export function CsvPreviewImportCard({
     const previewCols = getPreviewCsvFields(csvImportType, csvMap);
 
     return (
-        <div className="card">
+        <Card variant="settings">
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
                 {T("preview_title")}
             </div>
@@ -90,7 +91,7 @@ export function CsvPreviewImportCard({
                         setCsvImportPreview={setCsvImportPreview}
                     />
                 )}
-        </div>
+        </Card>
     );
 }
 

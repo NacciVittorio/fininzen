@@ -62,6 +62,12 @@ const nextConfig: NextConfig = {
     env: {
         NEXT_PUBLIC_APP_VERSION: APP_VERSION,
         NEXT_PUBLIC_RELEASE_DATE: RELEASE_DATE,
+        NEXT_PUBLIC_API_BASE:
+            process.env.NEXT_PUBLIC_API_BASE?.trim() || "/fininzen/api",
+        // This address is intentionally public: it is the recipient of the
+        // mailto link in Settings → About, not a credential.
+        NEXT_PUBLIC_CONTACT_EMAIL:
+            process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() ?? "",
     },
     // Django's API endpoints require trailing slashes (and the typed client uses
     // them). Without this, Next 308-redirects `/fininzen/api/auth/x/` to the

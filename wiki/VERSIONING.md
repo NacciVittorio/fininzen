@@ -1,98 +1,102 @@
-# Versioning — Fininzen
+# Workflow di sviluppo e release
 
-This document describes how Fininzen is versioned: the scheme, the single source
-of truth, how the number propagates to backend and frontend, and how a release is
-cut.
+Fininzen usa una versione SemVer unica per backend Django e frontend Next.js.
+La fonte di verità è il file `VERSION`; non copiare numeri di versione nella
+documentazione.
 
-## Scheme: Semantic Versioning
+## Issue e branch
 
-The app uses [SemVer](https://semver.org/) in the form **`Major.Minor.Patch`**
-(e.g. `1.4.2`). A **single version** covers the whole application — the Django
-backend and the Next.js web app are always released together under the same
-number.
+Il titolo di una issue segue il formato `<Prefisso>: <descrizione breve>`. I
+prefissi delle issue classificano il lavoro e sono distinti dai tipi minuscoli
+dei Conventional Commits (`fix:`, `feat:`, ecc.).
 
-| Part    | When to increment                                                       |
-| ------- | ----------------------------------------------------------------------- |
-| `Major` | **Incompatible** changes (broken API, user-facing breaking change).     |
-| `Minor` | New **backward-compatible** features.                                    |
-| `Patch` | **Bug fixes** and backward-compatible corrections.                      |
+| Tipo | Prefisso | Esempio |
+|---|---|---|
+| Bug | `Fix:` | `Fix: Login redirect loop` |
+| Nuova funzionalità | `Feature:` | `Feature: Dark mode` |
+| Miglioramento | `Enhance:` | `Enhance: Portfolio chart` |
+| Manutenzione o refactor | `Maintenance:` | `Maintenance: Auth middleware` |
+| Domanda o discussione | `Question:` | `Question: FX rate source` |
+| Riepilogo o stato | `Summary:` | `Summary: Sprint 3` |
 
-### Beta (0.x) phase
+Usa questo corpo, omettendo le sezioni non pertinenti:
 
-The project currently ships in **beta**, starting at **`0.0.1`**. While the major
-is `0` the public API is considered unstable, so `commitizen` is configured with
-`major_version_zero = true`: during beta a breaking change bumps the **minor**
-(`0.x.0`) instead of jumping to `1.0.0`.
+```markdown
+## Descrizione
+<Cosa succede, cosa manca o cosa si vuole ottenere>
 
-| Commit while in 0.x          | Result (es. da `0.2.1`) |
-| ---------------------------- | ----------------------- |
-| `fix:`                       | `0.2.1 → 0.2.2`         |
-| `feat:`                      | `0.2.1 → 0.3.0`         |
-| `feat!:` / `BREAKING CHANGE` | `0.2.1 → 0.3.0`         |
+## Comportamento atteso
+<Come dovrebbe funzionare>
 
-When the app is ready for its first stable release, flip `major_version_zero` to
-`false` in `.cz.toml` (or run `cz bump --increment MAJOR`) to cut `1.0.0`.
+## Comportamento attuale
+<Solo per i bug>
 
-### Database note
+## Passi per riprodurre
+<Solo per i bug, come lista numerata>
 
-The database does **not** share the app's SemVer number: Django versions the
-schema through its **migration sequence** (`*/migrations/0001…`), which is its own
-monotonic mechanism. Likewise `DEMO_SEED_VERSION` and `Asset.source_version` are
-*data* versions, not app versions. When a release introduces migrations or schema
-changes, note it in the CHANGELOG under that version (e.g. _"includes migration
-`portfolio 0048`"_).
-
-## Single source of truth
-
-The **`VERSION`** file at the repo root holds the current number in plain text
-(e.g. `0.0.1`). Everything derives from it:
-
-```
-VERSION ──┬── Backend  → fininzen/settings.py reads it at runtime (APP_VERSION):
-          │              feeds SPECTACULAR VERSION (OpenAPI) and GET /api/health/.
-          ├── Web       → web/next.config.ts inlines it at build time as
-          │              NEXT_PUBLIC_APP_VERSION → shown in Settings → About.
-          └── Tooling   → commitizen (.cz.toml) keeps VERSION, web/package.json
-                          and CHANGELOG.md in sync on every bump, and a
-                          pre_bump_hook regenerates openapi.json so its
-                          info.version follows too.
+## Note
+<Contesto, screenshot o link; opzionale>
 ```
 
-Do not edit these numbers by hand: use `just release` (below).
+Assegna almeno una persona tra `NacciVittorio` e `itsNiccoloSabatini`, una label
+`Type::*` e una `Priority::*`; aggiungi stato, risoluzione e milestone quando
+pertinenti. Le label previste sono:
 
-## Where the version is visible
+- tipo: `Type::Bug`, `Type::NewFeature`, `Type::Enhancement`,
+  `Type::Maintenance`, `Type::Question`, `Type::Summary`;
+- priorità: `Priority::Higher`, `Priority::Medium`, `Priority::Lower`;
+- stato: `Blocked`, `FutureReference`;
+- risoluzione: `Resolution::Fixed/Done`, `Resolution::Won'tFix`,
+  `Resolution::Duplicate`, `Resolution::ByDesign`,
+  `Resolution::NotReproducible`, `Resolution::NotApplicable`,
+  `Resolution::External`, `Resolution::Answered`, `Resolution::ReviewNeeded`.
 
-- **Settings → About** in the web app (the real value instead of the old `dev`),
-  together with the release date and a link to the changelog.
-- **The sign-in screen** footer, next to the copyright line.
-- **`GET /api/health/`** → `{"status":"ok","database":"ok","version":"0.2.1"}`.
-- **OpenAPI contract** (`openapi.json`, field `info.version`).
-- **GitLab → Deployments → Releases** and git tags `vX.Y.Z`.
+Crea il branch dalla issue GitLab tramite **Create merge request → Create
+branch**. GitLab genera `<numero>-<titolo-slug>` e mantiene il collegamento con
+la issue. Per lavorarci in locale:
 
-The **release date** shown in the UI is not maintained by hand: `web/next.config.ts`
-parses the `## vX.Y.Z (YYYY-MM-DD)` heading commitizen writes in `CHANGELOG.md`
-and inlines it as `NEXT_PUBLIC_RELEASE_DATE` at build time.
+```bash
+git fetch origin
+git checkout <numero>-<titolo-slug>
+```
 
-## Release notes for users
+## Regole SemVer
 
-`CHANGELOG.md` is generated from Conventional Commits and speaks in commit types
-and scopes — it is for us, not for the people using the app. The user-facing notes
-are written by hand in **`web/src/content/releaseNotes.ts`**, in **both Italian and
-English**, and drive two things:
+| Modifica | Incremento |
+|---|---|
+| Correzione compatibile (`fix:`) | Patch |
+| Funzionalità compatibile (`feat:`) | Minor |
+| Modifica incompatibile (`!:` o `BREAKING CHANGE`) | Major |
 
-- the **banner** at the bottom of the app on the first visit after an update
-  (`web/src/components/ReleaseNotesBar.tsx`);
-- the **What's new page** at `/changelog` (`web/src/views/ChangelogView.tsx`).
+Finché `major_version_zero = true` in `.cz.toml`, una modifica incompatibile
+mantiene il progetto nella serie `0.x` e incrementa la minor. Per pubblicare la
+prima versione stabile occorre disabilitare esplicitamente questa opzione o
+forzare un incremento major.
 
-Each user sees the banner **once per release**: dismissing it (or following it to
-the changelog) writes the version to `UserProfile.last_seen_release`, so the
-dismissal follows the user across devices rather than living in one browser.
+Le migrazioni Django, `DEMO_SEED_VERSION` e le versioni dei dati non condividono
+il SemVer dell'applicazione.
 
-### Writing an entry
+## Propagazione della versione
 
-Before running `just release`, add **one** entry at the top of `RELEASE_NOTES` with
-the `UNRELEASED` placeholder — the real number doesn't exist yet, commitizen
-derives it from the commits:
+```text
+VERSION
+├── fininzen/settings.py → API health e schema OpenAPI
+├── web/next.config.ts → versione e data mostrate nell'interfaccia
+└── commitizen → package.json, package-lock.json, changelog e tag
+```
+
+`web/next.config.ts` ricava la data della release dall'intestazione
+corrispondente in `CHANGELOG.md`. Il numero è visibile nella pagina About,
+nella schermata di accesso, in `GET /api/health/` e in `openapi.json`.
+
+## Note rivolte agli utenti
+
+`CHANGELOG.md` è generato dai Conventional Commits ed è rivolto allo sviluppo.
+Le note mostrate agli utenti vivono in
+`web/src/content/releaseNotes.ts` e devono contenere italiano e inglese.
+
+Prima di una release che introduce novità visibili, aggiungi in cima a
+`RELEASE_NOTES` una voce con `UNRELEASED`:
 
 ```ts
 {
@@ -105,87 +109,49 @@ derives it from the commits:
 },
 ```
 
-`just release` stamps the version and the date into it (via the
-`stamp-release-notes` pre-bump hook) and folds the result into the release commit.
+Il pre-bump hook `scripts/stamp_release_notes.py` inserisce versione e data. Una
+release puramente tecnica può non avere note utente.
 
-**A release with no pending entry is fine and normal**: one that only bumped
-dependencies has nothing to tell users, so it ships with no entry and shows no
-banner. Write entries only for changes someone would actually notice.
+## Creare una release
 
-## How to cut a release
+1. Lavora su `main`, aggiornata rispetto al remote, e verifica che il working
+   tree sia completamente pulito.
+2. Esegui uno dei comandi:
 
-Releases are driven by **Conventional Commits** (already used in this repo). The
-tool is [commitizen](https://commitizen-tools.github.io/commitizen/), wrapped by
-the `just release` recipe.
-
-### Commit → increment mapping
-
-| Commit type                                       | Increment (stable / beta) |
-| ------------------------------------------------- | ------------------------- |
-| `fix: …`                                          | Patch / Patch             |
-| `feat: …`                                         | Minor / Minor             |
-| `feat!: …` / `fix!: …` / `BREAKING CHANGE:` footer | Major / Minor (0.x)     |
-| `chore:`, `docs:`, `refactor:`, `test:`, `build:`, `style:`, `ci:` | no bump on their own |
-
-### Procedure
-
-1. Make sure you are on **`main`**, up to date, with a **clean working tree**.
-2. Run:
-
-   ```sh
-   just release            # increment inferred automatically from the commits
-   # or force it:
-   just release patch      # likewise  minor  /  major
+   ```bash
+   just release
+   just release patch   # oppure minor / major
    ```
 
-3. `just release` runs `cz bump`, which:
-   - computes the next version from the commits since the last tag;
-   - rewrites `VERSION` and `web/package.json`;
-   - updates `CHANGELOG.md` with the new section;
-   - creates the release commit and the `vX.Y.Z` tag;
-   - finally runs `git push --follow-tags`.
-4. Pushing the tag reaches GitLab first, then the push mirror copies it to
-   GitHub, which triggers **`.github/workflows/release.yml`**. That workflow
-   creates the **GitHub Release** *and* the **GitLab Release**, both from the
-   notes `ci-tools/release-notes.sh` extracts from `CHANGELOG.md`.
+3. `commitizen` calcola la versione, aggiorna i file versionati e il changelog,
+   rigenera OpenAPI, timbra le eventuali note utente, crea commit e tag annotato.
+4. La recipe esegue `git push --follow-tags`.
 
-   The GitLab-side twin — the `release` job in `.gitlab-ci.yml` — is dormant
-   while the GitLab compute quota is exhausted, since a tag pipeline there dies
-   on `ci_quota_exceeded` before the job starts. See
-   [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md).
+> `just release` crea un commit dal working tree: non eseguirlo con modifiche
+> estranee o non ancora revisionate, perché potrebbero finire nella release.
 
-   If a release is missing for a tag that is already pushed, re-run the workflow
-   against that tag: `gh workflow run release.yml --ref vX.Y.Z`. It is safe to
-   repeat — an existing release is left untouched, not duplicated.
+Il tag raggiunge GitLab e viene replicato su GitHub. Il workflow
+`.github/workflows/release.yml` pubblica sia la GitHub Release sia la GitLab
+Release usando la sezione corrispondente di `CHANGELOG.md`. Per recuperare una
+release mancante su un tag esistente:
 
-> **First run (bootstrap).** `cz bump` needs an existing tag to compute the next
-> version and an incremental changelog. The very first `just release` therefore
-> detects that no tags exist and simply tags the current `VERSION` as the
-> baseline (`v0.0.1`, no bump) before pushing — this becomes the first Release.
-> From the second run on it bumps normally. You never tag by hand.
+```bash
+gh workflow run release.yml --ref vX.Y.Z
+```
 
-From then on the backend (at runtime) and the web app (on its next build/deploy)
-report the new version, and the Release is visible on both GitLab and GitHub.
+Il job GitLab equivalente resta dormiente finché la CI è eseguita tramite il
+mirror GitHub; vedi [CI_GITHUB_MIRROR.md](CI_GITHUB_MIRROR.md).
 
-### What NOT to do by hand
+## File coinvolti
 
-- Don't edit the number in `VERSION`, `web/package.json` or `CHANGELOG.md`.
-- Don't create tags manually: let `cz bump` do it.
+| File | Ruolo |
+|---|---|
+| `VERSION` | Numero canonico. |
+| `.cz.toml` | Regole commitizen e file aggiornati. |
+| `CHANGELOG.md` | Storico tecnico generato. |
+| `openapi.json` | Versione del contratto API. |
+| `web/src/content/releaseNotes.ts` | Note utente bilingui. |
+| `.github/workflows/release.yml` | Pubblicazione delle release. |
 
-## Files involved
-
-| File                              | Role                                                |
-| --------------------------------- | --------------------------------------------------- |
-| `VERSION`                         | Single source of truth for the number.              |
-| `.cz.toml`                        | Commitizen config (`version_files`, tag, beta flag).|
-| `CHANGELOG.md`                    | History, generated/updated by commitizen.           |
-| `fininzen/settings.py`            | `APP_VERSION` read from `VERSION` at runtime.        |
-| `fininzen/views.py`               | `HealthView` exposes `version`.                     |
-| `fininzen/models.py`              | `UserProfile.last_seen_release` — banner shown once. |
-| `web/next.config.ts`              | Inlines `NEXT_PUBLIC_APP_VERSION` / `_RELEASE_DATE`. |
-| `web/src/content/releaseNotes.ts` | Hand-written user-facing notes (it/en).              |
-| `scripts/stamp_release_notes.py`  | Stamps the `UNRELEASED` entry during the bump.       |
-| `justfile`                        | The `release` recipe.                               |
-| `.github/workflows/release.yml`   | Publishes the GitHub *and* GitLab Release on tag push.|
-| `.gitlab-ci.yml`                  | The `release` job — dormant twin, see CI_GITHUB_MIRROR.|
-| `ci-tools/release-notes.sh`       | Extracts the tag's CHANGELOG section for the notes. |
+Non modificare manualmente i numeri in `VERSION`, package manifest,
+`CHANGELOG.md` o `openapi.json`, e non creare tag di release a mano.

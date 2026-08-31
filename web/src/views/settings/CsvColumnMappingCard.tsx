@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import CategorySelect from "../../components/CategorySelect";
+import { Card } from "../../components/ui";
 import { getCsvImportFields } from "./csvImportConfig";
 import type { CsvImportType, CsvMapping } from "./csvImportConfig";
 import type { Category } from "../../api/types";
@@ -38,7 +39,7 @@ export function CsvColumnMappingCard({
     const fields = schemas[csvImportType] || schemas.cashflow;
 
     return (
-        <div className="card">
+        <Card variant="settings">
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
                 {T("column_mapping")}
             </div>
@@ -138,7 +139,7 @@ export function CsvColumnMappingCard({
                     </div>
                 </div>
             )}
-        </div>
+        </Card>
     );
 }
 

@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "fininzen",  # app principale: modelli condivisi (DataAccessGrant)
     "expenses",  # nostra app per la gestione delle spese
     "portfolio",  # nostra app per il portafoglio investimenti
+    "splitting",  # feature Split: spese condivise tipo Splitwise
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -150,8 +151,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "fininzen.wsgi.application"
 
 
-# Database: Postgres in produzione (via DATABASE_URL o POSTGRES_*), SQLite come
-# default per sviluppo/test. La produzione è bloccata sotto se non usa Postgres.
+# Database: SQLite e PostgreSQL sono entrambi supportati. Il deploy bare-metal
+# usa SQLite con opt-in esplicito; lo stack Docker usa PostgreSQL tramite
+# DATABASE_URL o POSTGRES_*.
 def _apply_pool(cfg):
     """Abilita il connection pool nativo di psycopg3 quando DB_POOL è impostato.
 
@@ -240,7 +242,7 @@ def _build_default_database():
 DATABASES = {"default": _build_default_database()}
 DEFAULT_DB_IS_POSTGRES = DATABASES["default"]["ENGINE"].endswith("postgresql")
 
-# Where scripts/backup_db.sh writes backups (see that script's own default).
+# Where the SQLite/PostgreSQL backup scripts write backups.
 # Read here too so the admin health panel can report the latest backup's age.
 BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
 
@@ -314,10 +316,13 @@ _THROTTLE_RATES = {
     "search_ticker": "30/minute",
     "view_as_attempt": "30/minute",
     "grant": "20/minute",
+    "split_link": "20/minute",
     "webauthn": "20/minute",
     "account": "10/minute",
     "reset": "5/minute",
     "mfa": "20/minute",
+    "api_token_manage": "10/minute",
+    "api_token_quickadd": "30/minute",
 }
 if os.environ.get("E2E_RELAX_THROTTLES"):
     _THROTTLE_RATES = {scope: "100000/minute" for scope in _THROTTLE_RATES}
@@ -423,10 +428,8 @@ _extra_csrf = (
 CSRF_TRUSTED_ORIGINS = ["https://fininzen.nacci.eu"] + _extra_csrf
 
 # Browser-visible path the httpOnly refresh cookie is scoped to. It must match
-# the path the *frontend* calls, not the path Django's URLConf sees: the Next.js
-# app calls `/fininzen/api/auth/*` (Caddy strips `/fininzen` before Django), so
-# at cutover this is set to "/fininzen/api/auth/". The default keeps the legacy
-# Vite SPA (served at "/api/...") working until the cutover.
+# the path the *frontend* calls, not the path Django's URLConf sees. The Docker
+# deployment's Nginx proxy preserves `/api/auth/*`, so it uses `/api/auth/`.
 REFRESH_COOKIE_PATH = os.environ.get("REFRESH_COOKIE_PATH", "/api/auth/")
 
 LANGUAGE_CODE = "it-it"

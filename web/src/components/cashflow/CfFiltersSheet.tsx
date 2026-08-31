@@ -11,6 +11,7 @@ import { BottomSheet } from "../ui";
 import FilterSheetFooter from "../filters/FilterSheetFooter";
 import PeriodFilterSection from "../filters/PeriodFilterSection";
 import { useFilterDraft } from "../filters/useFilterDraft";
+import { CASHFLOW_TYPE_LABEL_KEYS } from "./transactionTypeLabels";
 
 const SORT_OPTIONS = ["-date", "date", "-amount", "amount"];
 
@@ -228,7 +229,7 @@ export default function CfFiltersSheet({
                                 }))
                             }
                         >
-                            {T("cf_" + type)}
+                            {T(CASHFLOW_TYPE_LABEL_KEYS[type])}
                         </Chip>
                     ))}
                 </Section>

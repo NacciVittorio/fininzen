@@ -1,3 +1,5 @@
+import { ALL_CASHFLOW_TYPES } from "./feedDefaults";
+
 const PORTFOLIO_TRANSACTION_TYPES = ["buy", "sell", "adjustment"];
 
 interface CategoryRef {
@@ -46,7 +48,11 @@ export function buildCashflowQueryParams(
     params.set("page", String(page || 1));
     params.set("page_size", String(pageSize));
 
-    if (types.length > 0 && types.length < 4) {
+    // BUG FIX (piano Batch 1): was hardcoded `< 4` — silently stopped sending
+    // `types` at all (server defaults to "every type") the moment
+    // ALL_CASHFLOW_TYPES grew past 4 with split/split_reimbursement, even
+    // for a filter that deliberately excluded one of the new types.
+    if (types.length > 0 && types.length < ALL_CASHFLOW_TYPES.length) {
         params.set("types", types.join(","));
     }
     if (filters.date_from) params.set("date_from", filters.date_from);

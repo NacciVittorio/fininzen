@@ -75,7 +75,7 @@ async function safeDelete(
     headers: Record<string, string>,
 ): Promise<void> {
     try {
-        await page.request.delete(url, { headers, timeout: 1200 });
+        await page.request.delete(url, { headers, timeout: 10_000 });
     } catch {
         // best-effort cleanup only
     }
@@ -257,15 +257,24 @@ test.describe("Transfer via Cash Flow form (K4.5)", () => {
             );
             expect(transferEntry).toBeTruthy();
         } finally {
-            await Promise.allSettled([
-                safeDelete(page, `/fininzen/api/portfolio/${accAId}/`, headers),
-                safeDelete(page, `/fininzen/api/portfolio/${accBId}/`, headers),
-                safeDelete(
-                    page,
-                    `/fininzen/api/portfolio/investment-types/${typeId}/`,
-                    headers,
-                ),
-            ]);
+            // SQLite has a single writer: concurrent cascade deletes can race
+            // each other and create a false 500 during otherwise successful
+            // E2E cleanup. Delete dependants, then their type, in order.
+            await safeDelete(
+                page,
+                `/fininzen/api/portfolio/${accAId}/`,
+                headers,
+            );
+            await safeDelete(
+                page,
+                `/fininzen/api/portfolio/${accBId}/`,
+                headers,
+            );
+            await safeDelete(
+                page,
+                `/fininzen/api/portfolio/investment-types/${typeId}/`,
+                headers,
+            );
         }
     });
 

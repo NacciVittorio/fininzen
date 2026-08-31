@@ -18,6 +18,15 @@ class GrantRateThrottle(UserRateThrottle):
     scope = "grant"
 
 
+class SplitLinkRateThrottle(UserRateThrottle):
+    """Mirror of GrantRateThrottle for POST /api/split/partner-links/: the
+    email→user lookup in splitting.services.send_partner_request is the same
+    email-enumeration surface as GrantsView.post(), so it gets the same guard.
+    """
+
+    scope = "split_link"
+
+
 class WebAuthnRateThrottle(AnonRateThrottle):
     """Throttle the unauthenticated WebAuthn auth endpoints (challenge/verify).
 
@@ -46,3 +55,19 @@ class MfaRateThrottle(AnonRateThrottle):
     """
 
     scope = "mfa"
+
+
+class ApiTokenManageRateThrottle(UserRateThrottle):
+    """Throttle API token create/list/revoke (JWT/session-authenticated)."""
+
+    scope = "api_token_manage"
+
+
+class ApiTokenQuickAddRateThrottle(UserRateThrottle):
+    """Throttle quick-add POSTs. Keyed by request.user.pk, which
+    ApiTokenAuthentication populates with the token's owner — a leaked static
+    bearer token has no expiry like a JWT does, so this per-request cap is
+    the only brake against its abuse.
+    """
+
+    scope = "api_token_quickadd"

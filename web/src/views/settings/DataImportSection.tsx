@@ -1,21 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { Card } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
-import { AccordionSection } from "./SettingsSections";
 import { CsvColumnMappingCard } from "./CsvColumnMappingCard";
 import { CsvImportResult } from "./CsvImportResult";
 import { CsvImportTypeSelector } from "./CsvImportTypeSelector";
 import type { CsvImportTypeOption } from "./CsvImportTypeSelector";
 import { CsvPreviewImportCard } from "./CsvPreviewImportCard";
 import { CsvUploadCard } from "./CsvUploadCard";
-import type { AccordionProps } from "./SettingsNavigation";
 
-export function DataImportSection({
-    accordionProps,
-}: {
-    accordionProps: AccordionProps;
-}) {
+export function DataImportSection() {
     const csvFileInputRef = useRef<HTMLInputElement>(null);
     const {
         T,
@@ -76,25 +71,17 @@ export function DataImportSection({
     ]);
 
     return (
-        <AccordionSection sectionKey="import" {...accordionProps}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div>
-                    <div
-                        style={{
-                            fontSize: 16,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                        }}
-                    >
-                        {T("import_title")}
-                    </div>
-                    <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
-                        {T("import_desc")}
-                    </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+                <div className="grouped-list__title">{T("import_title")}</div>
+                <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>
+                    {T("import_desc")}
                 </div>
+            </div>
 
-                {importTypeOptions.length > 0 ? (
-                    <>
+            {importTypeOptions.length > 0 ? (
+                <>
+                    <Card variant="settings">
                         <CsvImportTypeSelector
                             T={T}
                             importTypeOptions={importTypeOptions}
@@ -111,42 +98,39 @@ export function DataImportSection({
                             handleCSVUpload={handleCSVUpload}
                             handleCsvSepChange={handleCsvSepChange}
                         />
-                        <CsvColumnMappingCard
-                            T={T}
-                            categories={categories}
-                            csvParsed={csvParsed}
-                            csvImportType={csvImportType}
-                            csvMap={csvMap}
-                            setCsvMap={setCsvMap}
-                            csvSignConv={csvSignConv}
-                            setCsvSignConv={setCsvSignConv}
-                            setCsvImportPreview={setCsvImportPreview}
-                        />
-                        <CsvPreviewImportCard
-                            T={T}
-                            csvParsed={csvParsed}
-                            csvImportType={csvImportType}
-                            csvMap={csvMap}
-                            csvImporting={csvImporting}
-                            csvImportPreview={csvImportPreview}
-                            setCsvImportPreview={setCsvImportPreview}
-                            previewImportCSV={previewImportCSV}
-                            doImportCSV={doImportCSV}
-                        />
-                        <CsvImportResult
-                            T={T}
-                            csvImportResult={csvImportResult}
-                        />
-                    </>
-                ) : (
-                    <div
-                        className="card"
-                        style={{ fontSize: 13, color: "var(--fg-soft)" }}
-                    >
-                        {T("features_no_import")}
-                    </div>
-                )}
-            </div>
-        </AccordionSection>
+                    </Card>
+                    <CsvColumnMappingCard
+                        T={T}
+                        categories={categories}
+                        csvParsed={csvParsed}
+                        csvImportType={csvImportType}
+                        csvMap={csvMap}
+                        setCsvMap={setCsvMap}
+                        csvSignConv={csvSignConv}
+                        setCsvSignConv={setCsvSignConv}
+                        setCsvImportPreview={setCsvImportPreview}
+                    />
+                    <CsvPreviewImportCard
+                        T={T}
+                        csvParsed={csvParsed}
+                        csvImportType={csvImportType}
+                        csvMap={csvMap}
+                        csvImporting={csvImporting}
+                        csvImportPreview={csvImportPreview}
+                        setCsvImportPreview={setCsvImportPreview}
+                        previewImportCSV={previewImportCSV}
+                        doImportCSV={doImportCSV}
+                    />
+                    <CsvImportResult T={T} csvImportResult={csvImportResult} />
+                </>
+            ) : (
+                <Card
+                    variant="settings"
+                    style={{ fontSize: 13, color: "var(--fg-soft)" }}
+                >
+                    {T("features_no_import")}
+                </Card>
+            )}
+        </div>
     );
 }

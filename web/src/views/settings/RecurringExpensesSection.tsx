@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
 import { useFormatters } from "../../utils/useFormatters";
 import type { Asset, Category, RecurringExpense } from "../../api/types";
@@ -25,9 +26,7 @@ export function RecurringExpensesSection({
 
     return (
         <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
-                {T("recurring_title")}
-            </div>
+            <div className="grouped-list__title">{T("recurring_title")}</div>
             <div
                 style={{
                     fontSize: 13,
@@ -118,7 +117,7 @@ function RecurringExpenseRow({
     formatEur: (value: NumericValue) => string;
 }) {
     return (
-        <div className="card" style={{ padding: "12px 16px" }}>
+        <Card variant="settings">
             <div className="between">
                 <div>
                     <div style={{ fontSize: 14, fontWeight: 500 }}>
@@ -191,6 +190,6 @@ function RecurringExpenseRow({
                     </button>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }

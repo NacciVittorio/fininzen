@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from "react";
-import {
-    BiometricLockCard,
-    MfaCard,
-    TabSwipeCard,
-} from "./AccountSecurityCards";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { Card } from "../../components/ui";
 import type { Translator } from "../../types";
-import type { ViewAsAccount } from "../../context/useAuthenticatedFetch";
 
 type ProfileLike = {
     name?: string | null;
@@ -16,11 +11,6 @@ type ProfileLike = {
     mfa_enabled?: boolean;
 };
 type AccountActionResult = { ok: true } | { ok: false; errorKey?: string };
-type MfaSetupResult =
-    | { ok: true; secret: string; qrSvgBase64: string }
-    | { ok: false; errorKey: string };
-type MfaEnableResult =
-    { ok: true; backupCodes: string[] } | { ok: false; errorKey: string };
 type PasswordForm = { old: string; new: string; confirm: string };
 type EmailForm = { password: string; newEmail: string };
 type DeleteForm = { password: string; confirm: string };
@@ -31,12 +21,6 @@ export function UserSection({
     updateProfile,
     changePassword,
     changeEmail,
-    mfaSetup,
-    mfaEnable,
-    mfaDisable,
-    deleteAccount,
-    isDemo,
-    viewAs,
 }: {
     T: Translator;
     profile: ProfileLike;
@@ -49,15 +33,6 @@ export function UserSection({
         currentPassword: string,
         newEmail: string,
     ) => Promise<AccountActionResult>;
-    mfaSetup: () => Promise<MfaSetupResult>;
-    mfaEnable: (code: string) => Promise<MfaEnableResult>;
-    mfaDisable: (password: string) => Promise<AccountActionResult>;
-    deleteAccount: (
-        password: string,
-        confirm: string,
-    ) => Promise<AccountActionResult>;
-    isDemo: boolean;
-    viewAs?: ViewAsAccount | null;
 }) {
     const [nameVal, setNameVal] = useState(profile.name ?? "");
     const [nameSaved, setNameSaved] = useState(false);
@@ -76,12 +51,6 @@ export function UserSection({
     const [emailError, setEmailError] = useState<string | null>(null);
     const [emailSuccess, setEmailSuccess] = useState(false);
     const [emailLoading, setEmailLoading] = useState(false);
-    const [deleteForm, setDeleteForm] = useState<DeleteForm>({
-        password: "",
-        confirm: "",
-    });
-    const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => setNameVal(profile.name ?? ""), [profile.name]);
 
@@ -130,19 +99,6 @@ export function UserSection({
         }
     };
 
-    const handleDeleteAccount = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setDeleteError(null);
-        setDeleteLoading(true);
-        const result = await deleteAccount(
-            deleteForm.password,
-            deleteForm.confirm,
-        );
-        setDeleteLoading(false);
-        if (!result.ok)
-            setDeleteError(T(result.errorKey ?? "error_save_failed"));
-    };
-
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <ProfileNameCard
@@ -171,27 +127,6 @@ export function UserSection({
                 pwLoading={pwLoading}
                 handlePwSubmit={handlePwSubmit}
             />
-            {!isDemo && !viewAs && <BiometricLockCard />}
-            {!isDemo && !viewAs && (
-                <MfaCard
-                    T={T}
-                    mfaEnabled={!!profile.mfa_enabled}
-                    mfaSetup={mfaSetup}
-                    mfaEnable={mfaEnable}
-                    mfaDisable={mfaDisable}
-                />
-            )}
-            <TabSwipeCard />
-            {!isDemo && !viewAs && (
-                <DeleteAccountCard
-                    T={T}
-                    deleteForm={deleteForm}
-                    setDeleteForm={setDeleteForm}
-                    deleteError={deleteError}
-                    deleteLoading={deleteLoading}
-                    handleDeleteAccount={handleDeleteAccount}
-                />
-            )}
         </div>
     );
 }
@@ -209,21 +144,8 @@ function ProfileNameCard({
     nameSaved: boolean;
     saveName: () => void;
 }) {
-    const fieldStyle: CSSProperties = {
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        marginBottom: 14,
-    };
-    const labelStyle: CSSProperties = {
-        fontSize: 12,
-        color: "var(--fg-soft)",
-        fontWeight: 500,
-    };
-
     return (
-        <div style={fieldStyle}>
-            <span style={labelStyle}>{T("user_name")}</span>
+        <Card variant="settings" title={T("user_name")}>
             <div style={{ display: "flex", gap: 8 }}>
                 <input
                     className="inp"
@@ -241,7 +163,7 @@ function ProfileNameCard({
                     {nameSaved ? `✓ ${T("user_name_saved")}` : T("btn_save")}
                 </button>
             </div>
-        </div>
+        </Card>
     );
 }
 
@@ -265,19 +187,11 @@ function EmailChangeCard({
     handleEmailSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
     return (
-        <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
-                {T("change_email")}
-            </div>
-            <div
-                style={{
-                    fontSize: 13,
-                    color: "var(--fg-soft)",
-                    marginBottom: 14,
-                }}
-            >
-                {profile.email}
-            </div>
+        <Card
+            variant="settings"
+            title={T("change_email")}
+            description={profile.email}
+        >
             <form
                 onSubmit={handleEmailSubmit}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -331,7 +245,7 @@ function EmailChangeCard({
                     {emailLoading ? "…" : T("change_email")}
                 </button>
             </form>
-        </div>
+        </Card>
     );
 }
 
@@ -353,10 +267,7 @@ function PasswordChangeCard({
     handlePwSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
     return (
-        <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>
-                {T("change_password")}
-            </div>
+        <Card variant="settings" title={T("change_password")}>
             <form
                 onSubmit={handlePwSubmit}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -424,52 +335,50 @@ function PasswordChangeCard({
                     {pwLoading ? "…" : T("change_password")}
                 </button>
             </form>
-        </div>
+        </Card>
     );
 }
 
-function DeleteAccountCard({
+export function DeleteAccountCard({
     T,
-    deleteForm,
-    setDeleteForm,
-    deleteError,
-    deleteLoading,
-    handleDeleteAccount,
+    deleteAccount,
 }: {
     T: Translator;
-    deleteForm: DeleteForm;
-    setDeleteForm: Dispatch<SetStateAction<DeleteForm>>;
-    deleteError: string | null;
-    deleteLoading: boolean;
-    handleDeleteAccount: (event: FormEvent<HTMLFormElement>) => void;
+    deleteAccount: (
+        password: string,
+        confirm: string,
+    ) => Promise<AccountActionResult>;
 }) {
+    const [deleteForm, setDeleteForm] = useState<DeleteForm>({
+        password: "",
+        confirm: "",
+    });
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
+    const handleDeleteAccount = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setDeleteError(null);
+        setDeleteLoading(true);
+        const result = await deleteAccount(
+            deleteForm.password,
+            deleteForm.confirm,
+        );
+        setDeleteLoading(false);
+        if (!result.ok)
+            setDeleteError(T(result.errorKey ?? "error_save_failed"));
+    };
+
     return (
-        <div
-            className="card"
-            style={{ padding: 16, borderColor: "var(--danger-soft)" }}
+        <Card
+            variant="settings"
+            tone="danger"
+            title={T("account_delete_title", "Delete account")}
+            description={T(
+                "account_delete_desc",
+                "This permanently deletes your account and all associated data.",
+            )}
         >
-            <div
-                style={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    marginBottom: 8,
-                    color: "var(--danger)",
-                }}
-            >
-                {T("account_delete_title", "Delete account")}
-            </div>
-            <div
-                style={{
-                    fontSize: 13,
-                    color: "var(--fg-soft)",
-                    marginBottom: 14,
-                }}
-            >
-                {T(
-                    "account_delete_desc",
-                    "This permanently deletes your account and all associated data.",
-                )}
-            </div>
             <form
                 onSubmit={handleDeleteAccount}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -521,6 +430,6 @@ function DeleteAccountCard({
                         : T("account_delete_button", "Delete account")}
                 </button>
             </form>
-        </div>
+        </Card>
     );
 }

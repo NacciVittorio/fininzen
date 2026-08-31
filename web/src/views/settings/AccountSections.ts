@@ -1,3 +1,8 @@
-export { BiometricLockCard, TabSwipeCard } from "./AccountSecurityCards";
+export {
+    ApiTokensCard,
+    BiometricLockCard,
+    MfaCard,
+    TabSwipeCard,
+} from "./AccountSecurityCards";
 export { SharingSection } from "./SharingSection";
-export { UserSection } from "./UserSection";
+export { DeleteAccountCard, UserSection } from "./UserSection";

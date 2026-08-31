@@ -93,7 +93,20 @@ export default function BottomSheet({
                   )
                 : [];
         const focusFirst = () => {
-            const first = focusables()[0] || panelRef.current;
+            const items = focusables();
+            // Auto-focusing a text field on open can trigger side effects
+            // tied to "the user started editing" (e.g. AmountCalculator's
+            // operator bar, or an OS keyboard popping up) even though this
+            // is only the dialog's a11y initial focus, not real user intent
+            // — prefer a non-text-entry focusable (a button, a link), and
+            // only fall back to the first field if nothing else qualifies.
+            const first =
+                items.find(
+                    (el) =>
+                        !["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName),
+                ) ??
+                items[0] ??
+                panelRef.current;
             first?.focus({ preventScroll: true });
         };
         focusFirst();

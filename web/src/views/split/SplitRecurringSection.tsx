@@ -1,0 +1,1040 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useApp } from "../../context/useApp";
+import { useSplit } from "../../context/split/useSplit";
+import {
+    BottomSheet,
+    GroupedList,
+    Icon,
+    ModalError,
+    SheetTitle,
+} from "../../components/ui";
+import CategorySelect from "../../components/CategorySelect";
+import Select from "../../components/Select";
+import FieldLabel from "../../components/FieldLabel";
+import { useFormatters } from "../../utils/useFormatters";
+import {
+    filterAmountInput,
+    isValidAmount,
+    parseAmount,
+    parseMoneyToString,
+} from "../../utils/formatters";
+import {
+    computeEqualShares,
+    computeExactShares,
+    computePercentageShares,
+    computeWeightedShares,
+    SPLIT_COMPUTE_ERROR_KEYS,
+} from "../../context/split/splitShareMath";
+import {
+    resolveMySplitUserId,
+    splitIdentityKey,
+    splitMemberLabel,
+} from "./splitIdentity";
+import type {
+    SplitExpenseParticipantInput,
+    SplitGroup,
+    SplitMethod,
+    SplitRecurringExpense,
+    SplitRecurringFrequency,
+} from "../../api/split";
+import SplitActionRow from "./SplitActionRow";
+import SplitDeleteConfirmation from "./SplitDeleteConfirmation";
+
+const METHODS: SplitMethod[] = ["equal", "exact", "percentage", "shares"];
+
+type RecurringParticipantRow = {
+    key: string;
+    user_id: number | null;
+    contact_id: number | null;
+    rawInputText: string;
+    isPayer: boolean;
+};
+
+type RecurringFormState = {
+    id: number | null;
+    description: string;
+    amountText: string;
+    splitMethod: SplitMethod;
+    frequency: SplitRecurringFrequency;
+    dayOfMonth: string;
+    monthOfYear: string;
+    startDate: string;
+    endDate: string;
+    category: number | null;
+    linkedAsset: number | null;
+    participants: RecurringParticipantRow[];
+};
+
+const todayIso = (): string => new Date().toISOString().slice(0, 10);
+
+const emptyForm = (): RecurringFormState => ({
+    id: null,
+    description: "",
+    amountText: "",
+    splitMethod: "equal",
+    frequency: "MONTHLY",
+    dayOfMonth: "1",
+    monthOfYear: String(new Date().getMonth() + 1),
+    startDate: todayIso(),
+    endDate: "",
+    category: null,
+    linkedAsset: null,
+    participants: [],
+});
+
+// Group recurring expenses (piano sez. 1.7/3.4/7.5) — CRUD scoped to one
+// group (a recurrence always needs a stable roster, piano sez. 1.7). Mirrors
+// RecurringExpensesSection.tsx's list+generate shape, with a participant
+// editor that mirrors SplitExpenseFormModal's (duplicated rather than
+// shared: this form's rows are plain local state, not the
+// useSplitExpenseForm hook, since that hook is wired to SplitExpense
+// create/update, not SplitRecurringExpense).
+export default function SplitRecurringSection({
+    group,
+    createRequest = 0,
+}: {
+    group: SplitGroup;
+    createRequest?: number;
+}) {
+    const {
+        T,
+        user,
+        categories,
+        assets,
+        bankAccounts,
+        decimalSeparator,
+        guardDemo,
+    } = useApp();
+    const { formatEur } = useFormatters();
+    const {
+        contacts,
+        groups,
+        partnerLinksSent,
+        partnerLinksReceived,
+        recurrings,
+        recurringLoading,
+        recurringError,
+        setRecurringError,
+        loadSplitRecurring,
+        addSplitRecurring,
+        editSplitRecurring,
+        removeSplitRecurring,
+        toggleSplitRecurring,
+        runSplitRecurringGenerate,
+    } = useSplit();
+
+    const [showForm, setShowForm] = useState(false);
+    const [form, setForm] = useState<RecurringFormState>(emptyForm);
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
+    const [generating, setGenerating] = useState(false);
+    const [deleteTarget, setDeleteTarget] =
+        useState<SplitRecurringExpense | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [generateMsg, setGenerateMsg] = useState<{
+        created: number;
+        skipped: number;
+    } | null>(null);
+    const lastCreateRequestRef = useRef(0);
+
+    useEffect(() => {
+        loadSplitRecurring();
+    }, [loadSplitRecurring]);
+
+    const groupRecurrings = recurrings.filter(
+        (r) => String(r.group) === String(group.id),
+    );
+
+    const mySplitUserId = resolveMySplitUserId({
+        myEmail: user,
+        groups,
+        groupMembers: group.members,
+        partnerLinksSent,
+        partnerLinksReceived,
+    });
+
+    const candidates = useMemo(
+        () =>
+            group.members
+                .filter((member) => member.is_active)
+                .map((member) => ({
+                    key: splitIdentityKey({
+                        user_id: member.user,
+                        contact_id: member.contact,
+                    }),
+                    user_id: member.user,
+                    contact_id: member.contact,
+                    label: splitMemberLabel(member, {
+                        myEmail: user,
+                        contacts,
+                        T,
+                    }),
+                    color: member.contact_color,
+                })),
+        [group.members, contacts, user, T],
+    );
+    const candidatesByKey = useMemo(
+        () =>
+            new Map(candidates.map((candidate) => [candidate.key, candidate])),
+        [candidates],
+    );
+    const availableCandidates = candidates.filter(
+        (candidate) => !form.participants.some((p) => p.key === candidate.key),
+    );
+
+    const computed = useMemo((): {
+        shares: number[] | null;
+        error: string | null;
+    } => {
+        if (!form.participants.length) return { shares: null, error: null };
+        if (!isValidAmount(form.amountText, decimalSeparator)) {
+            return { shares: null, error: "invalid_amount" };
+        }
+        const total = parseAmount(form.amountText, decimalSeparator);
+        if (form.splitMethod === "equal") {
+            const result = computeEqualShares(total, form.participants.length);
+            return result.ok
+                ? { shares: result.shares, error: null }
+                : { shares: null, error: result.error };
+        }
+        const raw = form.participants.map((p) =>
+            parseAmount(p.rawInputText, decimalSeparator),
+        );
+        if (raw.some((v) => !Number.isFinite(v))) {
+            return { shares: null, error: "invalid_input" };
+        }
+        const result =
+            form.splitMethod === "exact"
+                ? computeExactShares(total, raw)
+                : form.splitMethod === "percentage"
+                  ? computePercentageShares(total, raw)
+                  : computeWeightedShares(total, raw);
+        return result.ok
+            ? { shares: result.shares, error: null }
+            : { shares: null, error: result.error };
+    }, [form, decimalSeparator]);
+
+    // Read recurringError reactively at render time rather than capturing it
+    // synchronously right after an await in handleSubmit — same
+    // stale-closure bug SplitSettleUpModal.tsx had (piano Batch 3.3): its
+    // setRecurringError(...) is an async state update not yet visible in
+    // handleSubmit's own closure until the next render, so the first failed
+    // submit in a session always fell through to a generic fallback instead
+    // of the real server message.
+    const displayFormError =
+        formError ??
+        recurringError ??
+        (computed.error
+            ? T(SPLIT_COMPUTE_ERROR_KEYS[computed.error] ?? "error_network")
+            : null);
+    // piano Batch 4.1: submit wasn't gated on a visible compute error, only
+    // on `submitting` — a skewed/invalid split could be sent to the server
+    // anyway (which would then reject it) instead of being blocked client-side.
+    const hasComputeError =
+        form.participants.length > 0 && computed.error != null;
+
+    const payer = form.participants.find((p) => p.isPayer) ?? null;
+    const payerIsSelf =
+        payer != null &&
+        payer.user_id != null &&
+        mySplitUserId != null &&
+        payer.user_id === mySplitUserId;
+
+    useEffect(() => {
+        if (
+            !payerIsSelf &&
+            (form.category != null || form.linkedAsset != null)
+        ) {
+            setForm((prev) => ({ ...prev, category: null, linkedAsset: null }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [payerIsSelf]);
+
+    const openCreateForm = () => {
+        const seededParticipants: RecurringParticipantRow[] = group.members
+            .filter((member) => member.is_active)
+            .map((member, index) => ({
+                key: splitIdentityKey({
+                    user_id: member.user,
+                    contact_id: member.contact,
+                }),
+                user_id: member.user,
+                contact_id: member.contact,
+                rawInputText: "",
+                isPayer: index === 0,
+            }));
+        setForm({ ...emptyForm(), participants: seededParticipants });
+        setFormError(null);
+        setRecurringError(null);
+        setShowForm(true);
+    };
+
+    useEffect(() => {
+        if (!createRequest || createRequest === lastCreateRequestRef.current) {
+            return;
+        }
+        lastCreateRequestRef.current = createRequest;
+        openCreateForm();
+        // openCreateForm intentionally seeds from the roster at request time.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [createRequest]);
+
+    const openEditForm = (recurring: SplitRecurringExpense) => {
+        setForm({
+            id: recurring.id,
+            description: recurring.description,
+            amountText: String(recurring.amount).replace(
+                ".",
+                decimalSeparator === "," ? "," : ".",
+            ),
+            splitMethod: recurring.split_method ?? "equal",
+            frequency: recurring.frequency ?? "MONTHLY",
+            dayOfMonth: String(recurring.day_of_month ?? 1),
+            monthOfYear: String(
+                recurring.month_of_year ?? new Date().getMonth() + 1,
+            ),
+            startDate: recurring.start_date,
+            endDate: recurring.end_date ?? "",
+            category: recurring.category ?? null,
+            linkedAsset: recurring.linked_asset ?? null,
+            participants: recurring.participant_templates.map((tpl) => ({
+                key: splitIdentityKey({
+                    user_id: tpl.participant_user_id,
+                    contact_id: tpl.participant_contact_id,
+                }),
+                user_id: tpl.participant_user_id,
+                contact_id: tpl.participant_contact_id,
+                rawInputText:
+                    tpl.raw_input != null
+                        ? String(tpl.raw_input).replace(
+                              ".",
+                              decimalSeparator === "," ? "," : ".",
+                          )
+                        : "",
+                isPayer: tpl.is_payer,
+            })),
+        });
+        setFormError(null);
+        setRecurringError(null);
+        setShowForm(true);
+    };
+
+    const handleSubmit = async () => {
+        if (guardDemo()) return;
+        const amount = parseMoneyToString(form.amountText, decimalSeparator);
+        if (!amount || !form.description.trim() || !form.participants.length) {
+            setFormError(T("error_invalid_amount"));
+            return;
+        }
+        if (!form.participants.some((p) => p.isPayer)) {
+            setFormError(T("error_invalid_amount"));
+            return;
+        }
+        const participants: SplitExpenseParticipantInput[] = [];
+        for (const p of form.participants) {
+            let raw_input: string | null = null;
+            if (form.splitMethod !== "equal") {
+                raw_input = parseMoneyToString(
+                    p.rawInputText,
+                    decimalSeparator,
+                );
+                if (raw_input == null) {
+                    setFormError(T("error_invalid_amount"));
+                    return;
+                }
+            }
+            participants.push({
+                user_id: p.user_id,
+                contact_id: p.contact_id,
+                raw_input,
+                is_payer: p.isPayer,
+            });
+        }
+        setSubmitting(true);
+        setFormError(null);
+        const payload = {
+            group: group.id,
+            description: form.description.trim(),
+            amount,
+            split_method: form.splitMethod,
+            category: form.category,
+            linked_asset: form.linkedAsset,
+            frequency: form.frequency,
+            day_of_month: Number(form.dayOfMonth) || 1,
+            month_of_year:
+                form.frequency === "YEARLY"
+                    ? Number(form.monthOfYear) || 1
+                    : null,
+            start_date: form.startDate,
+            end_date: form.endDate || null,
+            participants,
+        };
+        const result = form.id
+            ? await editSplitRecurring(form.id, payload)
+            : await addSplitRecurring(payload);
+        setSubmitting(false);
+        if (result) {
+            setShowForm(false);
+        }
+    };
+
+    const handleGenerate = async () => {
+        setGenerating(true);
+        const now = new Date();
+        const result = await runSplitRecurringGenerate(
+            now.getMonth() + 1,
+            now.getFullYear(),
+        );
+        setGenerating(false);
+        if (result) setGenerateMsg(result);
+    };
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        const removed = await removeSplitRecurring(deleteTarget.id);
+        setDeleting(false);
+        if (removed) setDeleteTarget(null);
+    };
+
+    return (
+        <div data-testid="split-recurring-section">
+            <div
+                className="between"
+                style={{ alignItems: "center", marginBottom: 10 }}
+            >
+                <div className="grouped-list__title" style={{ margin: 0 }}>
+                    {T("split_recurring_title")}
+                </div>
+                <div className="row" style={{ gap: 8 }}>
+                    <button
+                        type="button"
+                        className="btn btn-p btn-sm"
+                        data-testid="split-recurring-new"
+                        onClick={openCreateForm}
+                    >
+                        + {T("add_recurring")}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-g btn-sm"
+                        data-testid="split-recurring-generate"
+                        disabled={generating}
+                        onClick={handleGenerate}
+                    >
+                        {generating ? "…" : T("generate_recurring")}
+                    </button>
+                </div>
+            </div>
+
+            {generateMsg && (
+                <div
+                    style={{
+                        marginBottom: 14,
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        fontSize: 13,
+                        background: "var(--success-soft)",
+                        border: "1px solid var(--success-soft)",
+                        color: "var(--success)",
+                    }}
+                >
+                    ✓ {generateMsg.created} {T("generate_done")},{" "}
+                    {generateMsg.skipped} {T("generate_skipped")}
+                </div>
+            )}
+
+            {recurringError && !showForm && (
+                <div
+                    style={{
+                        color: "var(--danger)",
+                        fontSize: 13,
+                        marginBottom: 10,
+                    }}
+                >
+                    {recurringError}
+                </div>
+            )}
+
+            {recurringLoading && groupRecurrings.length === 0 ? (
+                <div style={{ color: "var(--fg-soft)", fontSize: 13 }}>
+                    {T("loading")}
+                </div>
+            ) : groupRecurrings.length === 0 ? (
+                <div style={{ color: "var(--fg-soft)", fontSize: 13 }}>
+                    {T("no_recurring")}
+                </div>
+            ) : (
+                <GroupedList>
+                    {groupRecurrings.map((recurring) => {
+                        const category = categories.find(
+                            (c) => c.id === recurring.category,
+                        );
+                        const account = assets.find(
+                            (a) => a.id === recurring.linked_asset,
+                        );
+                        const subtitle = `${T(
+                            `frequency_${recurring.frequency ?? "MONTHLY"}`,
+                        )} · ${T("recurring_day")} ${recurring.day_of_month}${
+                            account ? ` · ${account.name}` : ""
+                        }${
+                            recurring.status !== "ACTIVE"
+                                ? ` · ${recurring.status}`
+                                : ""
+                        }`;
+                        return (
+                            <SplitActionRow
+                                key={recurring.id}
+                                rowId={`recurring-${recurring.id}`}
+                                testId={`split-recurring-row-${recurring.id}`}
+                                icon={category?.icon ?? "↻"}
+                                label={recurring.description}
+                                subtitle={subtitle}
+                                value={
+                                    <strong style={{ color: "var(--danger)" }}>
+                                        -{formatEur(recurring.amount)}
+                                    </strong>
+                                }
+                                onOpen={() => openEditForm(recurring)}
+                                onEdit={() => openEditForm(recurring)}
+                                onDelete={() => setDeleteTarget(recurring)}
+                                editTestId={`split-recurring-edit-${recurring.id}`}
+                                deleteTestId={`split-recurring-delete-${recurring.id}`}
+                                extraActions={[
+                                    {
+                                        key: "toggle",
+                                        label:
+                                            recurring.status === "ACTIVE"
+                                                ? T("btn_disable")
+                                                : T("btn_enable"),
+                                        icon: <Icon name="refresh" size={17} />,
+                                        testId: `split-recurring-toggle-${recurring.id}`,
+                                        onPress: () =>
+                                            toggleSplitRecurring(
+                                                recurring.id,
+                                                recurring.status !== "ACTIVE",
+                                            ),
+                                    },
+                                ]}
+                            />
+                        );
+                    })}
+                </GroupedList>
+            )}
+
+            {deleteTarget && (
+                <SplitDeleteConfirmation
+                    title={T("modal_delete_recurring")}
+                    summary={`${deleteTarget.description} — ${formatEur(deleteTarget.amount)}`}
+                    confirmTestId="split-recurring-delete-confirm"
+                    busy={deleting}
+                    onClose={() => setDeleteTarget(null)}
+                    onConfirm={handleDelete}
+                />
+            )}
+
+            {showForm && (
+                <BottomSheet
+                    open
+                    onClose={() => setShowForm(false)}
+                    ariaLabel={
+                        form.id
+                            ? T("modal_edit_recurring")
+                            : T("modal_add_recurring")
+                    }
+                    header={
+                        <SheetTitle style={{ marginBottom: 0 }}>
+                            {form.id
+                                ? T("modal_edit_recurring")
+                                : T("modal_add_recurring")}
+                        </SheetTitle>
+                    }
+                    footer={
+                        <div className="split-sheet-footer">
+                            <button
+                                className="btn btn-g"
+                                onClick={() => setShowForm(false)}
+                            >
+                                {T("btn_cancel")}
+                            </button>
+                            <button
+                                className="btn btn-p"
+                                data-testid="split-recurring-submit"
+                                disabled={submitting || hasComputeError}
+                                onClick={handleSubmit}
+                            >
+                                {submitting
+                                    ? "…"
+                                    : form.id
+                                      ? T("btn_update")
+                                      : T("btn_add")}
+                            </button>
+                        </div>
+                    }
+                >
+                    <div style={{ padding: "0 18px" }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 12,
+                            }}
+                        >
+                            <div>
+                                <FieldLabel
+                                    text={T("label_description")}
+                                    htmlFor="split-recurring-description"
+                                />
+                                <input
+                                    id="split-recurring-description"
+                                    className="inp"
+                                    data-testid="split-recurring-description"
+                                    placeholder={T("placeholder_description")}
+                                    value={form.description}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            description: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel
+                                    text={T("label_amount")}
+                                    htmlFor="split-recurring-amount"
+                                />
+                                <input
+                                    id="split-recurring-amount"
+                                    className="inp"
+                                    type="text"
+                                    inputMode="decimal"
+                                    data-testid="split-recurring-amount"
+                                    placeholder={
+                                        decimalSeparator === ","
+                                            ? "0,00"
+                                            : "0.00"
+                                    }
+                                    value={form.amountText}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            amountText: filterAmountInput(
+                                                event.target.value,
+                                            ),
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel
+                                    text={T("split_method_label")}
+                                    htmlFor="split-recurring-method"
+                                />
+                                <Select
+                                    id="split-recurring-method"
+                                    data-testid="split-recurring-method"
+                                    value={form.splitMethod}
+                                    onChange={(value) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            splitMethod: METHODS.includes(
+                                                value as SplitMethod,
+                                            )
+                                                ? (value as SplitMethod)
+                                                : prev.splitMethod,
+                                        }))
+                                    }
+                                    options={METHODS.map((method) => ({
+                                        value: method,
+                                        label: T(`split_method_${method}`),
+                                    }))}
+                                    placeholder=""
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel
+                                    text={T("recurring_frequency")}
+                                    htmlFor="split-recurring-frequency"
+                                />
+                                <Select
+                                    id="split-recurring-frequency"
+                                    value={form.frequency}
+                                    onChange={(value) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            frequency:
+                                                value === "YEARLY"
+                                                    ? "YEARLY"
+                                                    : "MONTHLY",
+                                        }))
+                                    }
+                                    options={[
+                                        {
+                                            value: "MONTHLY",
+                                            label: T("frequency_MONTHLY"),
+                                        },
+                                        {
+                                            value: "YEARLY",
+                                            label: T("frequency_YEARLY"),
+                                        },
+                                    ]}
+                                    placeholder=""
+                                />
+                            </div>
+                            {form.frequency === "YEARLY" && (
+                                <div>
+                                    <FieldLabel
+                                        text={T("recurring_month")}
+                                        htmlFor="split-recurring-month"
+                                    />
+                                    <input
+                                        id="split-recurring-month"
+                                        className="inp"
+                                        type="number"
+                                        min="1"
+                                        max="12"
+                                        value={form.monthOfYear}
+                                        onChange={(event) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                monthOfYear: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <FieldLabel
+                                    text={T("recurring_day")}
+                                    htmlFor="split-recurring-day"
+                                />
+                                <input
+                                    id="split-recurring-day"
+                                    className="inp"
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    value={form.dayOfMonth}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            dayOfMonth: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel
+                                    text={T("recurring_start_date")}
+                                    htmlFor="split-recurring-start-date"
+                                />
+                                <input
+                                    id="split-recurring-start-date"
+                                    className="inp"
+                                    type="date"
+                                    value={form.startDate}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            startDate: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel
+                                    text={T("recurring_end_date")}
+                                    htmlFor="split-recurring-end-date"
+                                />
+                                <input
+                                    id="split-recurring-end-date"
+                                    className="inp"
+                                    type="date"
+                                    value={form.endDate}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            endDate: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <FieldLabel
+                                    text={T("split_participants_label")}
+                                />
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                    }}
+                                >
+                                    {form.participants.map((p) => {
+                                        const meta = candidatesByKey.get(p.key);
+                                        const index =
+                                            form.participants.findIndex(
+                                                (row) => row.key === p.key,
+                                            );
+                                        const amount =
+                                            computed.shares != null &&
+                                            index >= 0
+                                                ? (computed.shares[index] ??
+                                                  null)
+                                                : null;
+                                        return (
+                                            <div
+                                                key={p.key}
+                                                data-testid={`split-recurring-participant-${p.key}`}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 8,
+                                                    padding: "8px 0",
+                                                    borderBottom:
+                                                        "1px solid var(--card-inset)",
+                                                }}
+                                            >
+                                                <span
+                                                    aria-hidden="true"
+                                                    style={{
+                                                        width: 10,
+                                                        height: 10,
+                                                        borderRadius: "50%",
+                                                        background:
+                                                            meta?.color ||
+                                                            "var(--fg-soft)",
+                                                        flexShrink: 0,
+                                                    }}
+                                                />
+                                                <span
+                                                    style={{
+                                                        flex: 1,
+                                                        fontSize: 13,
+                                                        overflow: "hidden",
+                                                        textOverflow:
+                                                            "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                    }}
+                                                >
+                                                    {meta?.label ?? p.key}
+                                                </span>
+                                                <label
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 4,
+                                                        fontSize: 11,
+                                                        color: "var(--fg-soft)",
+                                                        cursor: "pointer",
+                                                        whiteSpace: "nowrap",
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="split-recurring-payer"
+                                                        checked={p.isPayer}
+                                                        onChange={() =>
+                                                            setForm((prev) => ({
+                                                                ...prev,
+                                                                participants:
+                                                                    prev.participants.map(
+                                                                        (
+                                                                            row,
+                                                                        ) => ({
+                                                                            ...row,
+                                                                            isPayer:
+                                                                                row.key ===
+                                                                                p.key,
+                                                                        }),
+                                                                    ),
+                                                            }))
+                                                        }
+                                                    />
+                                                    {T("split_payer_label")}
+                                                </label>
+                                                {form.splitMethod !==
+                                                    "equal" && (
+                                                    <input
+                                                        className="inp"
+                                                        style={{
+                                                            width: 64,
+                                                            fontSize: 13,
+                                                            padding: "6px 8px",
+                                                        }}
+                                                        value={p.rawInputText}
+                                                        onChange={(event) =>
+                                                            setForm((prev) => ({
+                                                                ...prev,
+                                                                participants:
+                                                                    prev.participants.map(
+                                                                        (
+                                                                            row,
+                                                                        ) =>
+                                                                            row.key ===
+                                                                            p.key
+                                                                                ? {
+                                                                                      ...row,
+                                                                                      rawInputText:
+                                                                                          filterAmountInput(
+                                                                                              event
+                                                                                                  .target
+                                                                                                  .value,
+                                                                                          ),
+                                                                                  }
+                                                                                : row,
+                                                                    ),
+                                                            }))
+                                                        }
+                                                    />
+                                                )}
+                                                <span
+                                                    style={{
+                                                        fontSize: 12,
+                                                        fontFamily:
+                                                            "var(--font-mono)",
+                                                        minWidth: 58,
+                                                        textAlign: "right",
+                                                        color: "var(--fg-soft)",
+                                                    }}
+                                                >
+                                                    {amount != null
+                                                        ? formatEur(amount)
+                                                        : "—"}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-g btn-sm"
+                                                    aria-label={T("btn_delete")}
+                                                    onClick={() =>
+                                                        setForm((prev) => ({
+                                                            ...prev,
+                                                            participants:
+                                                                prev.participants.filter(
+                                                                    (row) =>
+                                                                        row.key !==
+                                                                        p.key,
+                                                                ),
+                                                        }))
+                                                    }
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {availableCandidates.length > 0 && (
+                                    <div style={{ marginTop: 8 }}>
+                                        <Select
+                                            value=""
+                                            onChange={(value) => {
+                                                const candidate =
+                                                    candidatesByKey.get(value);
+                                                if (candidate) {
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        participants: [
+                                                            ...prev.participants,
+                                                            {
+                                                                key: candidate.key,
+                                                                user_id:
+                                                                    candidate.user_id,
+                                                                contact_id:
+                                                                    candidate.contact_id,
+                                                                rawInputText:
+                                                                    "",
+                                                                isPayer:
+                                                                    prev
+                                                                        .participants
+                                                                        .length ===
+                                                                    0,
+                                                            },
+                                                        ],
+                                                    }));
+                                                }
+                                            }}
+                                            options={availableCandidates.map(
+                                                (candidate) => ({
+                                                    value: candidate.key,
+                                                    label: candidate.label,
+                                                }),
+                                            )}
+                                            placeholder={T(
+                                                "split_participant_add_placeholder",
+                                            )}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {payerIsSelf && (
+                                <>
+                                    <div>
+                                        <FieldLabel
+                                            text={T("label_category")}
+                                            htmlFor="split-recurring-category"
+                                        />
+                                        <CategorySelect
+                                            id="split-recurring-category"
+                                            value={form.category ?? ""}
+                                            onChange={(value) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    category: value
+                                                        ? Number(value)
+                                                        : null,
+                                                }))
+                                            }
+                                            categoryType="expense"
+                                            categories={categories}
+                                            placeholder={T("no_category")}
+                                        />
+                                    </div>
+                                    <div>
+                                        <FieldLabel
+                                            text={T("label_linked_asset")}
+                                            htmlFor="split-recurring-linked-asset"
+                                        />
+                                        <Select
+                                            id="split-recurring-linked-asset"
+                                            value={
+                                                form.linkedAsset != null
+                                                    ? String(form.linkedAsset)
+                                                    : ""
+                                            }
+                                            onChange={(value) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    linkedAsset: value
+                                                        ? Number(value)
+                                                        : null,
+                                                }))
+                                            }
+                                            placeholder={T("no_linked_asset")}
+                                            options={bankAccounts.map(
+                                                (account) => ({
+                                                    value: String(account.id),
+                                                    label: `${account.investment_type_detail?.icon || ""} ${account.name}`.trim(),
+                                                }),
+                                            )}
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {displayFormError && (
+                                <ModalError data-testid="split-recurring-error">
+                                    {displayFormError}
+                                </ModalError>
+                            )}
+                        </div>
+                    </div>
+                </BottomSheet>
+            )}
+        </div>
+    );
+}

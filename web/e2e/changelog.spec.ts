@@ -16,7 +16,8 @@ async function openChangelog(page: import("@playwright/test").Page) {
     // client-side path rather than hard-loading a protected route.
     await page.click('nav a[href="/settings"]');
     await expect(page).toHaveURL(/\/settings$/);
-    await page.getByTestId("settings-root-preferences").click();
+    await page.getByTestId("settings-root-about").click();
+    await expect(page).toHaveURL(/\/settings\/about$/);
     const changelogLink = page.locator('a[href="/changelog"]');
     await expect(changelogLink).toBeVisible();
     await changelogLink.click();
@@ -42,7 +43,7 @@ test.describe("Changelog", () => {
         await close.click();
 
         // Back to where we came from, no bottom-nav tap required.
-        await expect(page).toHaveURL(/\/settings$/);
+        await expect(page).toHaveURL(/\/settings\/about$/);
     });
 
     test("shows the current version live from the backend", async ({
@@ -54,6 +55,8 @@ test.describe("Changelog", () => {
         await expect(page.getByText(`v${APP_VERSION}`)).toBeVisible();
         // Keep this exact: release-note prose may legitimately contain “in use”,
         // while this assertion is specifically about the current-version pill.
-        await expect(page.getByText(/^(In uso|In use)$/i)).toBeVisible();
+        await expect(page.getByTestId("changelog-current-pill")).toHaveText(
+            /^(In uso|In use)$/i,
+        );
     });
 });

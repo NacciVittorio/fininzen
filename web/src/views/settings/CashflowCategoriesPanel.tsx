@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "../../components/ui";
 import type { Category } from "../../api/types";
 import type { EntityId } from "../../context/feedTypes";
 import type { Translator } from "../../types";
@@ -100,7 +101,7 @@ function MainCategoryCard({
     isExpanded: boolean;
 }) {
     return (
-        <div className="card" style={{ padding: 16 }}>
+        <Card variant="settings">
             <div className="between">
                 <div
                     className="row"
@@ -192,7 +193,7 @@ function MainCategoryCard({
                     openDeleteCatFlow={openDeleteCatFlow}
                 />
             )}
-        </div>
+        </Card>
     );
 }
 

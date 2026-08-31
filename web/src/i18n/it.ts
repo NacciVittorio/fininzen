@@ -4,6 +4,8 @@ const it: Record<string, string> = {
     tab_dashboard_short: "Home",
     tab_cashflow: "Flussi",
     tab_cashflow_short: "Flussi",
+    tab_split: "Split",
+    tab_split_short: "Split",
     tab_accounts: "Conti",
     tab_accounts_short: "Conti",
     tab_investments: "Investimenti",
@@ -65,11 +67,21 @@ const it: Record<string, string> = {
     cf_adjustment: "Rettifica",
     cf_adjustment_default: "Rettifica manuale saldo",
     cf_transfer_default_in: "Trasferimento ← {account}",
+    cf_settlement_default: "Saldo",
     cf_opening_balance: "Saldo iniziale",
     cf_verified: "Verificata",
     cf_unverified: "Non verificata",
     cf_no_transactions_period: "Nessun movimento in questo periodo",
     cf_all_directions: "Tutte",
+    cf_split_badge: "Condivisa",
+    cf_open_in_split: "Apri in Split",
+    cf_split_gross_amount_label: "Importo totale della spesa",
+    cf_split_net_quota_hint:
+        "In Cash Flow conta solo la tua quota personale: il resto è stato anticipato per gli altri partecipanti ed è tracciato come credito nella sezione Split, finché non viene saldato.",
+    // View toggle (piano B6 Fase 1) — preset del filtro "types" esistente
+    cf_view_toggle_personal: "Personale",
+    cf_view_toggle_shared: "Condivise",
+    cf_view_toggle_all: "Tutte",
     // Bulk selection (K-3.7)
     cf_bulk_select: "Seleziona",
     cf_bulk_done: "Fatto",
@@ -139,6 +151,8 @@ const it: Record<string, string> = {
         "Tipo diverso — riga non aggiunta alla selezione",
     cf_bulk_adjustment_locked:
         "Gli aggiustamenti non sono modificabili in blocco — solo eliminabili",
+    cf_bulk_split_locked:
+        "Le spese condivise si gestiscono da Split — apri la singola riga",
     cf_bulk_filter_to_select_all:
         "Filtra per un solo tipo per selezionare tutti i risultati",
     cf_bulk_field_from_account: "Account da",
@@ -254,6 +268,8 @@ const it: Record<string, string> = {
     settings_about: "About",
     settings_data: "Dati",
     settings_preferences: "Preferenze",
+    settings_planning: "Pianificazione",
+    settings_transaction_defaults: "Predefiniti transazioni",
     settings_cashflow: "Cash Flow",
     settings_investments: "Investimenti",
     settings_cf_default_verified: "Crea le transazioni come verificate",
@@ -291,10 +307,36 @@ const it: Record<string, string> = {
     privacy_reveal_short: "mostra",
     privacy_hide_now: "Nascondi subito",
     privacy_hide_short: "nascondi",
+    // Legal (privacy policy / terms of service)
+    legal_footer_privacy: "Privacy",
+    legal_footer_terms: "Termini di Servizio",
+    legal_privacy_page_title: "Informativa Privacy",
+    legal_privacy_page_subtitle: "Come raccogliamo e trattiamo i tuoi dati",
+    legal_terms_page_title: "Termini di Servizio",
+    legal_terms_page_subtitle: "Le regole d'uso dell'app",
+    legal_consent_prefix: "Accetto la",
+    legal_consent_and: "e i",
+    legal_consent_suffix: "",
+    legal_link_privacy: "Privacy Policy",
+    legal_link_terms: "Termini di Servizio",
+    legal_last_updated: "Ultimo aggiornamento",
+    legal_italian_only_notice:
+        "Questo documento è disponibile solo in italiano.",
+    terms_gate_title: "Aggiornamento privacy e termini",
+    terms_gate_body:
+        "Abbiamo introdotto un consenso esplicito a Privacy Policy e Termini di Servizio dopo la creazione del tuo account. Per continuare ad usare l'app devi accettarli.",
+    terms_gate_accept: "Accetto e continuo",
+    terms_gate_reject: "Rifiuta",
+    terms_gate_reject_notice:
+        "Se rifiuti verrai disconnesso. Dovrai accettare al prossimo accesso per continuare ad usare l'app.",
     about_title: "About",
     about_version: "Versione applicazione",
     about_released_on: "Data di rilascio",
     about_whats_new: "Scopri le novità",
+    about_contact: "Contatta l'assistenza o segnala un problema",
+    about_contact_subject: "Fininzen — assistenza o segnalazione",
+    about_contact_body:
+        "Descrivi qui la richiesta o il problema.\n\nPassaggi per riprodurlo:\n\nRisultato atteso:\n\nRisultato ottenuto:\n",
     // Release notes
     release_bar_title: "Fininzen {version} è qui",
     release_bar_body: "Scopri cosa è cambiato.",
@@ -337,7 +379,22 @@ const it: Record<string, string> = {
     mfa_disable_button: "Disattiva l'autenticazione a due fattori",
     mfa_login_prompt: "Inserisci il codice dalla tua app authenticator",
     mfa_login_code_label: "Codice di verifica",
+    api_tokens_title: "Token API",
+    api_tokens_desc:
+        "Token a lunga durata per client di automazione (es. uno Shortcut iOS) che possono aggiungere spese senza fare login. Utilizzabili solo per aggiungere spese, mai per accedere all'app.",
+    api_tokens_label_placeholder: "Etichetta (es. iPhone Shortcuts)",
+    api_tokens_create_button: "Crea token",
+    api_tokens_create_error: "Impossibile creare il token. Riprova.",
+    api_tokens_reveal_title: "Salva il tuo token",
+    api_tokens_reveal_desc:
+        "Questa è l'unica volta in cui il token viene mostrato. Salvalo in un posto sicuro: se lo perdi dovrai crearne uno nuovo.",
+    api_tokens_reveal_saved: "Ho salvato questo token",
+    api_tokens_empty: "Nessun token API ancora creato.",
+    api_tokens_last_used: "Ultimo utilizzo",
+    api_tokens_never_used: "Mai utilizzato",
+    api_tokens_revoked: "Revocato",
     mfa_login_verify: "Verifica",
+    account_security_title: "Sicurezza",
     account_delete_title: "Cancella account",
     account_delete_desc:
         "Cancella definitivamente il tuo account e tutti i dati associati.",
@@ -366,6 +423,8 @@ const it: Record<string, string> = {
         "Pagine investimenti, allocazione target, widget portafoglio e import collegati.",
     feature_fire_desc:
         "Pagina FIRE, impostazioni di proiezione e widget pensionamento.",
+    feature_split_desc:
+        "Pagina Split: gruppi, contatti, spese condivise e saldi tra persone.",
     features_no_import:
         "Nessun tipo di import è disponibile con i moduli attivi.",
     general_preferences: "Preferenze generali",
@@ -426,12 +485,8 @@ const it: Record<string, string> = {
     // Settings - Export section (Feature F)
     export_title: "Esporta i tuoi dati",
     export_desc:
-        "Scarica una copia dei tuoi dati in CSV (o tutto insieme in ZIP). Utile per backup e analisi su foglio elettronico.",
+        "Scarica una copia completa dei tuoi dati in un unico ZIP di file CSV. Utile per backup e analisi su foglio elettronico.",
     export_all: "Esporta tutto (.zip)",
-    export_assets: "Asset",
-    export_transactions: "Investimenti",
-    export_cashflow: "Cash Flow",
-    export_btn_download: "Scarica CSV",
     export_demo_blocked: "L'export è disabilitato in modalità demo.",
     export_viewas_blocked:
         "Export disabilitato mentre stai visualizzando i dati di un altro utente — torna al tuo account.",
@@ -940,7 +995,7 @@ const it: Record<string, string> = {
         "Attenzione: saldo insufficiente — il trasferimento verrà comunque eseguito.",
     btn_transfer: "Trasferisci",
     no_linked_account: "— Nessuno —",
-    label_initial_balance: "Saldo iniziale (€)",
+    label_initial_balance: "Saldo iniziale",
     hint_initial_balance:
         "Opzionale — crea un movimento CASH_IN per popolare il conto.",
     error_sell_oversell:
@@ -1173,6 +1228,151 @@ const it: Record<string, string> = {
     calc_err_divzero: "Divisione per zero",
     calc_err_overflow: "Importo troppo grande",
     calc_err_negative: "Il risultato dev'essere positivo",
+
+    // Split — chiavi principali (elenco non esaustivo: completato mano a
+    // mano che si costruiscono i componenti, piano sez. 7.2).
+    split_overview_subtitle: "Spese condivise, gruppi e saldi tra persone.",
+    split_overview_title: "Panoramica",
+    split_recent_activity_title: "Attività recente",
+    split_recent_activity_empty: "Nessuna attività recente.",
+    split_activity_settlement: "Rimborso",
+    split_standalone_label: "Spesa veloce",
+    split_cross_group_label: "Tra gruppi",
+    split_new_action: "Nuovo elemento Split",
+    split_actions_label: "Altre azioni",
+    split_group_actions: "Azioni gruppo",
+    split_group_balance_you: "Il tuo saldo nel gruppo",
+    split_group_activity_title: "Attività",
+    split_group_activity_empty: "Nessuna attività nel gruppo.",
+    split_group_edit: "Modifica gruppo",
+    split_group_icon_label: "Icona",
+    split_group_name_label: "Nome gruppo",
+    split_member_new: "Nuovo membro",
+    split_no_member_candidates:
+        "Tutti i contatti disponibili fanno già parte del gruppo.",
+    modal_delete_group: "Elimina gruppo",
+    modal_delete_recurring: "Elimina spesa ricorrente",
+    split_contact_edit: "Modifica contatto",
+    split_contact_mode_local: "Contatto locale",
+    split_contact_mode_fininzen: "Utente Fininzen",
+    split_contact_name_label: "Nome visualizzato",
+    split_contact_color_label: "Colore",
+    modal_delete_contact: "Elimina contatto",
+    split_balance_overview_title: "Saldo complessivo",
+    split_balance_you_owe: "Devi",
+    split_balance_owes_you: "Ti deve",
+    split_balance_settled: "Tutto saldato",
+    split_groups_title: "Gruppi",
+    split_groups_empty: "Nessun gruppo ancora. Creane uno per iniziare.",
+    split_group_new: "Nuovo gruppo",
+    split_contacts_title: "Contatti",
+    split_contacts_empty: "Nessun contatto ancora.",
+    split_contact_new: "Nuovo contatto",
+    split_partner_request_pending: "Richiesta di collegamento in attesa",
+    split_partner_request_accept: "Accetta",
+    split_partner_request_decline: "Rifiuta",
+    split_partner_request_send: "Invia richiesta",
+    split_expense_new: "Nuova spesa",
+    split_expense_edit: "Modifica spesa",
+    split_method_equal: "In parti uguali",
+    split_method_exact: "Importi esatti",
+    split_method_percentage: "Percentuali",
+    split_method_shares: "Quote/pesi",
+    split_settle_up: "Salda debito",
+    split_simplify_debts: "Semplifica debiti",
+    split_recurring_title: "Spese ricorrenti",
+    cashflow_type_split: "Spese condivise",
+    cashflow_type_split_reimbursement: "Rimborsi Split",
+
+    // Split — chiavi aggiunte nella fase componenti UI (piano sez. 7.5).
+    split_you: "Tu",
+    split_members_label: "membri",
+    split_group_name_placeholder: "Nome del gruppo",
+    split_contact_name_placeholder: "Nome contatto",
+    split_contact_local: "Contatto locale",
+    split_group_icon_choice_label: "Icona",
+    split_contact_color_choice_label: "Colore",
+    split_partner_requests_title: "Richieste di collegamento",
+    split_partner_requests_received: "Ricevute",
+    split_partner_requests_sent: "Inviate",
+    split_expense_group_label: "Gruppo",
+    split_expense_group_standalone_option: "Nessun gruppo (spesa singola)",
+    split_participants_label: "Partecipanti",
+    split_participants_empty: "Aggiungi almeno un partecipante.",
+    split_participant_add_placeholder: "Aggiungi partecipante…",
+    split_payer_label: "Pagante",
+    split_method_label: "Metodo di divisione",
+    split_method_shares_unit: "quota",
+    split_error_no_participants: "Servono più partecipanti.",
+    split_error_exact_mismatch:
+        "La somma degli importi non coincide con il totale.",
+    split_error_percentages_not_100: "Le percentuali devono sommare a 100.",
+    split_error_weights_not_positive: "Le quote devono essere positive.",
+    split_error_invalid_input: "Valore non valido.",
+    split_error_negative_share: "Una quota non può essere negativa.",
+    split_error_shares_too_skewed:
+        "Questa divisione è troppo sbilanciata — una quota risulterebbe negativa dopo l'arrotondamento. Prova importi diversi.",
+    split_error_single_payer_required: "Deve esserci esattamente un pagatore.",
+    split_error_participants_required:
+        "Aggiungi almeno un partecipante — se è la tua prima spesa, crea prima un gruppo o aggiungi un partner.",
+    split_error_duplicate_participant:
+        "Lo stesso partecipante è stato aggiunto due volte.",
+    split_error_participant_not_in_group:
+        "Quel partecipante non è un membro attivo di questo gruppo.",
+    split_error_not_a_linked_partner:
+        "Puoi aggiungere solo un partner collegato o te stesso.",
+    split_error_contact_not_found: "Contatto non trovato.",
+    split_error_raw_input_required:
+        "Inserisci un valore per ogni partecipante.",
+    split_error_payer_not_active_member:
+        "Il pagatore non è più un membro attivo di questo gruppo.",
+    split_error_participant_identity_invalid:
+        "Ogni partecipante deve essere un contatto o un utente collegato, non entrambi.",
+    split_error_invalid_split_method: "Metodo di divisione sconosciuto.",
+    split_error_payer_required: "È necessario un pagatore.",
+    split_error_cannot_link_self:
+        "Non puoi inviare una richiesta di collegamento a te stesso.",
+    split_error_email_required: "Inserisci un indirizzo email.",
+    split_expense_new_quick: "Nuova spesa veloce",
+    split_group_balances_title: "Saldi del gruppo",
+    split_group_members_title: "Membri",
+    split_group_expenses_title: "Spese del gruppo",
+    split_group_expenses_empty: "Nessuna spesa in questo gruppo ancora.",
+    split_add_member_placeholder: "Aggiungi membro…",
+    modal_add_member: "Aggiungere il membro?",
+    split_add_member_confirm_body: "Vedrà le spese e i saldi di questo gruppo.",
+    modal_remove_member: "Rimuovere il membro?",
+    split_remove_member_confirm_body:
+        "Perderà l'accesso a questo gruppo; potrai riaggiungerlo in seguito.",
+    modal_add_contact: "Aggiungere il contatto?",
+    split_add_contact_confirm_body:
+        "Verrà creata una nuova voce nella tua rubrica Split.",
+    split_simplify_empty: "Nessuna transazione da semplificare: tutto saldato.",
+    split_settle_you_pay: "Devi pagare",
+    split_settle_you_receive: "Devi ricevere da",
+    split_settle_missing_identity:
+        "Impossibile determinare la tua identità Split: crea prima un gruppo o collega un contatto.",
+    split_group_settlements_title: "Storico saldi",
+    split_group_settlements_empty:
+        "Nessun saldo registrato in questo gruppo ancora.",
+    modal_delete_settlement: "Eliminare questo saldo?",
+    split_standalone_expenses_title: "Spese veloci",
+    split_standalone_expenses_empty: "Nessuna spesa veloce ancora.",
+    split_recurring_enable_expired:
+        "Impossibile riattivare questa spesa ricorrente: la data di fine è già passata. Modifica prima la data di fine.",
+    split_error_only_creator_can_remove_members:
+        "Solo chi ha creato il gruppo può rimuovere i membri.",
+    split_expense_account_hint:
+        "Verrà scalato l'intero importo di {amount}, non la tua quota di {share}.",
+    split_expense_account_hint_generic:
+        "Verrà scalato l'intero importo di {amount} dal conto collegato, non solo la parte che ti spetta.",
+    split_settle_account_hint:
+        "Il saldo di questo debito è tracciato separatamente da questo pagamento: collega un conto solo se questo rimborso è passato realmente su un tuo conto bancario.",
+    split_delete_expense_linked_asset_warning:
+        "Questa spesa è collegata al conto {account}: cancellandola, il saldo tracciato di quel conto cambierà di {amount}.",
+    split_delete_settlement_linked_asset_warning:
+        "Questo saldo è collegato al conto {account}: cancellandolo, il saldo tracciato di quel conto cambierà di {amount}.",
+    split_expense_settlement_badge: "Saldata al {percentage}%",
 };
 
 export default it;

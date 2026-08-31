@@ -23,11 +23,13 @@ const FEATURE_KEYS = new Set<string>([
     "accounts",
     "investments",
     "fire",
+    "split",
 ]);
 
 const NAV_DEFINITIONS = [
     ["/dashboard", "dashboard", "dashboard"],
     ["/cashflow", "cashflow", "cashflow"],
+    ["/split", "split", "split"],
     ["/accounts", "accounts", "accounts"],
     ["/portfolio", "investments", "investments"],
     ["/fire", "fire", "fire"],
@@ -202,6 +204,7 @@ export function MobileBottomNav() {
                         className="pressable"
                         aria-current={active ? "page" : undefined}
                         aria-label={T(item.labelKey)}
+                        title={T(item.labelKey)}
                         style={{
                             textDecoration: "none",
                             flex: "1 1 0",

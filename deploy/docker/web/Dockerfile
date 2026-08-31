@@ -16,6 +16,10 @@ RUN npm ci
 # App sources + the repo-root VERSION file next.config.ts inlines.
 COPY web/ ./
 COPY VERSION /app/VERSION
+ARG NEXT_PUBLIC_API_BASE=/api
+ARG NEXT_PUBLIC_CONTACT_EMAIL
+ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+ENV NEXT_PUBLIC_CONTACT_EMAIL=$NEXT_PUBLIC_CONTACT_EMAIL
 RUN npm run build
 
 # ---- runtime stage ----
@@ -40,5 +44,5 @@ USER fininzen
 
 EXPOSE 3000
 
-# Bind all interfaces so the Caddy container can reach it over the compose network.
+# Bind all interfaces so the external Nginx proxy can reach it over Docker.
 CMD ["npm", "run", "start", "--", "-H", "0.0.0.0", "-p", "3000"]

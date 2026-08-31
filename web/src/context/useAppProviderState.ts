@@ -52,6 +52,7 @@ export type InvestmentTypeForm = {
 
 export type AssetForm = {
     name: string;
+    currency: string;
     ticker: string;
     price_source: string;
     source_symbol: string;
@@ -208,7 +209,6 @@ export function useAppProviderState() {
     // Settings state
     const [settingsCatType, setSettingsCatType] =
         useState<SettingsCatTab>("expense");
-    const [settingsMenu, setSettingsMenu] = useState<string | null>(null);
     const [showCatAddModal, setShowCatAddModal] = useState(false);
     const [catAddContext, setCatAddContext] = useState<CategoryAddContext>({
         type: "expense",
@@ -260,6 +260,7 @@ export function useAppProviderState() {
     );
     const [assetForm, setAssetForm] = useState<AssetForm>({
         name: "",
+        currency: "EUR",
         ticker: "",
         price_source: "AUTO",
         source_symbol: "",
@@ -409,8 +410,6 @@ export function useAppProviderState() {
         setAllocChartType,
         settingsCatType,
         setSettingsCatType,
-        settingsMenu,
-        setSettingsMenu,
         showCatAddModal,
         setShowCatAddModal,
         catAddContext,

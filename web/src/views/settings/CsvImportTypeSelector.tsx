@@ -23,7 +23,7 @@ export function CsvImportTypeSelector({
     setCsvImportPreview: Dispatch<SetStateAction<CsvImportResponse | null>>;
 }) {
     return (
-        <div className="card">
+        <>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
                 {T("import_type_label")}
             </div>
@@ -69,6 +69,6 @@ export function CsvImportTypeSelector({
                     );
                 })}
             </div>
-        </div>
+        </>
     );
 }

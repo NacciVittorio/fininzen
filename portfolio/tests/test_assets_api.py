@@ -86,6 +86,34 @@ def test_create_asset_with_investment_type(client, itype):
     assert data["investment_type_detail"]["name"] == "ETF"
 
 
+def test_create_and_update_asset_currency(client, itype):
+    res = client.post(
+        "/api/portfolio/",
+        data={
+            "name": "Dollar account",
+            "ticker": "",
+            "investment_type": itype.id,
+            "tracking_type": "MANUAL",
+            "currency": "USD",
+        },
+        content_type="application/json",
+    )
+
+    assert res.status_code == 201
+    assert res.json()["currency"] == "USD"
+
+    asset = Asset.objects.get(name="Dollar account")
+    res = client.patch(
+        f"/api/portfolio/{asset.id}/",
+        data={"currency": "CHF"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    asset.refresh_from_db()
+    assert asset.currency == "CHF"
+
+
 def test_patch_asset(client, asset):
     res = client.patch(
         f"/api/portfolio/{asset.id}/",

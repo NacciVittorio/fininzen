@@ -340,6 +340,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/api-tokens/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_api_tokens_retrieve"];
+        put?: never;
+        post: operations["auth_api_tokens_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/api-tokens/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["auth_api_tokens_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/change-email/": {
         parameters: {
             query?: never;
@@ -772,7 +804,8 @@ export interface paths {
          *       category            — category id
          *       parent_category     — parent category id
          *       account             — Asset id
-         *       types               — comma-separated subset of income,outcome,transfer,adjustment
+         *       types               — comma-separated subset of income,outcome,transfer,adjustment,
+         *                              split,split_reimbursement
          *       page                — page number (default 1)
          *       page_size           — items per page (default 50, maximum 200)
          */
@@ -934,6 +967,31 @@ export interface paths {
         get: operations["expenses_monthly_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/quick-add/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/expenses/quick-add/ — Automation-only expense creation
+         *     (iOS Shortcuts / Apple Pay NFC). Requires an API token with
+         *     expenses:write scope; JWT/session auth is never even considered for
+         *     this action (authentication_classes is overridden above), so a
+         *     browser session cannot reach it. Category is resolved by name
+         *     (case-insensitive); an unmatched or omitted name falls back to a
+         *     per-user "Da categorizzare" category rather than failing the request.
+         */
+        post: operations["expenses_quick_add_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2001,6 +2059,675 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/split/balances/overview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/split/balances/overview/
+         *
+         *     Saldo complessivo per persona dell'utente autenticato, calcolato sulle
+         *     shares di TUTTE le spese a cui ha accesso — gruppi di cui è
+         *     creatore/membro attivo + spese occasionali proprie o di cui è
+         *     partecipante ad-hoc (stesso perimetro di `user_can_access_expense`,
+         *     espresso qui come queryset invece che come check per-oggetto) — più i
+         *     settlement di cui è parte diretta (payer/payee) o che appartengono a un
+         *     gruppo a cui ha accesso. Usa `compute_relative_balances` (saldo pairwise
+         *     relativo al richiedente, non il saldo assoluto per identità di
+         *     `compute_balances` usato invece per il saldo di un singolo gruppo) —
+         *     piano "fix overview cross-gruppo".
+         */
+        get: operations["split_balances_overview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/contacts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD per la rubrica Split, scoped a `owner=request.user`.
+         *
+         *     DELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato
+         *     da una partecipazione storica (gruppi/spese) — mirror semplificato di
+         *     CategoryViewSet.destroy().
+         */
+        get: operations["split_contacts_list"];
+        put?: never;
+        /**
+         * @description CRUD per la rubrica Split, scoped a `owner=request.user`.
+         *
+         *     DELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato
+         *     da una partecipazione storica (gruppi/spese) — mirror semplificato di
+         *     CategoryViewSet.destroy().
+         */
+        post: operations["split_contacts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/contacts/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD per la rubrica Split, scoped a `owner=request.user`.
+         *
+         *     DELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato
+         *     da una partecipazione storica (gruppi/spese) — mirror semplificato di
+         *     CategoryViewSet.destroy().
+         */
+        get: operations["split_contacts_retrieve"];
+        /**
+         * @description CRUD per la rubrica Split, scoped a `owner=request.user`.
+         *
+         *     DELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato
+         *     da una partecipazione storica (gruppi/spese) — mirror semplificato di
+         *     CategoryViewSet.destroy().
+         */
+        put: operations["split_contacts_update"];
+        post?: never;
+        /**
+         * @description CRUD per la rubrica Split, scoped a `owner=request.user`.
+         *
+         *     DELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato
+         *     da una partecipazione storica (gruppi/spese) — mirror semplificato di
+         *     CategoryViewSet.destroy().
+         */
+        delete: operations["split_contacts_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD per la rubrica Split, scoped a `owner=request.user`.
+         *
+         *     DELETE fa soft-archive (`is_archived=True`) se il contatto è referenziato
+         *     da una partecipazione storica (gruppi/spese) — mirror semplificato di
+         *     CategoryViewSet.destroy().
+         */
+        patch: operations["split_contacts_partial_update"];
+        trace?: never;
+    };
+    "/api/split/expenses/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD spese condivise.
+         *
+         *     Ogni create/update riscrive le shares dentro transaction.atomic() (vedi
+         *     serializers.SplitExpenseSerializer + services.apply_split_shares).
+         */
+        get: operations["split_expenses_list"];
+        put?: never;
+        /**
+         * @description CRUD spese condivise.
+         *
+         *     Ogni create/update riscrive le shares dentro transaction.atomic() (vedi
+         *     serializers.SplitExpenseSerializer + services.apply_split_shares).
+         */
+        post: operations["split_expenses_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/expenses/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD spese condivise.
+         *
+         *     Ogni create/update riscrive le shares dentro transaction.atomic() (vedi
+         *     serializers.SplitExpenseSerializer + services.apply_split_shares).
+         */
+        get: operations["split_expenses_retrieve"];
+        /**
+         * @description CRUD spese condivise.
+         *
+         *     Ogni create/update riscrive le shares dentro transaction.atomic() (vedi
+         *     serializers.SplitExpenseSerializer + services.apply_split_shares).
+         */
+        put: operations["split_expenses_update"];
+        post?: never;
+        /**
+         * @description CRUD spese condivise.
+         *
+         *     Ogni create/update riscrive le shares dentro transaction.atomic() (vedi
+         *     serializers.SplitExpenseSerializer + services.apply_split_shares).
+         */
+        delete: operations["split_expenses_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD spese condivise.
+         *
+         *     Ogni create/update riscrive le shares dentro transaction.atomic() (vedi
+         *     serializers.SplitExpenseSerializer + services.apply_split_shares).
+         */
+        patch: operations["split_expenses_partial_update"];
+        trace?: never;
+    };
+    "/api/split/groups/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        get: operations["split_groups_list"];
+        put?: never;
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        post: operations["split_groups_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/groups/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        get: operations["split_groups_retrieve"];
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        put: operations["split_groups_update"];
+        post?: never;
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        delete: operations["split_groups_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        patch: operations["split_groups_partial_update"];
+        trace?: never;
+    };
+    "/api/split/groups/{id}/balances/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Saldo netto per membro del gruppo, spese e settlement inclusi
+         *     (piano sez. 3.2/6).
+         */
+        get: operations["split_groups_balances_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/groups/{id}/members/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        get: operations["split_groups_members_retrieve"];
+        put?: never;
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        post: operations["split_groups_members_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/groups/{id}/members/{member_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description CRUD gruppi + sotto-risorsa membri.
+         *
+         *     Autorizzazione via membership (user_can_access_group), MAI via
+         *     ViewAsMixin/get_effective_user — vedi piano sez. 0.2: qui la relazione è
+         *     tra pari (co-titolarità), non una delega owner→grantee.
+         */
+        delete: operations["split_groups_members_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/groups/{id}/simplify/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/split/groups/{id}/simplify/ (piano sez. 3.3/6): lista
+         *     minima di transazioni suggerite per azzerare i saldi correnti del
+         *     gruppo (spese + settlement già registrati).
+         */
+        get: operations["split_groups_simplify_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/partner-links/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET  /api/split/partner-links/         — { sent: [...], received: [...] }
+         *     POST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta
+         *     POST /api/split/partner-links/{id}/accept/
+         *     POST /api/split/partner-links/{id}/decline/
+         */
+        get: operations["split_partner_links_list"];
+        put?: never;
+        /**
+         * @description GET  /api/split/partner-links/         — { sent: [...], received: [...] }
+         *     POST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta
+         *     POST /api/split/partner-links/{id}/accept/
+         *     POST /api/split/partner-links/{id}/decline/
+         */
+        post: operations["split_partner_links_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/partner-links/{id}/accept/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description GET  /api/split/partner-links/         — { sent: [...], received: [...] }
+         *     POST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta
+         *     POST /api/split/partner-links/{id}/accept/
+         *     POST /api/split/partner-links/{id}/decline/
+         */
+        post: operations["split_partner_links_accept_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/partner-links/{id}/decline/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description GET  /api/split/partner-links/         — { sent: [...], received: [...] }
+         *     POST /api/split/partner-links/         — { email } → crea/auto-accetta richiesta
+         *     POST /api/split/partner-links/{id}/accept/
+         *     POST /api/split/partner-links/{id}/decline/
+         */
+        post: operations["split_partner_links_decline_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/recurring/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        get: operations["split_recurring_list"];
+        put?: never;
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        post: operations["split_recurring_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/recurring/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        get: operations["split_recurring_retrieve"];
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        put: operations["split_recurring_update"];
+        post?: never;
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        delete: operations["split_recurring_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        patch: operations["split_recurring_partial_update"];
+        trace?: never;
+    };
+    "/api/split/recurring/{id}/disable/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        post: operations["split_recurring_disable_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/recurring/{id}/enable/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description CRUD per le spese ricorrenti di gruppo.
+         *
+         *     `get_queryset` è volutamente più permissivo (creatore della ricorrenza
+         *     OPPURE creatore del gruppo OPPURE membro attivo del gruppo) della
+         *     scoping usata da generate/backfill/disable (solo membro attivo, piano
+         *     sez. 3.4) — la prima è visibilità API, coerente con le altre ViewSet di
+         *     Split (es. SplitExpenseViewSet); la seconda è il perimetro di business
+         *     logic esplicitamente richiesto dal piano.
+         */
+        post: operations["split_recurring_enable_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/recurring/generate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/split/recurring/generate/
+         *
+         *     Genera le spese ricorrenti di gruppo per il mese/anno indicato, per
+         *     tutti i gruppi dove l'utente è membro attivo. Body: {month, year}.
+         */
+        post: operations["split_recurring_generate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/recurring/status/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/split/recurring/status/?month=M&year=Y
+         *
+         *     Stato per il widget "Ricorrenti di gruppo del mese": per ogni
+         *     recurring attiva indica se l'occorrenza del mese target è già
+         *     generata o pending.
+         */
+        get: operations["split_recurring_status_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/settlements/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description list/create/retrieve/delete per i settlement (piano sez. 6: "GET,
+         *     POST, DELETE"). Niente update: un settlement è un evento immutabile una
+         *     volta registrato — per correggerlo si cancella e se ne crea uno nuovo,
+         *     così l'eventuale shadow-tx collegata viene sempre ricreata da zero
+         *     invece che mutata in-place (stesso principio di apply_split_shares che
+         *     riscrive sempre da zero, ma qui applicato cancellando la riga intera dato
+         *     che un settlement non ha figli da riscrivere).
+         */
+        get: operations["split_settlements_list"];
+        put?: never;
+        /**
+         * @description list/create/retrieve/delete per i settlement (piano sez. 6: "GET,
+         *     POST, DELETE"). Niente update: un settlement è un evento immutabile una
+         *     volta registrato — per correggerlo si cancella e se ne crea uno nuovo,
+         *     così l'eventuale shadow-tx collegata viene sempre ricreata da zero
+         *     invece che mutata in-place (stesso principio di apply_split_shares che
+         *     riscrive sempre da zero, ma qui applicato cancellando la riga intera dato
+         *     che un settlement non ha figli da riscrivere).
+         */
+        post: operations["split_settlements_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/settlements/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description list/create/retrieve/delete per i settlement (piano sez. 6: "GET,
+         *     POST, DELETE"). Niente update: un settlement è un evento immutabile una
+         *     volta registrato — per correggerlo si cancella e se ne crea uno nuovo,
+         *     così l'eventuale shadow-tx collegata viene sempre ricreata da zero
+         *     invece che mutata in-place (stesso principio di apply_split_shares che
+         *     riscrive sempre da zero, ma qui applicato cancellando la riga intera dato
+         *     che un settlement non ha figli da riscrivere).
+         */
+        get: operations["split_settlements_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description list/create/retrieve/delete per i settlement (piano sez. 6: "GET,
+         *     POST, DELETE"). Niente update: un settlement è un evento immutabile una
+         *     volta registrato — per correggerlo si cancella e se ne crea uno nuovo,
+         *     così l'eventuale shadow-tx collegata viene sempre ricreata da zero
+         *     invece che mutata in-place (stesso principio di apply_split_shares che
+         *     riscrive sempre da zero, ma qui applicato cancellando la riga intera dato
+         *     che un settlement non ha figli da riscrivere).
+         */
+        delete: operations["split_settlements_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2031,6 +2758,10 @@ export interface components {
             readonly last_activity_at: string | null;
             readonly mfa_enabled: boolean;
             readonly webauthn_credential_count: string;
+            /** Format: date-time */
+            readonly terms_accepted_at: string | null;
+            /** Format: date-time */
+            readonly terms_rejected_at: string | null;
         };
         /**
          * @description * `pending` - Pending
@@ -2217,6 +2948,12 @@ export interface components {
             linked_asset?: number | null;
             is_verified?: boolean;
         };
+        /**
+         * @description * `MONTHLY` - Monthly
+         *     * `YEARLY` - Yearly
+         * @enum {string}
+         */
+        Frequency5b8Enum: "MONTHLY" | "YEARLY";
         InvestmentType: {
             readonly id: number;
             name: string;
@@ -2391,6 +3128,96 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["RecurringInvestmentPlan"][];
         };
+        PaginatedSplitContactList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SplitContact"][];
+        };
+        PaginatedSplitExpenseList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SplitExpense"][];
+        };
+        PaginatedSplitGroupList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SplitGroup"][];
+        };
+        PaginatedSplitPartnerLinkList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SplitPartnerLink"][];
+        };
+        PaginatedSplitRecurringExpenseList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SplitRecurringExpense"][];
+        };
+        PaginatedSplitSettlementList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SplitSettlement"][];
+        };
         PatchedAssetRequest: {
             name?: string;
             tracking_type?: components["schemas"]["TrackingTypeEnum"];
@@ -2464,7 +3291,7 @@ export interface components {
             amount?: string;
             category?: number | null;
             linked_asset?: number | null;
-            frequency?: components["schemas"]["RecurringExpenseFrequencyEnum"];
+            frequency?: components["schemas"]["Frequency5b8Enum"];
             generation_lead_days?: number;
             /** Format: int64 */
             day_of_month?: number;
@@ -2499,6 +3326,59 @@ export interface components {
             /** Format: date */
             end_date?: string | null;
         };
+        PatchedSplitContactRequest: {
+            display_name?: string;
+            color?: string;
+        };
+        PatchedSplitExpenseRequest: {
+            group?: number | null;
+            description?: string;
+            /** Format: decimal */
+            amount?: string;
+            /** Format: date */
+            date?: string;
+            split_method?: components["schemas"]["SplitMethodEnum"];
+            category?: number | null;
+            linked_asset?: number | null;
+            notes?: string;
+            participants?: components["schemas"]["SplitExpenseParticipantInputRequest"][];
+        };
+        PatchedSplitGroupRequest: {
+            name?: string;
+            icon?: string;
+            is_archived?: boolean;
+        };
+        /**
+         * @description Mirror di expenses.serializers.RecurringExpenseSerializer, più il
+         *     payload write-only `participants` (stessa forma — e stesso serializer —
+         *     di SplitExpenseSerializer) che alimenta il template
+         *     SplitRecurringExpenseParticipant (piano sez. 1.7/3.4). La validazione di
+         *     "ogni partecipante è un membro attivo del gruppo" vive nel service layer
+         *     (apply_split_recurring_participants → SplitServiceError, catturato in
+         *     create()/update() sotto), non duplicata qui — stesso principio di
+         *     SplitExpenseSerializer/apply_split_shares.
+         */
+        PatchedSplitRecurringExpenseRequest: {
+            group?: number;
+            description?: string;
+            /** Format: decimal */
+            amount?: string;
+            split_method?: components["schemas"]["SplitMethodEnum"];
+            category?: number | null;
+            linked_asset?: number | null;
+            frequency?: components["schemas"]["Frequency5b8Enum"];
+            /** Format: int64 */
+            day_of_month?: number;
+            /** Format: int64 */
+            month_of_year?: number | null;
+            is_active?: boolean;
+            status?: components["schemas"]["StatusE95Enum"];
+            /** Format: date */
+            start_date?: string;
+            /** Format: date */
+            end_date?: string | null;
+            participants?: components["schemas"]["SplitExpenseParticipantInputRequest"][];
+        };
         /**
          * @description * `AUTO` - Auto
          *     * `YAHOO` - Yahoo Finance
@@ -2514,7 +3394,7 @@ export interface components {
             category?: number | null;
             linked_asset?: number | null;
             readonly linked_asset_name: string;
-            frequency?: components["schemas"]["RecurringExpenseFrequencyEnum"];
+            frequency?: components["schemas"]["Frequency5b8Enum"];
             generation_lead_days?: number;
             /** Format: int64 */
             day_of_month?: number;
@@ -2533,19 +3413,13 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
-        /**
-         * @description * `MONTHLY` - Monthly
-         *     * `YEARLY` - Yearly
-         * @enum {string}
-         */
-        RecurringExpenseFrequencyEnum: "MONTHLY" | "YEARLY";
         RecurringExpenseRequest: {
             description: string;
             /** Format: decimal */
             amount: string;
             category?: number | null;
             linked_asset?: number | null;
-            frequency?: components["schemas"]["RecurringExpenseFrequencyEnum"];
+            frequency?: components["schemas"]["Frequency5b8Enum"];
             generation_lead_days?: number;
             /** Format: int64 */
             day_of_month?: number;
@@ -2625,6 +3499,236 @@ export interface components {
          * @enum {string}
          */
         RoleEnum: "user" | "admin";
+        SplitContact: {
+            readonly id: number;
+            display_name: string;
+            color?: string;
+            readonly linked_user: number | null;
+            readonly linked_user_email: string;
+            readonly is_archived: boolean;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        SplitContactRequest: {
+            display_name: string;
+            color?: string;
+        };
+        SplitExpense: {
+            readonly id: number;
+            group?: number | null;
+            description: string;
+            /** Format: decimal */
+            amount: string;
+            /** Format: date */
+            date: string;
+            split_method?: components["schemas"]["SplitMethodEnum"];
+            category?: number | null;
+            linked_asset?: number | null;
+            notes?: string;
+            readonly created_by: number | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly shares: components["schemas"]["SplitExpenseShareOutput"][];
+            readonly settlement_progress: string;
+        };
+        SplitExpenseParticipantInput: {
+            user_id?: number | null;
+            contact_id?: number | null;
+            /** Format: decimal */
+            raw_input?: string | null;
+            /** @default false */
+            is_payer: boolean;
+        };
+        SplitExpenseParticipantInputRequest: {
+            user_id?: number | null;
+            contact_id?: number | null;
+            /** Format: decimal */
+            raw_input?: string | null;
+            /** @default false */
+            is_payer: boolean;
+        };
+        SplitExpenseRequest: {
+            group?: number | null;
+            description: string;
+            /** Format: decimal */
+            amount: string;
+            /** Format: date */
+            date: string;
+            split_method?: components["schemas"]["SplitMethodEnum"];
+            category?: number | null;
+            linked_asset?: number | null;
+            notes?: string;
+            participants: components["schemas"]["SplitExpenseParticipantInputRequest"][];
+        };
+        SplitExpenseShareOutput: {
+            readonly id: number;
+            readonly participant: number;
+            readonly participant_user_id: number;
+            readonly participant_contact_id: number;
+            /** Format: decimal */
+            readonly share_amount: string;
+            /** Format: decimal */
+            readonly raw_input: string | null;
+            readonly is_payer: boolean;
+        };
+        SplitGroup: {
+            readonly id: number;
+            name: string;
+            icon?: string;
+            is_archived?: boolean;
+            readonly created_by: number | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly members: string;
+        };
+        SplitGroupRequest: {
+            name: string;
+            icon?: string;
+            is_archived?: boolean;
+        };
+        /**
+         * @description * `equal` - Equal
+         *     * `exact` - Exact amounts
+         *     * `percentage` - Percentage
+         *     * `shares` - Shares/weights
+         * @enum {string}
+         */
+        SplitMethodEnum: "equal" | "exact" | "percentage" | "shares";
+        SplitPartnerLink: {
+            readonly id: number;
+            readonly requester: number;
+            readonly requester_email: string;
+            readonly recipient: number;
+            readonly recipient_email: string;
+            /** @default PENDING */
+            readonly status: components["schemas"]["SplitPartnerLinkStatusEnum"];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly responded_at: string | null;
+        };
+        /**
+         * @description * `PENDING` - Pending
+         *     * `ACCEPTED` - Accepted
+         *     * `DECLINED` - Declined
+         *     * `CANCELLED` - Cancelled
+         * @enum {string}
+         */
+        SplitPartnerLinkStatusEnum: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
+        /**
+         * @description Mirror di expenses.serializers.RecurringExpenseSerializer, più il
+         *     payload write-only `participants` (stessa forma — e stesso serializer —
+         *     di SplitExpenseSerializer) che alimenta il template
+         *     SplitRecurringExpenseParticipant (piano sez. 1.7/3.4). La validazione di
+         *     "ogni partecipante è un membro attivo del gruppo" vive nel service layer
+         *     (apply_split_recurring_participants → SplitServiceError, catturato in
+         *     create()/update() sotto), non duplicata qui — stesso principio di
+         *     SplitExpenseSerializer/apply_split_shares.
+         */
+        SplitRecurringExpense: {
+            readonly id: number;
+            group: number;
+            description: string;
+            /** Format: decimal */
+            amount: string;
+            split_method?: components["schemas"]["SplitMethodEnum"];
+            category?: number | null;
+            linked_asset?: number | null;
+            readonly linked_asset_name: string;
+            frequency?: components["schemas"]["Frequency5b8Enum"];
+            /** Format: int64 */
+            day_of_month?: number;
+            /** Format: int64 */
+            month_of_year?: number | null;
+            is_active?: boolean;
+            status?: components["schemas"]["StatusE95Enum"];
+            /** Format: date */
+            start_date: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: date-time */
+            readonly disabled_at: string | null;
+            /** Format: date-time */
+            readonly deleted_at: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly created_by: number | null;
+            readonly participant_templates: components["schemas"]["SplitRecurringExpenseParticipantOutput"][];
+        };
+        SplitRecurringExpenseParticipantOutput: {
+            readonly id: number;
+            readonly participant: number;
+            readonly participant_user_id: number;
+            readonly participant_contact_id: number;
+            /** Format: decimal */
+            readonly raw_input: string | null;
+            readonly is_payer: boolean;
+        };
+        /**
+         * @description Mirror di expenses.serializers.RecurringExpenseSerializer, più il
+         *     payload write-only `participants` (stessa forma — e stesso serializer —
+         *     di SplitExpenseSerializer) che alimenta il template
+         *     SplitRecurringExpenseParticipant (piano sez. 1.7/3.4). La validazione di
+         *     "ogni partecipante è un membro attivo del gruppo" vive nel service layer
+         *     (apply_split_recurring_participants → SplitServiceError, catturato in
+         *     create()/update() sotto), non duplicata qui — stesso principio di
+         *     SplitExpenseSerializer/apply_split_shares.
+         */
+        SplitRecurringExpenseRequest: {
+            group: number;
+            description: string;
+            /** Format: decimal */
+            amount: string;
+            split_method?: components["schemas"]["SplitMethodEnum"];
+            category?: number | null;
+            linked_asset?: number | null;
+            frequency?: components["schemas"]["Frequency5b8Enum"];
+            /** Format: int64 */
+            day_of_month?: number;
+            /** Format: int64 */
+            month_of_year?: number | null;
+            is_active?: boolean;
+            status?: components["schemas"]["StatusE95Enum"];
+            /** Format: date */
+            start_date: string;
+            /** Format: date */
+            end_date?: string | null;
+            participants: components["schemas"]["SplitExpenseParticipantInputRequest"][];
+        };
+        SplitSettlement: {
+            readonly id: number;
+            group?: number | null;
+            payer_user?: number | null;
+            readonly payer_user_email: string;
+            payer_contact?: number | null;
+            readonly payer_contact_name: string;
+            payee_user?: number | null;
+            readonly payee_user_email: string;
+            payee_contact?: number | null;
+            readonly payee_contact_name: string;
+            /** Format: decimal */
+            amount: string;
+            /** Format: date */
+            date: string;
+            notes?: string;
+            linked_asset?: number | null;
+            readonly created_by: number | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        SplitSettlementRequest: {
+            group?: number | null;
+            payer_user?: number | null;
+            payer_contact?: number | null;
+            payee_user?: number | null;
+            payee_contact?: number | null;
+            /** Format: decimal */
+            amount: string;
+            /** Format: date */
+            date: string;
+            notes?: string;
+            linked_asset?: number | null;
+        };
         /**
          * @description * `ACTIVE` - Active
          *     * `DISABLED` - Disabled
@@ -2676,6 +3780,7 @@ export interface components {
             email?: string;
             password: string;
             password2: string;
+            terms_accepted: boolean;
         };
     };
     responses: never;
@@ -2961,6 +4066,62 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_tokens_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_tokens_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_api_tokens_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -3946,6 +5107,31 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+        };
+    };
+    expenses_quick_add_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseRequest"];
+                "multipart/form-data": components["schemas"]["ExpenseRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5690,6 +6876,972 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Asset"];
                 };
+            };
+        };
+    };
+    split_balances_overview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_contacts_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSplitContactList"];
+                };
+            };
+        };
+    };
+    split_contacts_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitContactRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitContactRequest"];
+                "multipart/form-data": components["schemas"]["SplitContactRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitContact"];
+                };
+            };
+        };
+    };
+    split_contacts_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitContact"];
+                };
+            };
+        };
+    };
+    split_contacts_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitContactRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitContactRequest"];
+                "multipart/form-data": components["schemas"]["SplitContactRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitContact"];
+                };
+            };
+        };
+    };
+    split_contacts_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_contacts_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSplitContactRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSplitContactRequest"];
+                "multipart/form-data": components["schemas"]["PatchedSplitContactRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitContact"];
+                };
+            };
+        };
+    };
+    split_expenses_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSplitExpenseList"];
+                };
+            };
+        };
+    };
+    split_expenses_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitExpenseRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitExpense"];
+                };
+            };
+        };
+    };
+    split_expenses_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitExpense"];
+                };
+            };
+        };
+    };
+    split_expenses_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitExpense"];
+                };
+            };
+        };
+    };
+    split_expenses_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_expenses_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSplitExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSplitExpenseRequest"];
+                "multipart/form-data": components["schemas"]["PatchedSplitExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitExpense"];
+                };
+            };
+        };
+    };
+    split_groups_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSplitGroupList"];
+                };
+            };
+        };
+    };
+    split_groups_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitGroupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitGroupRequest"];
+                "multipart/form-data": components["schemas"]["SplitGroupRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitGroupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitGroupRequest"];
+                "multipart/form-data": components["schemas"]["SplitGroupRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_groups_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSplitGroupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSplitGroupRequest"];
+                "multipart/form-data": components["schemas"]["PatchedSplitGroupRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_balances_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_members_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_members_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitGroupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitGroupRequest"];
+                "multipart/form-data": components["schemas"]["SplitGroupRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_groups_members_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_groups_simplify_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitGroup"];
+                };
+            };
+        };
+    };
+    split_partner_links_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSplitPartnerLinkList"];
+                };
+            };
+        };
+    };
+    split_partner_links_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitPartnerLink"];
+                };
+            };
+        };
+    };
+    split_partner_links_accept_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitPartnerLink"];
+                };
+            };
+        };
+    };
+    split_partner_links_decline_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitPartnerLink"];
+                };
+            };
+        };
+    };
+    split_recurring_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSplitRecurringExpenseList"];
+                };
+            };
+        };
+    };
+    split_recurring_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitRecurringExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitRecurringExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitRecurringExpenseRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitRecurringExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitRecurringExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitRecurringExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_recurring_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSplitRecurringExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSplitRecurringExpenseRequest"];
+                "multipart/form-data": components["schemas"]["PatchedSplitRecurringExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_disable_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitRecurringExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitRecurringExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitRecurringExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_enable_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitRecurringExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitRecurringExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitRecurringExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_generate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitRecurringExpenseRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitRecurringExpenseRequest"];
+                "multipart/form-data": components["schemas"]["SplitRecurringExpenseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_recurring_status_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitRecurringExpense"];
+                };
+            };
+        };
+    };
+    split_settlements_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSplitSettlementList"];
+                };
+            };
+        };
+    };
+    split_settlements_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitSettlementRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SplitSettlementRequest"];
+                "multipart/form-data": components["schemas"]["SplitSettlementRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitSettlement"];
+                };
+            };
+        };
+    };
+    split_settlements_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitSettlement"];
+                };
+            };
+        };
+    };
+    split_settlements_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

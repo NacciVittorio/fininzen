@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 
-type SegmentedOption = string | { value: string; label: ReactNode };
+type SegmentedOption =
+    string | { value: string; label: ReactNode; testId?: string };
 
 type SegmentedControlProps = {
     options: readonly SegmentedOption[];
@@ -20,6 +21,7 @@ export default function SegmentedControl({
             {options.map((opt) => {
                 const v = typeof opt === "string" ? opt : opt.value;
                 const label = typeof opt === "string" ? opt : opt.label;
+                const testId = typeof opt === "string" ? undefined : opt.testId;
                 const active = v === value;
                 return (
                     <button
@@ -27,6 +29,7 @@ export default function SegmentedControl({
                         type="button"
                         role="tab"
                         aria-selected={active}
+                        data-testid={testId}
                         onClick={() => onChange(v)}
                     >
                         {label}

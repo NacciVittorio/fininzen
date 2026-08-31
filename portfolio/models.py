@@ -597,6 +597,29 @@ class AssetTransaction(models.Model):
         blank=True,
         related_name="portfolio_transactions",
     )
+    # Mirror di source_expense (piano feature Split sez. 0.3/4): la shadow-tx
+    # riflette sul saldo del conto l'INTERO importo di una SplitExpense (mai
+    # la quota netta) quando la spesa condivisa ha un linked_asset — vedi
+    # splitting/signals.py::sync_split_expense_to_asset.
+    source_split_expense = models.ForeignKey(
+        "splitting.SplitExpense",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="portfolio_transactions",
+    )
+    # Mirror di source_split_expense (piano feature Split sez. 1.6/4): la
+    # shadow-tx riflette sul saldo del conto l'importo di un SplitSettlement
+    # (CASH_IN se l'utente collegato riceve il pagamento, CASH_OUT se lo
+    # effettua) quando il settlement ha un linked_asset — vedi
+    # splitting/signals.py::sync_split_settlement_to_asset.
+    source_split_settlement = models.ForeignKey(
+        "splitting.SplitSettlement",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="portfolio_transactions",
+    )
     recurring_plan = models.ForeignKey(
         "RecurringInvestmentPlan",
         on_delete=models.SET_NULL,
@@ -678,6 +701,16 @@ class AssetTransaction(models.Model):
                 fields=["source_expense"],
                 condition=Q(source_expense__isnull=False),
                 name="unique_shadow_tx_per_expense",
+            ),
+            UniqueConstraint(
+                fields=["source_split_expense"],
+                condition=Q(source_split_expense__isnull=False),
+                name="unique_shadow_tx_per_split_expense",
+            ),
+            UniqueConstraint(
+                fields=["source_split_settlement"],
+                condition=Q(source_split_settlement__isnull=False),
+                name="unique_shadow_tx_per_split_settlement",
             ),
             UniqueConstraint(
                 fields=["owner", "recurring_plan", "recurring_occurrence_date"],

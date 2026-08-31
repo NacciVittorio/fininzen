@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Label from "./ui/Label";
 
 // Renders a real <label htmlFor> when an id is provided so screen readers
 // announce the field; falls back to a plain <div> for decorative labels.
@@ -19,12 +20,9 @@ export default function FieldLabel({
         fontWeight: 500,
         display: "block",
     };
-    if (htmlFor) {
-        return (
-            <label htmlFor={htmlFor} style={style}>
-                {text}
-            </label>
-        );
-    }
-    return <div style={style}>{text}</div>;
+    return (
+        <Label htmlFor={htmlFor} style={style}>
+            {text}
+        </Label>
+    );
 }

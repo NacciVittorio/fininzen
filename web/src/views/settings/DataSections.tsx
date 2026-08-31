@@ -2,17 +2,12 @@
 
 import { DataExportSection } from "./DataExportSection";
 import { DataImportSection } from "./DataImportSection";
-import type { AccordionProps } from "./SettingsNavigation";
 
-export function DataSections({
-    accordionProps,
-}: {
-    accordionProps: AccordionProps;
-}) {
+export function DataSections() {
     return (
-        <>
-            <DataImportSection accordionProps={accordionProps} />
-            <DataExportSection accordionProps={accordionProps} />
-        </>
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            <DataImportSection />
+            <DataExportSection />
+        </div>
     );
 }

@@ -37,14 +37,14 @@ soupsieve==2.9.2
 sqlparse==0.6.0
 typing_extensions==4.16.0
 urllib3==2.7.0
-websockets==16.1.1
+websockets==17.1
 yfinance==1.6.0
 pytest==9.1.1
 pytest-django==4.14.0
 pytest-cov==7.1.0
 djangorestframework-simplejwt==5.5.1
 gunicorn==26.1.0
-setuptools==83.0.0
+setuptools==84.0.0
 webauthn==3.0.0
 ruff==0.16.4
 pre-commit==4.6.2

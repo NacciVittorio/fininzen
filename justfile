@@ -35,7 +35,7 @@ update: install
 # ── Database ─────────────────────────────────────────────────────────────────
 
 makemigrations:
-    {{venv_python}} manage.py makemigrations fininzen expenses portfolio
+    {{venv_python}} manage.py makemigrations fininzen expenses portfolio splitting
 
 migrate:
     {{venv_python}} manage.py migrate
@@ -56,18 +56,27 @@ clear:
 # ── Start ────────────────────────────────────────────────────────────────────
 
 backend:
-    DJANGO_DEBUG=1 {{venv_python}} manage.py runserver
+    DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ {{venv_python}} manage.py runserver
+
+# E2E-only server: identico a `backend`, ma con E2E_RELAX_THROTTLES=1 (rate
+# limit login/register alzati a 100000/minute) e E2E_AUTO_APPROVE_REGISTRATION=1
+# (salta il gate di approvazione admin per i nuovi signup). Usalo SOLO per far
+# girare `just test-e2e` in un altro terminale senza rimigrare/reinstallare a
+# ogni run. Non è sicuro: MAI per demo, staging o produzione, dove sia i rate
+# limit sia il gate di approvazione devono restare attivi.
+backend-e2e:
+    DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ E2E_RELAX_THROTTLES=1 E2E_AUTO_APPROVE_REGISTRATION=1 {{venv_python}} manage.py runserver
 
 web:
     npm run dev --prefix {{web_dir}}
 
 start:
-    DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
+    DJANGO_PID="" WEB_PID=""; cleanup() { kill "$DJANGO_PID" "$WEB_PID" 2>/dev/null || true; exit 0; }; trap cleanup INT TERM; DJANGO_DEBUG=1 REFRESH_COOKIE_PATH=/fininzen/api/auth/ {{venv_python}} manage.py runserver 127.0.0.1:8000 & DJANGO_PID=$!; npm run dev --prefix {{web_dir}} & WEB_PID=$!; wait "$DJANGO_PID" "$WEB_PID"
 
 # ── Bare-metal production (systemd, no Docker) ───────────────────────────────
 # Da eseguire sul VPS come utente fininzen dentro /opt/fininzen. La produzione
 # usa SQLite (ALLOW_SQLITE_IN_PRODUCTION=1 in /etc/fininzen.env). Guida completa:
-# wiki/DEPLOY.md. I comandi manage.py sono management command → non attivano il
+# wiki/SYSTEMD_DEPLOY.md. I comandi manage.py sono management command → non attivano il
 # guard di boot, quindi non servono le env di sicurezza per migrate/collectstatic.
 
 migrate-prod:
@@ -99,9 +108,9 @@ docker-local-down:
 docker-local-logs:
     docker compose -f deploy/docker/local/compose.yml logs -f postgres redis
 
-# ── Full Docker stack (production deploy: Caddy + Next.js + Django + PG + Redis) ─
-# Run these on the server from the repo root. Require deploy/docker/production/.env.
-# Full guide: wiki/DOCKER_DEPLOY.md
+# ── Full Docker stack (reverse proxy esterno + Next.js + Django + PG + Redis) ─
+# Requires an external reverse-proxy network and
+# deploy/docker/production/.env. Guide: wiki/DOCKER_DEPLOY.md.
 
 production-up:
     docker compose {{production}} up -d --build
@@ -125,20 +134,41 @@ production-refresh-prices:
     docker compose {{production}} exec -T backend python manage.py refresh_asset_prices
 
 production-backup:
-    bash scripts/backup_db.sh
+    bash scripts/backup_postgres.sh
+
+production-backup-bundle:
+    bash scripts/backup_production_bundle.sh
 
 # ── Code quality ─────────────────────────────────────────────────────────────
 
 test-backend:
     {{venv_python}} -m pytest -c pytest.ini --cov-fail-under=75
 
-test-e2e:
-    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then npm run test:e2e --prefix {{web_dir}}; else echo "Django not running on :8000 — skipping E2E."; fi
+# Runs the Playwright e2e suite (~130 tests across the two playwright.config.ts
+# projects). With nothing listening on :8000, boots a throwaway Django server
+# via ci-tools/test-e2e.sh — the same script CI uses, with
+# E2E_RELAX_THROTTLES/E2E_AUTO_APPROVE_REGISTRATION set — and tears it down
+# afterwards. If something is already listening on :8000 (e.g. `just
+# backend-e2e` running in another terminal for fast iteration), reuses it
+# as-is instead. Extra args are forwarded to Playwright, e.g.:
+#   just test-e2e -- --project=mobile-viewport
+test-e2e *ARGS:
+    if curl -s --connect-timeout 1 http://localhost:8000/ > /dev/null 2>&1; then \
+    echo "⚠️  Reusing the server already listening on :8000 for e2e tests."; \
+    echo "    If it was NOT started with 'just backend-e2e', E2E_RELAX_THROTTLES /"; \
+    echo "    E2E_AUTO_APPROVE_REGISTRATION are unset and most specs will fail with"; \
+    echo "    429 (throttled) / 403 (account_pending). Either stop it and run"; \
+    echo "    'just backend-e2e' in another terminal, or free :8000 so this target"; \
+    echo "    can boot its own throwaway server via ci-tools/test-e2e.sh."; \
+    npm run test:e2e --prefix {{web_dir}} -- {{ARGS}}; \
+    else \
+    PATH="venv/bin:$PATH" bash ci-tools/test-e2e.sh {{ARGS}}; \
+    fi
 
 test: test-backend test-e2e
 
 lint:
-    ruff check .
+    {{venv_python}} -m ruff check .
     npm run lint --prefix {{web_dir}}
 
 # Regenerate the committed OpenAPI schema from the DRF views. The web typed
@@ -153,7 +183,7 @@ stamp-release-notes:
     {{venv_python}} scripts/stamp_release_notes.py
 
 format:
-    ruff format .
+    {{venv_python}} -m ruff format .
     npm run format --prefix {{web_dir}}
 
 # HIGH-33: install the git pre-commit hooks (ruff + prettier) from
@@ -172,7 +202,8 @@ hooks-run:
 # version and an incremental changelog. On every later run it bumps the unified
 # version (SemVer) from the Conventional Commits: update VERSION +
 # web/package.json + CHANGELOG.md and create the vX.Y.Z tag. Either way it pushes
-# commit + tag, and the `release` job in .gitlab-ci.yml then publishes the Release.
+# commit + tag; the GitHub mirror workflow then publishes the GitHub and GitLab
+# Releases while GitLab CI is dormant.
 # Usage:
 #   just release            → increment inferred automatically from the commits
 #   just release patch      → force a patch increment (likewise minor / major)

@@ -19,6 +19,7 @@ import {
     requestLogout,
     requestMfaVerify,
     requestRegister,
+    requestTokenRefresh,
 } from "../api/auth";
 import { useSharing } from "./useSharing";
 import { useAuthenticatedFetch } from "./useAuthenticatedFetch";
@@ -66,6 +67,7 @@ const TAB_ROUTES: Record<string, string> = {
     accounts: "/accounts",
     portfolio: "/portfolio",
     fire: "/fire",
+    split: "/split",
     settings: "/settings",
 };
 const tabFromPathname = (pathname: string | null): string => {
@@ -85,6 +87,7 @@ type UserProfile = {
     status: "pending" | "approved" | "rejected";
     role: "user" | "admin";
     mfa_enabled: boolean;
+    terms_accepted_at: string | null;
 };
 
 type ProfileApplyResult = {
@@ -125,6 +128,13 @@ export function useSessionController(providerState: AppProviderState) {
     const [isAuthenticated, setIsAuthenticated] = useState(
         () => lsGet("fn_session") === "1",
     );
+    // A remembered session has only an httpOnly refresh cookie after a reload;
+    // do not let protected views or data queries run until it has produced a
+    // new in-memory access token.
+    const [authReady, setAuthReady] = useState(
+        () => lsGet("fn_session") !== "1",
+    );
+    const sessionRestoreRef = useRef<Promise<boolean> | null>(null);
     const [isDemo, setIsDemo] = useState(() => lsGet("is_demo") === "true");
     const [authSessionNonce, setAuthSessionNonce] = useState(0);
     // ── App-lock (biometric) ──
@@ -190,7 +200,7 @@ export function useSessionController(providerState: AppProviderState) {
         }
         return false;
     }, []);
-    const [user, setUser] = useState<string | null>(null);
+    const [user, setUser] = useState<string | null>(() => lsGet("auth_email"));
 
     const login = useCallback(
         async (
@@ -227,6 +237,7 @@ export function useSessionController(providerState: AppProviderState) {
                 setDemoConfirm(false);
                 setDemoUnderstood(false);
                 setIsAuthenticated(true);
+                setAuthReady(true);
                 setIsDemo(false);
                 setUser(email);
                 setTab("dashboard");
@@ -267,6 +278,7 @@ export function useSessionController(providerState: AppProviderState) {
                 setDemoConfirm(false);
                 setDemoUnderstood(false);
                 setIsAuthenticated(true);
+                setAuthReady(true);
                 setIsDemo(false);
                 setUser(email);
                 setTab("dashboard");
@@ -282,8 +294,13 @@ export function useSessionController(providerState: AppProviderState) {
     );
 
     const register = useCallback(
-        async (email: string, password: string, password2: string) => {
-            return requestRegister(email, password, password2);
+        async (
+            email: string,
+            password: string,
+            password2: string,
+            termsAccepted: boolean,
+        ) => {
+            return requestRegister(email, password, password2, termsAccepted);
         },
         [],
     );
@@ -302,6 +319,7 @@ export function useSessionController(providerState: AppProviderState) {
             setDemoConfirm(false);
             setDemoUnderstood(false);
             setIsAuthenticated(true);
+            setAuthReady(true);
             setIsDemo(true);
             setUser("demo@demo.com");
             setIsLocked(false);
@@ -332,6 +350,7 @@ export function useSessionController(providerState: AppProviderState) {
             setDemoConfirm(false);
             setDemoUnderstood(false);
             setIsAuthenticated(true);
+            setAuthReady(true);
             setIsDemo(false);
             setUser(email);
             setIsLocked(false);
@@ -355,6 +374,7 @@ export function useSessionController(providerState: AppProviderState) {
         status: "approved",
         role: "user",
         mfa_enabled: false,
+        terms_accepted_at: null,
     });
     const [privacyPreferences, setPrivacyPreferences] =
         useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
@@ -386,6 +406,18 @@ export function useSessionController(providerState: AppProviderState) {
             setEnabledFeatures(features);
             // Keep auth_email fresh so the app-lock screen can re-authenticate by email
             if (data.email) localStorage.setItem("auth_email", data.email);
+            // `user` is otherwise only ever set by the interactive login()/
+            // demoLogin()/biometricLogin() callbacks — never by a session
+            // restored via the silent-refresh path (useAuthenticatedFetch's
+            // 401→refresh→retry), which is what runs on every plain page
+            // reload once the in-memory access token is gone (HIGH-21). Left
+            // unset there, `user` stayed null for the rest of the tab's life
+            // after any reload, breaking every "is this me" comparison that
+            // reads it (e.g. Split's resolveMySplitUserId/splitIdentityIsMe).
+            // applyProfileData runs on every authenticated bootstrap
+            // regardless of how the session came to be, so mirror the
+            // login callbacks here too.
+            if (data.email) setUser(data.email);
             setProfile({
                 email: data.email ?? "",
                 name: data.name ?? "",
@@ -401,6 +433,10 @@ export function useSessionController(providerState: AppProviderState) {
                         : "approved",
                 role: data.role === "admin" ? "admin" : "user",
                 mfa_enabled: !!data.mfa_enabled,
+                terms_accepted_at:
+                    typeof data.terms_accepted_at === "string"
+                        ? data.terms_accepted_at
+                        : null,
             });
             setPrivacyPreferences(
                 normalizePrivacyPreferences(data.privacy_preferences),
@@ -476,6 +512,11 @@ export function useSessionController(providerState: AppProviderState) {
         [setDashConfig, setMonthlyOverviewPrefs, setWealthMetrics],
     );
     const logout = useCallback(() => {
+        // Stop active queries before dropping the shared Cache Storage. A
+        // NetworkFirst request already in flight can otherwise complete after
+        // resetClientState() deletes the cache and recreate it with responses
+        // from the session that is signing out.
+        const pendingQueryCancellation = queryClient.cancelQueries();
         // Best-effort server-side logout: clears + blacklists the refresh cookie.
         // Fire-and-forget (uses plain fetch, never apiFetch, to avoid a refresh loop).
         try {
@@ -485,6 +526,10 @@ export function useSessionController(providerState: AppProviderState) {
         }
         clearAccessToken();
         resetClientState();
+        void pendingQueryCancellation.then(
+            () => clearApiResponseCaches(),
+            () => clearApiResponseCaches(),
+        );
         localStorage.removeItem("fn_session");
         localStorage.removeItem("is_demo");
         localStorage.removeItem("auth_email");
@@ -496,6 +541,7 @@ export function useSessionController(providerState: AppProviderState) {
         setDemoConfirm(false);
         setDemoUnderstood(false);
         setIsAuthenticated(false);
+        setAuthReady(true);
         setIsDemo(false);
         setUser(null);
         setIsLocked(false);
@@ -514,11 +560,44 @@ export function useSessionController(providerState: AppProviderState) {
             status: "approved",
             role: "user",
             mfa_enabled: false,
+            terms_accepted_at: null,
         });
         setPrivacyPreferences(DEFAULT_PRIVACY_PREFERENCES);
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);
         setAuthSessionNonce((n) => n + 1);
-    }, [resetClientState, setDemoConfirm, setDemoUnderstood, setTab]);
+    }, [
+        queryClient,
+        resetClientState,
+        setDemoConfirm,
+        setDemoUnderstood,
+        setTab,
+    ]);
+
+    // Restore the short-lived access token once, before mounting protected
+    // route content. The 401→refresh retry in useAuthenticatedFetch remains a
+    // safety net for tokens that expire later during an active session.
+    useEffect(() => {
+        if (!isAuthenticated || authReady) return;
+        if (sessionRestoreRef.current) return;
+        sessionRestoreRef.current = (async () => {
+            try {
+                const response = await requestTokenRefresh();
+                if (!response.ok) return false;
+                const data = (await response.json()) as TokenResponse;
+                if (!data.access) return false;
+                setAccessToken(data.access);
+                setAuthReady(true);
+                return true;
+            } catch {
+                return false;
+            } finally {
+                sessionRestoreRef.current = null;
+            }
+        })();
+        void sessionRestoreRef.current.then((restored) => {
+            if (!restored) logout();
+        });
+    }, [authReady, isAuthenticated, logout]);
 
     // ── App-lock methods ──
     // Enable: register a platform credential (prompts Face ID/Touch ID), then flag on.
@@ -609,6 +688,7 @@ export function useSessionController(providerState: AppProviderState) {
     }, [enabledFeatures, tab, isAuthenticated, setTab]);
     return {
         isAuthenticated,
+        authReady,
         isDemo,
         authSessionNonce,
         appLockEnabled,
@@ -650,6 +730,7 @@ export function useSessionController(providerState: AppProviderState) {
         sharingController,
         fetchGrants,
         switchAccount,
+        pathname,
         tab,
         setTab,
     };

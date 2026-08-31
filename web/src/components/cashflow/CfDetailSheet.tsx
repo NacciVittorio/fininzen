@@ -5,8 +5,14 @@ import type { ReactNode } from "react";
 import { useApp } from "../../context/useApp";
 import { useFormatters } from "../../utils/useFormatters";
 import { formatDate } from "../../utils/formatters";
+import {
+    canVerifyRow,
+    isOutcomeMoney,
+    splitRowActions,
+} from "../../utils/cashflowItemKind";
 import { BottomSheet, ToggleSwitch } from "../ui";
 import type { CfItem } from "./CfTransactionRow";
+import { getCashflowItemTitle } from "./transactionTypeLabels";
 
 function Field({ label, value }: { label: ReactNode; value: ReactNode }) {
     return (
@@ -40,9 +46,11 @@ function Field({ label, value }: { label: ReactNode; value: ReactNode }) {
 }
 
 // Tap-to-detail bottom sheet: read-only fields + a Verificato toggle (hidden
-// for adjustments, mirroring bulkActionsAllowed) + Modifica / Elimina. Edit and
-// delete dispatch back to the existing flows in the parent (so the delete
-// confirm + double-leg handling are unchanged).
+// for adjustments and split rows, mirroring bulkActionsAllowed) + Modifica /
+// Elimina — for split rows these become "Apri in Split" and/or disappear
+// (piano Batch 1, see the split_* flags below). Edit and delete dispatch back
+// to the existing flows in the parent (so the delete confirm + double-leg
+// handling are unchanged).
 export default function CfDetailSheet({
     item,
     open,
@@ -68,20 +76,33 @@ export default function CfDetailSheet({
 
     const isTransfer = data?.source_type === "transfer";
     const isAdjustment = data?.source_type === "adjustment";
-    const canVerify = !isAdjustment;
+    // See web/src/utils/cashflowItemKind.ts for why: split rows are always
+    // verified, have no editable bulk fields, and only a grouped settlement
+    // has anywhere to land in Split (mirrors CfTransactionRow's swipe
+    // actions and CashflowFeed.tsx's per-row canVerify — same derivation,
+    // now shared instead of copy-pasted).
+    const canVerify = canVerifyRow(data);
+    const {
+        isSplitExpense,
+        openInSplit,
+        showEditAction: showEdit,
+        showDeleteAction: showDelete,
+    } = splitRowActions(data);
+    const editLabel = openInSplit ? T("cf_open_in_split") : T("cf_bulk_edit");
 
+    const isOutcome = isOutcomeMoney(data);
     const typeColor = !data
         ? "var(--fg)"
         : data.type === "income"
           ? "var(--success)"
-          : data.type === "outcome"
+          : isOutcome
             ? "var(--danger)"
             : "var(--fg-soft)";
     const sign = !data
         ? ""
         : data.type === "income"
           ? "+"
-          : data.type === "outcome"
+          : isOutcome
             ? "-"
             : "±";
     const catColor = data?.category?.color || "var(--fg-soft)";
@@ -94,17 +115,7 @@ export default function CfDetailSheet({
             : isAdjustment && data?.account
               ? data.account.name
               : data?.account?.name || null;
-    const title =
-        data?.description ||
-        (data?.type === "adjustment" ? T("cf_adjustment_default") : null) ||
-        (data?.type === "transfer"
-            ? T("cf_transfer_default_in").replace(
-                  "{account}",
-                  data?.from_account?.name ?? "",
-              )
-            : null) ||
-        categoryText ||
-        "—";
+    const title = data ? getCashflowItemTitle(data, T) : "";
 
     return (
         <BottomSheet open={open} onClose={onClose} ariaLabel={title}>
@@ -182,6 +193,12 @@ export default function CfDetailSheet({
                                 value={accountText}
                             />
                         )}
+                        {isSplitExpense && data.gross_amount && (
+                            <Field
+                                label={T("cf_split_gross_amount_label")}
+                                value={formatEur(data.gross_amount)}
+                            />
+                        )}
                         <Field
                             label={T("cf_edit_date")}
                             value={formatDate(data.date)}
@@ -230,6 +247,21 @@ export default function CfDetailSheet({
                         </div>
                     )}
 
+                    {isSplitExpense && data.gross_amount && (
+                        <div
+                            style={{
+                                margin: "12px 14px 0",
+                                padding: "10px 14px",
+                                borderRadius: 12,
+                                background: "var(--card-inset)",
+                                color: "var(--fg-soft)",
+                                fontSize: 13,
+                            }}
+                        >
+                            {T("cf_split_net_quota_hint")}
+                        </div>
+                    )}
+
                     {/* actions */}
                     <div
                         style={{
@@ -238,43 +270,47 @@ export default function CfDetailSheet({
                             padding: "16px 14px 0",
                         }}
                     >
-                        <button
-                            type="button"
-                            data-testid="cf-detail-edit"
-                            onClick={() => onEdit(data)}
-                            style={{
-                                flex: 1,
-                                padding: "14px",
-                                borderRadius: 14,
-                                border: 0,
-                                background: "var(--btn-primary-bg)",
-                                color: "var(--btn-primary-fg)",
-                                fontSize: 16,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                            }}
-                        >
-                            {T("cf_bulk_edit")}
-                        </button>
-                        <button
-                            type="button"
-                            data-testid="cf-detail-delete"
-                            onClick={() => onDelete(data)}
-                            style={{
-                                padding: "14px 18px",
-                                borderRadius: 14,
-                                border: 0,
-                                background: "var(--danger-soft)",
-                                color: "var(--danger)",
-                                fontSize: 16,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                            }}
-                        >
-                            {T("cf_bulk_delete")}
-                        </button>
+                        {showEdit && (
+                            <button
+                                type="button"
+                                data-testid="cf-detail-edit"
+                                onClick={() => onEdit(data)}
+                                style={{
+                                    flex: 1,
+                                    padding: "14px",
+                                    borderRadius: 14,
+                                    border: 0,
+                                    background: "var(--btn-primary-bg)",
+                                    color: "var(--btn-primary-fg)",
+                                    fontSize: 16,
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    fontFamily: "inherit",
+                                }}
+                            >
+                                {editLabel}
+                            </button>
+                        )}
+                        {showDelete && (
+                            <button
+                                type="button"
+                                data-testid="cf-detail-delete"
+                                onClick={() => onDelete(data)}
+                                style={{
+                                    padding: "14px 18px",
+                                    borderRadius: 14,
+                                    border: 0,
+                                    background: "var(--danger-soft)",
+                                    color: "var(--danger)",
+                                    fontSize: 16,
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    fontFamily: "inherit",
+                                }}
+                            >
+                                {T("cf_bulk_delete")}
+                            </button>
+                        )}
                     </div>
                 </div>
             )}

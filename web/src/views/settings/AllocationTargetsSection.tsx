@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteAllocationTarget } from "../../api/planning";
+import { Card } from "../../components/ui";
 import { useSettings } from "../../context/useSettings";
 import { regroupTargets } from "../../utils/allocationGroups";
 import { AllocationTargetInput } from "./AllocationTargetInput";
@@ -32,9 +33,7 @@ export function AllocationTargetsSection() {
 
     return (
         <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
-                {T("alloc_title")}
-            </div>
+            <div className="grouped-list__title">{T("alloc_title")}</div>
             <div
                 style={{
                     fontSize: 13,
@@ -151,7 +150,7 @@ function AllocationTargetRow({
     fetchAllocationData: () => void;
 }) {
     return (
-        <div className="card" style={{ padding: "14px 16px" }}>
+        <Card variant="settings">
             <div className="between" style={{ marginBottom: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 500 }}>
                     {item.icon} {item.name}
@@ -197,7 +196,7 @@ function AllocationTargetRow({
             {item.target_pct !== null && (
                 <AllocationTargetProgress T={T} item={item} />
             )}
-        </div>
+        </Card>
     );
 }
 

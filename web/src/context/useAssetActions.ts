@@ -130,6 +130,7 @@ export function useAssetActions({
         editingAssetOrigOverrideRef.current = null;
         setAssetForm({
             name: "",
+            currency: "EUR",
             ticker: "",
             price_source: "AUTO",
             source_symbol: "",
@@ -166,6 +167,7 @@ export function useAssetActions({
                 : null;
         setAssetForm({
             name: a.name,
+            currency: a.currency || "EUR",
             ticker: a.ticker || "",
             price_source: a.price_source || "AUTO",
             source_symbol: a.source_symbol || a.ticker || "",
@@ -231,6 +233,7 @@ export function useAssetActions({
         );
         const body: AssetPayload = {
             name: assetForm.name,
+            currency: (assetForm.currency || "EUR").toUpperCase(),
             ticker: isManual ? "" : assetForm.ticker || "",
             price_source: isManual ? "AUTO" : assetForm.price_source || "AUTO",
             source_symbol: isManual
@@ -272,9 +275,6 @@ export function useAssetActions({
             body.tax_rate_override = String(parsedTaxRate / 100);
         } else {
             body.tax_rate_override = null;
-        }
-        if (!editingAssetId) {
-            body.currency = "EUR";
         }
         if (!editingAssetId && isManual && assetForm.initial_balance) {
             const parsedInitialBalance = parseFlexibleDecimal(
@@ -318,6 +318,7 @@ export function useAssetActions({
                 closeAssetModal();
                 setAssetForm({
                     name: "",
+                    currency: "EUR",
                     ticker: "",
                     price_source: "AUTO",
                     source_symbol: "",

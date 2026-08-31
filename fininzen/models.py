@@ -9,6 +9,7 @@ FEATURE_CASHFLOW = "cashflow"
 FEATURE_ACCOUNTS = "accounts"
 FEATURE_INVESTMENTS = "investments"
 FEATURE_FIRE = "fire"
+FEATURE_SPLIT = "split"
 
 ENABLED_FEATURE_KEYS = (
     FEATURE_DASHBOARD,
@@ -16,6 +17,7 @@ ENABLED_FEATURE_KEYS = (
     FEATURE_ACCOUNTS,
     FEATURE_INVESTMENTS,
     FEATURE_FIRE,
+    FEATURE_SPLIT,
 )
 
 DEFAULT_ENABLED_FEATURES = {key: True for key in ENABLED_FEATURE_KEYS}
@@ -125,6 +127,15 @@ class UserProfile(models.Model):
     # proves possession via /mfa/enable/ — see fininzen/mfa_views.py.
     mfa_enabled = models.BooleanField(default=False)
     mfa_secret = EncryptedTextField(blank=True, default="")
+    # Stamped once at registration when the user accepts the Privacy
+    # Policy/Terms of Service checkbox. Not re-stamped on later policy
+    # revisions (no versioning) — null means the account predates this field.
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    # Stamped when the user explicitly declines the post-login terms gate
+    # (legacy accounts with terms_accepted_at still null — see TermsGate on
+    # the frontend). Audit trail only: the gate itself blocks purely on
+    # terms_accepted_at being null, so accepting later clears this again.
+    terms_rejected_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Profile<{self.user_id}>"
@@ -265,6 +276,47 @@ class MfaBackupCode(models.Model):
 
     def __str__(self):
         return f"MfaBackupCode<user={self.user_id}, used={self.used_at is not None}>"
+
+
+class ApiToken(models.Model):
+    """Long-lived bearer tokens for headless automation clients (e.g. an iOS
+    Shortcut triggered by an Apple Pay NFC transaction) that can't carry an
+    8h-lived JWT through a background trigger.
+
+    The raw token is shown to the user exactly once, at creation, and stored
+    here only as a SHA-256 hash — never in plaintext. Unlike MfaBackupCode's
+    blind_index hash (needed to compensate for the low entropy of a 6-char
+    user-facing code), a server-generated 256-bit token has no such weakness,
+    so a plain unkeyed hash (see fininzen.api_tokens) is sufficient and avoids
+    a dependency on FIELD_ENCRYPTION_KEYS being configured.
+    """
+
+    SCOPE_EXPENSES_WRITE = "expenses:write"
+    SCOPE_CHOICES = [(SCOPE_EXPENSES_WRITE, "Expenses: write (quick-add)")]
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="api_tokens",
+    )
+    label = models.CharField(max_length=64)
+    token_hash = models.CharField(max_length=64, unique=True)
+    # First chars of the raw token, kept in clear so the list UI can show
+    # "fnz_ab12cd34…" without ever re-deriving the secret. Not a security
+    # control — purely a recognizability aid, like GitHub's PAT prefix.
+    prefix = models.CharField(max_length=12)
+    scope = models.CharField(
+        max_length=32, choices=SCOPE_CHOICES, default=SCOPE_EXPENSES_WRITE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["token_hash"])]
+
+    def __str__(self):
+        return f"ApiToken<owner={self.owner_id}, label={self.label!r}, revoked={self.revoked_at is not None}>"
 
 
 class MfaChallenge(models.Model):

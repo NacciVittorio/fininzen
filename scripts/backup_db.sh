@@ -11,8 +11,7 @@
 #   BACKUP_RETENTION_DAYS   giorni di retention (default 7)
 #   BACKUP_ENC_PASSPHRASE   se impostata, cifra il backup con AES-256 (openssl)
 #
-# Esempio cron (utente fininzen):
-#   0 3 * * * /opt/fininzen/scripts/backup_db.sh >> /opt/fininzen/logs/backup.log 2>&1
+# In produzione viene eseguito da fininzen-backup.timer.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

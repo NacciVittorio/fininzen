@@ -11,7 +11,10 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const API_PREFIX = "/fininzen/api/";
+const publicApiBase =
+    process.env.NEXT_PUBLIC_API_BASE?.trim() || "/fininzen/api";
+const API_PREFIX = `${new URL(publicApiBase, self.location.origin).pathname.replace(/\/+$/, "")}/`;
+const HEALTH_PATH = `${API_PREFIX}health/`;
 const API_CACHE = "fn-api-cache-v2";
 const LEGACY_API_CACHES = ["fn-api-cache"];
 
@@ -21,15 +24,18 @@ const serwist = new Serwist({
     clientsClaim: true,
     navigationPreload: true,
     // Matching is first-wins in array order, and these must precede
-    // `defaultCache`: its API rules test `pathname.startsWith("/api/")`, false
-    // for `/fininzen/api/...`, so without an explicit rule here these requests
-    // would fall through to its catch-all `others` rule and be cached there.
+    // `defaultCache`. The public API prefix depends on the deployment:
+    // `/fininzen/api/` behind Caddy, `/api/` behind NPM in the homelab test.
     runtimeCaching: [
-        // Auth endpoints carry session state: a reused response would cross two
-        // different sessions. Placed before the API rule so it can't claim them.
+        // Auth endpoints carry session state, while health is public and is
+        // fetched again by the login screen after logout. Neither belongs in
+        // the authenticated offline cache. Placed before the API rule so a
+        // post-logout health request cannot recreate that cache immediately.
         {
             matcher: ({ url, sameOrigin }) =>
-                sameOrigin && url.pathname.startsWith(`${API_PREFIX}auth/`),
+                sameOrigin &&
+                (url.pathname.startsWith(`${API_PREFIX}auth/`) ||
+                    url.pathname === HEALTH_PATH),
             handler: new NetworkOnly(),
         },
         // API GETs: the network always wins, so a write made on another device

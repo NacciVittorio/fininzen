@@ -35,8 +35,8 @@ const FilterPill = forwardRef<HTMLButtonElement, FilterPillProps>(
         ref,
     ) {
         const isActive = !!active;
-        const padY = size === "sm" ? 6 : 8;
-        const padX = size === "sm" ? 10 : 14;
+        const padY = size === "sm" ? 8 : 10;
+        const padX = size === "sm" ? 14 : 18;
         const fontSize = size === "sm" ? 12 : 13;
 
         return (
@@ -62,7 +62,7 @@ const FilterPill = forwardRef<HTMLButtonElement, FilterPillProps>(
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 6,
-                        minHeight: "var(--filter-pill-min-h, 40px)",
+                        minHeight: "var(--filter-pill-min-h, var(--btn-min))",
                         padding: `${padY}px ${onClear && isActive ? 8 : padX}px ${padY}px ${padX}px`,
                         background: "transparent",
                         border: 0,
@@ -118,7 +118,8 @@ const FilterPill = forwardRef<HTMLButtonElement, FilterPillProps>(
                             display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            minWidth: "var(--filter-pill-min-h, 40px)",
+                            minWidth:
+                                "var(--filter-pill-min-h, var(--btn-min))",
                             padding: 0,
                             background: "transparent",
                             border: 0,

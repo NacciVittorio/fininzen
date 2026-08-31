@@ -10,7 +10,7 @@ type BootstrapProviderState = Pick<
 
 type BootstrapSessionState = Pick<
     SessionController,
-    "fetchGrants" | "isAuthenticated"
+    "authReady" | "fetchGrants" | "isAuthenticated" | "pathname"
 >;
 
 type BootstrapTask = () => unknown;
@@ -21,21 +21,25 @@ type UseAppBootstrapArgs = BootstrapProviderState &
         fetchProfile: BootstrapTask;
     };
 
-// Server-state (categories, assets, expenses, …) is fetched by useAppQueries as
-// soon as `enabled: isAuthenticated` flips true, and re-keyed per account on a
-// "view as" switch — so bootstrap only has to load the viewer's own profile
-// (which drives enabledFeatures/prefs that the rest of the UI gates on) and the
-// sharing grants, plus flip the app-loading lifecycle flags.
+// Restore authentication before loading the viewer's profile. Route-scoped
+// server-state queries wait for bootstrapReady, so they start with the final
+// per-account cache scope instead of issuing an anonymous wave first.
 export function useAppBootstrap({
     bootstrapReady,
     fetchGrants,
     fetchProfile,
+    authReady,
     isAuthenticated,
+    pathname,
     setAppLoading,
     setBootstrapReady,
     setFetchError,
     T,
 }: UseAppBootstrapArgs): void {
+    const bootstrapRunRef = useRef<Promise<
+        PromiseSettledResult<unknown>[]
+    > | null>(null);
+    const grantsRunRef = useRef<Promise<void> | null>(null);
     const bootstrapRef = useRef({
         T,
         fetchProfile,
@@ -53,7 +57,7 @@ export function useAppBootstrap({
 
     useEffect(() => {
         const bootstrap = bootstrapRef.current;
-        if (!isAuthenticated) {
+        if (!isAuthenticated || !authReady) {
             bootstrap.setAppLoading(false);
             bootstrap.setBootstrapReady(false);
             return;
@@ -62,7 +66,16 @@ export function useAppBootstrap({
         bootstrap.setAppLoading(true);
         bootstrap.setBootstrapReady(false);
         bootstrap.setFetchError(null);
-        Promise.allSettled([bootstrap.fetchProfile()])
+        if (!bootstrapRunRef.current) {
+            const run = Promise.allSettled([bootstrap.fetchProfile()]);
+            bootstrapRunRef.current = run;
+            void run.finally(() => {
+                if (bootstrapRunRef.current === run) {
+                    bootstrapRunRef.current = null;
+                }
+            });
+        }
+        void bootstrapRunRef.current
             .then((results) => {
                 if (cancelled) return;
                 const failed = results.filter((r) => r.status === "rejected");
@@ -78,9 +91,21 @@ export function useAppBootstrap({
         return () => {
             cancelled = true;
         };
-    }, [isAuthenticated]);
+    }, [authReady, isAuthenticated]);
 
     useEffect(() => {
-        if (isAuthenticated && bootstrapReady) fetchGrants();
-    }, [isAuthenticated, bootstrapReady, fetchGrants]);
+        if (
+            isAuthenticated &&
+            authReady &&
+            bootstrapReady &&
+            pathname === "/settings/account" &&
+            !grantsRunRef.current
+        ) {
+            const run = fetchGrants();
+            grantsRunRef.current = run;
+            void run.finally(() => {
+                if (grantsRunRef.current === run) grantsRunRef.current = null;
+            });
+        }
+    }, [authReady, bootstrapReady, fetchGrants, isAuthenticated, pathname]);
 }

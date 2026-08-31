@@ -68,7 +68,7 @@ variables:
     - when: never
 
 .python:
-  image: python:3.12-slim
+  image: python:3.14-slim
   cache:
     key: pip-$CI_COMMIT_REF_SLUG
     paths:
@@ -84,7 +84,7 @@ variables:
 
 .postgres-service:
   services:
-    - name: postgres:16-alpine
+    - name: postgres:18-alpine
       alias: postgres
 
 # ── Gate ──────────────────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ variables:
 github-ci-gate:
   extends: .ci-rules
   stage: gate
-  image: python:3.12-slim
+  image: python:3.14-slim
   variables:
     GITHUB_REPOSITORY: NacciVittorio/fininzen
   script:
@@ -144,8 +144,8 @@ backend-test:
     - bash ci-tools/check-migrations.sh
     - bash ci-tools/test-backend.sh
 
-# Verifies migrate + pytest on the production engine (sequences, JSON/array SQL,
-# encrypted columns) — behaviour SQLite can't cover.
+# Verifies migrate + pytest on the Docker target's engine (sequences,
+# JSON/array SQL, encrypted columns) — behaviour SQLite can't cover.
 backend-postgres:
   extends:
     - .python
@@ -167,7 +167,7 @@ backend-postgres:
 api-contract:
   extends: .ci-rules
   stage: test
-  image: nikolaik/python-nodejs:python3.12-nodejs22
+  image: nikolaik/python-nodejs:python3.14-nodejs22
   cache:
     - key: pip-$CI_COMMIT_REF_SLUG
       paths:
@@ -189,7 +189,7 @@ api-contract:
 e2e-test:
   extends: .ci-rules
   stage: test
-  image: nikolaik/python-nodejs:python3.12-nodejs22
+  image: nikolaik/python-nodejs:python3.14-nodejs22
   cache:
     - key: pip-$CI_COMMIT_REF_SLUG
       paths:

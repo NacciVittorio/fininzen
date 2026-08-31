@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { Card } from "../../components/ui";
 import { useAuth } from "../../context/useAuth";
 import type {
     ResetResult,
@@ -25,28 +26,15 @@ export function ExtraSettingsSection({
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {isFeatureEnabled("cashflow") && (
-                <div className="card">
-                    <div
-                        style={{
-                            fontSize: 15,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                        }}
-                    >
-                        {T("reset_transactions")}
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 13,
-                            color: "var(--fg-soft)",
-                            marginBottom: 14,
-                        }}
-                    >
-                        {T("reset_transactions_desc")}
-                    </div>
+                <Card
+                    variant="settings"
+                    tone="danger"
+                    title={T("reset_transactions")}
+                    description={T("reset_transactions_desc")}
+                >
                     <button
                         className="btn btn-r"
-                        style={{ width: "100%", padding: "10px" }}
+                        style={{ width: "100%" }}
                         onClick={() => {
                             setResetConfirm("transactions");
                             setResetUnderstood(false);
@@ -54,33 +42,20 @@ export function ExtraSettingsSection({
                     >
                         {T("reset_transactions")}
                     </button>
-                </div>
+                </Card>
             )}
 
             {(isFeatureEnabled("accounts") ||
                 isFeatureEnabled("investments")) && (
-                <div className="card">
-                    <div
-                        style={{
-                            fontSize: 15,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                        }}
-                    >
-                        {T("reset_portfolio")}
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 13,
-                            color: "var(--fg-soft)",
-                            marginBottom: 14,
-                        }}
-                    >
-                        {T("reset_portfolio_desc")}
-                    </div>
+                <Card
+                    variant="settings"
+                    tone="danger"
+                    title={T("reset_portfolio")}
+                    description={T("reset_portfolio_desc")}
+                >
                     <button
                         className="btn btn-r"
-                        style={{ width: "100%", padding: "10px" }}
+                        style={{ width: "100%" }}
                         onClick={() => {
                             setResetConfirm("portfolio");
                             setResetUnderstood(false);
@@ -88,7 +63,7 @@ export function ExtraSettingsSection({
                     >
                         {T("reset_portfolio")}
                     </button>
-                </div>
+                </Card>
             )}
 
             {resetMsg && (
@@ -118,32 +93,18 @@ export function ExtraSettingsSection({
                 </div>
             )}
 
-            <div className="card">
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
-                    {T("load_demo")}
-                </div>
-                <div
-                    style={{
-                        fontSize: 13,
-                        color: "var(--fg-soft)",
-                        marginBottom: 14,
-                    }}
-                >
-                    {T("load_demo_desc")}
-                </div>
+            <Card
+                variant="settings"
+                title={T("load_demo")}
+                description={T("load_demo_desc")}
+            >
                 <button
                     className="btn"
                     style={{
                         width: "100%",
-                        padding: "10px",
                         background: "var(--accent-ring)",
                         color: "var(--accent)",
                         border: "1px solid var(--accent-ring)",
-                        borderRadius: 10,
-                        fontFamily: "inherit",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: "pointer",
                     }}
                     onClick={() => {
                         setDemoConfirm(true);
@@ -152,7 +113,7 @@ export function ExtraSettingsSection({
                 >
                     {T("load_demo")}
                 </button>
-            </div>
+            </Card>
         </div>
     );
 }

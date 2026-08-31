@@ -38,6 +38,7 @@ export default function CashflowOverlays(props: CashflowOverlaysProps) {
         setDeleteCfTarget,
         deleteCfExpense,
         deleteCfTx,
+        deleteCfSplitSettlement,
         detailItem,
         setDetailItem,
         handleEditCfItem,
@@ -60,6 +61,7 @@ export default function CashflowOverlays(props: CashflowOverlaysProps) {
                 setDeleteCfTarget={setDeleteCfTarget}
                 deleteCfExpense={deleteCfExpense}
                 deleteCfTx={deleteCfTx}
+                deleteCfSplitSettlement={deleteCfSplitSettlement}
                 T={T}
                 formatEur={formatEur}
             />

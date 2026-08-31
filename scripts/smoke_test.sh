@@ -3,6 +3,7 @@ set -euo pipefail
 
 BASE_URL="${1:-https://fininzen.nacci.eu}"
 ATTEMPTS="${2:-20}"
+API_PREFIX="${API_PREFIX:-/fininzen/api}"
 TMP_DIR="$(mktemp -d)"
 
 trap 'rm -rf "${TMP_DIR}"' EXIT
@@ -17,6 +18,10 @@ fail() {
 if [[ ! "$ATTEMPTS" =~ ^[0-9]+$ ]] || (( ATTEMPTS < 1 )); then
     fail "invalid attempts value: ${ATTEMPTS}"
 fi
+if [[ ! "${API_PREFIX}" =~ ^/[A-Za-z0-9._~/-]+$ ]]; then
+    fail "invalid API_PREFIX path: ${API_PREFIX}"
+fi
+API_PREFIX="${API_PREFIX%/}"
 
 LAST_ERROR=""
 
@@ -79,10 +84,11 @@ run_check() {
     request "/login" "html" || return 1
     html="$(cat "$TMP_DIR/body")"
 
-    # API still reachable through the Caddy /fininzen prefix, and the auth guard
-    # rejects anonymous reads.
-    request "/fininzen/api/health/" "backend health" || return 1
-    request_status "/fininzen/api/auth/profile/" "auth guard" "401" || return 1
+    # API reachable through the deployment-specific public prefix, and the auth
+    # guard rejects anonymous reads. Production uses /fininzen/api; the NPM
+    # The homelab production-test topology uses /api.
+    request "${API_PREFIX}/health/" "backend health" || return 1
+    request_status "${API_PREFIX}/auth/profile/" "auth guard" "401" || return 1
 
     while IFS= read -r asset; do
         assets+=("$asset")
@@ -115,7 +121,7 @@ run_check() {
 for ((attempt = 1; attempt <= ATTEMPTS; attempt += 1)); do
     if run_check; then
         echo "smoke: pass ${attempt}/${ATTEMPTS}"
-        echo "smoke: completed for ${BASE_URL}"
+        echo "smoke: completed for ${BASE_URL} with API prefix ${API_PREFIX}"
         exit 0
     fi
 

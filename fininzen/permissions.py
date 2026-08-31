@@ -3,6 +3,8 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
+from fininzen.models import ApiToken
+
 DEMO_USERNAME = "demo@demo.com"
 
 # How often UserProfile.last_activity_at is allowed to be re-written per user.
@@ -43,6 +45,21 @@ def touch_last_activity(user):
     ):
         profile.last_activity_at = now
         profile.save(update_fields=["last_activity_at"])
+
+
+def requires_api_token_scope(scope):
+    """Permission factory restricting a view to ApiToken auth with the given
+    scope. Only one scope exists today (ApiToken.SCOPE_EXPENSES_WRITE), but
+    this is still enforced (not just stored) so the scope field isn't dead:
+    a token can only ever do what its scope says, even as more scopes are
+    added later without redesigning this check."""
+
+    class _HasApiTokenScope(BasePermission):
+        def has_permission(self, request, view):
+            token = request.auth
+            return isinstance(token, ApiToken) and token.scope == scope
+
+    return _HasApiTokenScope
 
 
 class IsAdmin(BasePermission):

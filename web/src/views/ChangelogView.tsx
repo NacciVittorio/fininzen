@@ -97,7 +97,10 @@ export default function ChangelogView() {
                                     v{note.version}
                                 </h2>
                                 {note.version === currentVersion && (
-                                    <Pill tone="success">
+                                    <Pill
+                                        tone="success"
+                                        testId="changelog-current-pill"
+                                    >
                                         {T("changelog_current")}
                                     </Pill>
                                 )}

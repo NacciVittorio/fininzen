@@ -40,6 +40,7 @@ export type SwipeAction = {
 };
 
 type SwipeRowProps = {
+    testId?: string;
     rowId?: RowId;
     openRowId?: RowId;
     onRequestOpen?: (id: RowId) => void;
@@ -66,6 +67,7 @@ type SwipeRowProps = {
 // internally. data-swipe-row="true" is mandatory: App's tab-swipe handler
 // ignores gestures that originate inside it.
 export default function SwipeRow({
+    testId,
     rowId,
     openRowId,
     onRequestOpen,
@@ -83,6 +85,8 @@ export default function SwipeRow({
     children,
 }: SwipeRowProps) {
     const startX = useRef<number | null>(null);
+    const dragDx = useRef(0);
+    const suppressNextClick = useRef(false);
     const [dx, setDx] = useState(0);
     const [openSide, setOpenSide] = useState<"left" | "right" | null>(null);
     const swipeOpen = openRowId != null && openRowId === rowId;
@@ -94,7 +98,10 @@ export default function SwipeRow({
 
     const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
         if (!canSwipe) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
         startX.current = e.clientX;
+        dragDx.current = 0;
+        suppressNextClick.current = false;
     };
     const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
         if (startX.current == null) return;
@@ -102,26 +109,33 @@ export default function SwipeRow({
         // right (reveal left actions). Clamp to whichever side has actions.
         const raw = e.clientX - startX.current;
         const d = Math.max(-rightW, Math.min(leftW, raw));
+        dragDx.current = d;
         setDx(d);
     };
     const endSwipe = () => {
         if (startX.current == null) return;
-        if (dx <= -threshold && hasRight) {
+        const finalDx = dragDx.current;
+        if (finalDx <= -threshold && hasRight) {
+            suppressNextClick.current = true;
             setOpenSide("right");
             onRequestOpen?.(rowId ?? null);
-        } else if (dx >= threshold && hasLeft) {
+        } else if (finalDx >= threshold && hasLeft) {
+            suppressNextClick.current = true;
             setOpenSide("left");
             onRequestOpen?.(rowId ?? null);
         } else if (swipeOpen) {
+            suppressNextClick.current = true;
             onRequestOpen?.(null);
             setDx(0);
         } else {
+            suppressNextClick.current = Math.abs(finalDx) >= 5;
             setDx(0);
         }
         startX.current = null;
     };
     useEffect(() => {
         if (!swipeOpen) {
+            dragDx.current = 0;
             setDx(0);
             setOpenSide(null);
         }
@@ -129,6 +143,10 @@ export default function SwipeRow({
     const offset = swipeOpen ? (openSide === "left" ? leftW : -rightW) : dx;
 
     const handleClick = () => {
+        if (suppressNextClick.current) {
+            suppressNextClick.current = false;
+            return;
+        }
         if (swipeOpen) {
             onRequestOpen?.(null);
             return;
@@ -156,6 +174,7 @@ export default function SwipeRow({
     return (
         <div
             data-swipe-row="true"
+            data-testid={testId}
             style={{ position: "relative", overflow: "hidden", ...style }}
         >
             {!disabled && hasRight && (
@@ -189,11 +208,14 @@ export default function SwipeRow({
             <div
                 className={rowClassName}
                 role={role}
-                tabIndex={0}
+                tabIndex={role === "button" ? 0 : -1}
                 aria-label={ariaLabel}
                 aria-checked={ariaChecked}
                 onKeyDown={(ev) => {
-                    if (ev.key === " " || ev.key === "Enter") {
+                    if (
+                        role === "button" &&
+                        (ev.key === " " || ev.key === "Enter")
+                    ) {
                         ev.preventDefault();
                         onTap?.();
                     }
@@ -202,7 +224,6 @@ export default function SwipeRow({
                 onPointerMove={onPointerMove}
                 onPointerUp={endSwipe}
                 onPointerCancel={endSwipe}
-                onPointerLeave={endSwipe}
                 onClick={handleClick}
                 style={{
                     display: "flex",
@@ -214,7 +235,7 @@ export default function SwipeRow({
                         startX.current == null
                             ? "transform 0.26s cubic-bezier(.32,.72,0,1)"
                             : "none",
-                    cursor: "pointer",
+                    cursor: canSwipe || onTap ? "pointer" : "default",
                     touchAction: "pan-y",
                     position: "relative",
                     ...rowStyle,
