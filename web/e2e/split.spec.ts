@@ -150,9 +150,10 @@ async function gotoSplit(
     await expect(
         page.locator('[data-testid="split-tab-overview"]'),
     ).toBeVisible({ timeout: 10000 });
-    if (view !== "overview") {
-        await page.click(`[data-testid="split-tab-${view}"]`);
-    }
+    // SplitView preserves the selected tab while navigating within the
+    // feature, so clicking the nav item is not guaranteed to reset it to the
+    // overview. Select the requested tab explicitly every time.
+    await page.click(`[data-testid="split-tab-${view}"]`);
 }
 
 async function gotoSplitContacts(page: Page): Promise<void> {
@@ -581,9 +582,13 @@ test.describe.serial("Split feature", () => {
         // Second expense via API (fast, exact split), paid by the LOCAL
         // contact this time — any group member can log an expense someone
         // else paid, as long as no category/account is attached (those are
-        // scoped to the payer). This creates genuine cross-debts: combined
-        // with expense (b) (A +60 / B -30 / Local -30), this expense
-        // (Local +10 / A -5 / B -5) nets to A +55, B -35, Local -20.
+        // scoped to the payer). This creates a genuine cross-debt between A
+        // and Local: combined with expense (b) (A +60 / B -30 / Local -30),
+        // this expense (Local +10 / A -10 / B 0) nets to A +50, B -30,
+        // Local -20. Keeping B's second share at zero is intentional: the
+        // overview is pairwise while group simplification is multilateral,
+        // and test e2 must isolate cross-group allocation rather than mix
+        // those two valid but different representations.
         await apiPost(page, tokenA, "/split/expenses/", {
             group: groupId,
             description: `E2E split cross-debt ${RUN_ID}`,
@@ -599,8 +604,8 @@ test.describe.serial("Split feature", () => {
                     raw_input: "20.00",
                     is_payer: true,
                 },
-                { user_id: userAId, raw_input: "5.00", is_payer: false },
-                { user_id: userBId, raw_input: "5.00", is_payer: false },
+                { user_id: userAId, raw_input: "10.00", is_payer: false },
+                { user_id: userBId, raw_input: "0.00", is_payer: false },
             ],
         });
 
@@ -614,7 +619,7 @@ test.describe.serial("Split feature", () => {
         const aRow = page.locator(
             `[data-testid="split-group-balance-row-user:${userAId}"]`,
         );
-        await expect(aRow).toContainText(/\+\s?55,00/, { timeout: 8000 });
+        await expect(aRow).toContainText(/\+\s?50,00/, { timeout: 8000 });
 
         await waitForApi(
             page,
@@ -628,11 +633,11 @@ test.describe.serial("Split feature", () => {
         );
         await expect(transactions).toHaveCount(2, { timeout: 8000 });
 
-        // Greedy debtor/creditor: sole creditor A(55) is paid first by the
-        // larger debtor B(35), then by Local(20) — in that order.
+        // Greedy debtor/creditor: sole creditor A(50) is paid first by the
+        // larger debtor B(30), then by Local(20) — in that order.
         await expect(
             page.locator('[data-testid="split-simplify-tx-0"]'),
-        ).toContainText(/35,00/);
+        ).toContainText(/30,00/);
         await expect(
             page.locator('[data-testid="split-simplify-tx-1"]'),
         ).toContainText(/20,00/);
@@ -672,7 +677,7 @@ test.describe.serial("Split feature", () => {
         await expect(
             page.locator('[data-testid="split-simplify-settle-0"]'),
         ).toBeVisible({ timeout: 8000 });
-        // tx-0 is B → A 35.00 (see test d) — settle it in full.
+        // tx-0 is B → A 30.00 (see test d) — settle it in full.
         await page.click('[data-testid="split-simplify-settle-0"]');
 
         const sheet = page.locator('[role="dialog"]');
@@ -681,7 +686,7 @@ test.describe.serial("Split feature", () => {
         ).toBeVisible({ timeout: 8000 });
         await expect(
             sheet.locator('[data-testid="split-settle-amount"]'),
-        ).toHaveValue(/35,00/);
+        ).toHaveValue(/30,00/);
 
         settleNote = `E2E split settle ${RUN_ID}`;
         await sheet
@@ -1018,7 +1023,7 @@ test.describe.serial("Split feature", () => {
             .locator('[data-testid^="split-settlement-row-"]')
             .filter({ hasText: EMAIL_B });
         await expect(settlementRow).toBeVisible({ timeout: 8000 });
-        await expect(settlementRow).toContainText(/35,00/);
+        await expect(settlementRow).toContainText(/30,00/);
         const settlementId = await idFromTestId(settlementRow);
 
         await revealSwipeActions(page, settlementRow);

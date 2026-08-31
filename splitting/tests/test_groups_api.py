@@ -561,8 +561,7 @@ class TestGroupBalancesAndSimplifyEndpoints:
         assert group_a_res.json() == []
         assert group_b_res.status_code == 200
         group_b_balances = {
-            row["user_id"]: Decimal(row["balance"])
-            for row in group_b_res.json()
+            row["user_id"]: Decimal(row["balance"]) for row in group_b_res.json()
         }
         assert group_b_balances == {
             test_user.id: Decimal("20.00"),

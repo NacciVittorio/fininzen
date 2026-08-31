@@ -25,6 +25,7 @@ export function CashflowFeedControls({
         <div
             style={{
                 display: "flex",
+                alignItems: "center",
                 gap: 10,
                 marginBottom: 14,
             }}

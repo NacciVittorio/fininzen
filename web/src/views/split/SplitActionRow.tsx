@@ -88,6 +88,7 @@ export default function SplitActionRow({
             openRowId={openRowId}
             onRequestOpen={setOpenRowId}
             actions={actions}
+            onTap={mainAction}
             role="group"
             rowClassName="split-action-row"
         >

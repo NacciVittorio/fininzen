@@ -512,6 +512,11 @@ export function useSessionController(providerState: AppProviderState) {
         [setDashConfig, setMonthlyOverviewPrefs, setWealthMetrics],
     );
     const logout = useCallback(() => {
+        // Stop active queries before dropping the shared Cache Storage. A
+        // NetworkFirst request already in flight can otherwise complete after
+        // resetClientState() deletes the cache and recreate it with responses
+        // from the session that is signing out.
+        const pendingQueryCancellation = queryClient.cancelQueries();
         // Best-effort server-side logout: clears + blacklists the refresh cookie.
         // Fire-and-forget (uses plain fetch, never apiFetch, to avoid a refresh loop).
         try {
@@ -521,6 +526,10 @@ export function useSessionController(providerState: AppProviderState) {
         }
         clearAccessToken();
         resetClientState();
+        void pendingQueryCancellation.then(
+            () => clearApiResponseCaches(),
+            () => clearApiResponseCaches(),
+        );
         localStorage.removeItem("fn_session");
         localStorage.removeItem("is_demo");
         localStorage.removeItem("auth_email");
@@ -556,7 +565,13 @@ export function useSessionController(providerState: AppProviderState) {
         setPrivacyPreferences(DEFAULT_PRIVACY_PREFERENCES);
         setTransactionPrefs(DEFAULT_TRANSACTION_PREFERENCES);
         setAuthSessionNonce((n) => n + 1);
-    }, [resetClientState, setDemoConfirm, setDemoUnderstood, setTab]);
+    }, [
+        queryClient,
+        resetClientState,
+        setDemoConfirm,
+        setDemoUnderstood,
+        setTab,
+    ]);
 
     // Restore the short-lived access token once, before mounting protected
     // route content. The 401→refresh retry in useAuthenticatedFetch remains a
