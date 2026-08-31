@@ -1,6 +1,6 @@
 {
     "name": "web",
-    "version": "0.13.3",
+    "version": "1.0.0",
     "private": true,
     "description": "fininzen frontend — Next.js App Router (SSR)",
     "engines": {

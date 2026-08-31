@@ -23,8 +23,8 @@ export const UNRELEASED = "unreleased";
 // only bumped dependencies has no entry, and so shows no banner at all.
 export const RELEASE_NOTES: ReleaseNote[] = [
     {
-        version: UNRELEASED,
-        date: "",
+        version: "1.0.0",
+        date: "2026-08-31",
         highlights: {
             it: [
                 "Fininzen raggiunge la prima versione stabile: gestione finanziaria personale, Cash Flow, conti, investimenti e pianificazione FIRE sono ora riuniti in una release 1.0 verificata end-to-end.",

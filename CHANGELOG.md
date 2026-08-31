@@ -6,51 +6,59 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
-## v1.0.0 (unreleased)
+## v1.0.0 (2026-08-31)
 
 ### Feat
 
+- **deploy**: add Docker production deployment flow
+- **web**: redesign split experience
+- **docker**: add homelab production test deployment
+- **docker**: add homelab production test deployment
+- add Fininzen preproduction deployment
+- **web**: add contact email link
+- **portfolio**: select asset currencies
+- **auth**: add legacy terms/privacy acceptance gate
+- **split**: reconcile account balance across split expenses, settlements and CashFlow
+- **export**: extend data export to all user models
+- **gdpr**: add privacy policy, terms of service, and registration consent
 - **auth,expenses**: add long-lived API tokens and quick-add expense endpoint
-- **splitting**: add shared-expense tracking (Splitwise-style groups, contacts,
-  settlements, recurring split expenses)
-- **gdpr**: add privacy policy, terms of service, and a required registration
-  consent checkbox; stop logging user email/name in plaintext across expenses,
-  portfolio, and auth views
-- **export**: extend the GDPR data export to all user models — categories,
-  budgets, recurring expenses, PAC plans, allocation targets, FIRE settings,
-  profile preferences, and sharing grants — and simplify Settings > Dati to a
-  single "Esporta tutto" button
 
 ### Fix
 
-- **splitting**: harden the Split feature ahead of release (QA batches 1-4) —
-  reject shares that go negative after rounding instead of crashing, anonymize
-  a deleted user's Split identity instead of cascading group deletes, add the
-  missing settlement-history and standalone-expense list/edit/delete views,
-  i18n for all backend Split error codes, access-control and concurrency
-  fixes (member removal, row-locked concurrent edits), and a daily systemd
-  timer for recurring Split expenses
-- **split**: QA batch 5 — standardize the Split error banners, convert the
-  remaining hand-rolled expense/settlement lists to GroupedList, and fix
-  several accessibility gaps (missing `htmlFor`/`aria-label`s, BottomSheet
-  `ariaLabel` not distinguishing add vs edit)
-- **split**: fix expense creation always failing with a misleading "Invalid
-  amount" error (three unrelated failures — bad amount, no participants, no
-  payer — were sharing one message); add a real, editable group selector to
-  the expense form; add confirmation dialogs for creating a contact and for
-  adding/removing a group member; add contact rename; show which groups a
-  contact belongs to; unify the Split error banners on the shared
-  `ModalError` component used elsewhere in Settings
-- **settings**: redirect `/settings/planning` back to `/settings` when no
-  planning modules are enabled, matching the guard the top-level tabs already
-  had; remove the unused `SettingsManagementModals` wrapper
+- **dev**: make quality commands reproducible
+- **web**: clear final release blockers
+- **web**: unify settings visual language
+- **split**: sync cross-group settlements
+- **deploy**: preserve Compose build context
+- **deploy**: detect Compose projects by name
+- **deploy**: continue when no services match
+- **deploy**: detect existing Compose project
+- **web**: deduplicate authenticated data loading
+- **web**: unify shared control sizing
+- **web**: unify cta button sizing
+- **web**: stabilize mobile changelog and split flows
+- **e2e**: wait for settle-0 row before clicking in split settle-up test
+- **e2e,ui**: stop BottomSheet auto-focus racing the split settle-up click
+- **cashflow**: stop hardcoding English fallback for Transfer/Adjustment/Settlement titles
+- **dev**: set REFRESH_COOKIE_PATH for local Django server
+- **cashflow**: disable no-op bulk actions on split rows, count split as outcome in day totals
+- **split**: fix broken expense creation and close QA UX gaps
+- **split**: finish GroupedList conversion for settlement history and standalone expenses
+- **settings**: redirect PlanningSettingsView when no modules are enabled
+- **split**: Batch 5 QA nitpicks — GroupedList, error banners, a11y
+- **splitting**: harden Split feature ahead of release/1.0.0 (QA batches 1-4)
+- **web**: make Admin panel reachable from mobile via Settings
+- **expenses**: auto-generate recurring expenses via daily systemd timer
+- **portfolio**: allow up to 4 decimals on Price per Share input
 
 ### Refactor
 
-- **settings**: reorganize Settings into grouped routes (Account, Planning,
-  Preferenze, Dati, About) with real deep-linkable routes, shared
-  SettingsCard/SettingsRow helper, consolidated danger-zone, and migrate the
-  remaining sections onto GroupedList/Card (including a Sharing i18n key fix)
+- **deploy**: delegate static serving to external nginx
+- **deploy**: consolidate production environment
+- **deploy**: replace Docker Caddy with Nginx proxy
+- **split,cashflow**: unify Split/CashFlow shadow-ledger, feed and bulk-action abstraction
+- **settings**: migrate remaining sections to GroupedList/Card, fix Sharing formatting and i18n
+- **settings**: reorganize Settings into grouped routes
 
 ## v0.13.3 (2026-08-17)
 
