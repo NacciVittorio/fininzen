@@ -13,12 +13,14 @@ export default function SelectedAssetChip({
     setAddTxAssetId,
     setAddTxForm,
     setAddTxPriceTouched,
+    setAddTxCashTouched,
     T,
 }: {
     asset?: Asset;
     setAddTxAssetId: SetAddTxAssetId;
     setAddTxForm: SetAddTxForm;
     setAddTxPriceTouched: SetTouched;
+    setAddTxCashTouched: SetTouched;
     T: Translator;
 }) {
     return (
@@ -62,9 +64,11 @@ export default function SelectedAssetChip({
                 onClick={() => {
                     setAddTxAssetId("");
                     setAddTxPriceTouched(false);
+                    setAddTxCashTouched(false);
                     setAddTxForm((previous) => ({
                         ...previous,
                         price_per_share: "",
+                        cash_amount: "",
                         contribution_source: "",
                     }));
                 }}

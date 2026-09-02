@@ -30,6 +30,7 @@ export default function AddTransactionForm({
     addTxForm,
     setAddTxForm,
     setAddTxPriceTouched,
+    setAddTxCashTouched,
     setAddTxTaxTouched,
     addTxPriceStatus,
     editingAddTxId,
@@ -46,6 +47,7 @@ export default function AddTransactionForm({
     addTxForm: AddTransactionFormState;
     setAddTxForm: SetAddTxForm;
     setAddTxPriceTouched: SetTouched;
+    setAddTxCashTouched: SetTouched;
     setAddTxTaxTouched: SetTouched;
     addTxPriceStatus?: AddTxPriceStatus;
     editingAddTxId?: Parameters<typeof estimateSellTax>[2];
@@ -89,6 +91,18 @@ export default function AddTransactionForm({
         editingAddTxId,
         editingAddTxItem,
     );
+    const effectiveTax =
+        addTxForm.tax_amount &&
+        Number.isFinite(parsedTaxAmount) &&
+        parsedTaxAmount >= 0
+            ? parsedTaxAmount
+            : estimatedTax;
+    const expectedCashAmount =
+        totalValueNumber === null || !Number.isFinite(parsedFee)
+            ? null
+            : addTxForm.transaction_type === "sell"
+              ? totalValueNumber - parsedFee - effectiveTax
+              : totalValueNumber + parsedFee;
 
     // `sheet-form-grid` is a plain flex column on mobile (unchanged) and a
     // two-column grid from 761px up, so the sheet stops being taller than the
@@ -101,6 +115,7 @@ export default function AddTransactionForm({
                     setAddTxAssetId={setAddTxAssetId}
                     setAddTxForm={setAddTxForm}
                     setAddTxPriceTouched={setAddTxPriceTouched}
+                    setAddTxCashTouched={setAddTxCashTouched}
                     T={T}
                 />
             </div>
@@ -129,11 +144,15 @@ export default function AddTransactionForm({
                     addTxForm={addTxForm}
                     asset={asset}
                     total={total}
+                    expectedCashAmount={expectedCashAmount}
                     parsedFee={parsedFee}
                     parsedTaxAmount={parsedTaxAmount}
                     estimatedTax={estimatedTax}
                     T={T}
                     formatEur={formatEur}
+                    decimalSeparator={decimalSeparator}
+                    setAddTxForm={setAddTxForm}
+                    setAddTxCashTouched={setAddTxCashTouched}
                 />
             </div>
 

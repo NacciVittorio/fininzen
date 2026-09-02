@@ -37,7 +37,8 @@ class _AssetImportMixin:
 
         Body: {
           rows: [{name?, isin?, transaction_type|segno, date, shares,
-                  price_per_share, source_account_id?, contribution_source?, notes?}],
+                  price_per_share, cash_amount?, source_account_id?,
+                  contribution_source?, notes?}],
           preview_only?: bool,
           include_duplicate_rows?: [row_number...]
         }
@@ -147,6 +148,17 @@ class _AssetImportMixin:
                     skipped += 1
                     continue
                 price = price.quantize(IMPORT_PRICE_QUANT, rounding=ROUND_HALF_UP)
+                cash_amount = parse_import_decimal(row.get("cash_amount"))
+                if cash_amount is not None:
+                    cash_amount = cash_amount.quantize(
+                        Decimal("0.01"), rounding=ROUND_HALF_UP
+                    )
+                    if cash_amount <= 0:
+                        errors.append(
+                            {"row": row_number, "error": "cash_amount must be > 0"}
+                        )
+                        skipped += 1
+                        continue
                 is_verified = parse_optional_bool(row.get("is_verified"))
 
                 source_account_id = (
@@ -204,6 +216,8 @@ class _AssetImportMixin:
                         contribution_source.pk if contribution_source else None
                     ),
                 }
+                if cash_amount is not None:
+                    serializer_data["cash_amount"] = cash_amount
                 if is_verified is not None:
                     serializer_data["is_verified"] = is_verified
                 tx_serializer = AssetTransactionSerializer(
@@ -290,7 +304,7 @@ class _AssetImportMixin:
         """POST /api/portfolio/import-transactions/
 
         Body: {rows: [{asset_id, transaction_type, date, shares,
-        price_per_share, contribution_source?, notes?}]}
+        price_per_share, cash_amount?, contribution_source?, notes?}]}
         """
         from ...services import parse_import_date, parse_import_decimal
 
@@ -348,6 +362,18 @@ class _AssetImportMixin:
                     errors.append({"row": i + 1, "error": "missing price_per_share"})
                     skipped += 1
                     continue
+                price = price.quantize(IMPORT_PRICE_QUANT, rounding=ROUND_HALF_UP)
+                cash_amount = parse_import_decimal(row.get("cash_amount"))
+                if cash_amount is not None:
+                    cash_amount = cash_amount.quantize(
+                        Decimal("0.01"), rounding=ROUND_HALF_UP
+                    )
+                    if cash_amount <= 0:
+                        errors.append(
+                            {"row": i + 1, "error": "cash_amount must be > 0"}
+                        )
+                        skipped += 1
+                        continue
                 is_verified = parse_optional_bool(row.get("is_verified"))
                 contribution_source = _resolve_contribution_source(
                     owner, row.get("contribution_source")
@@ -364,6 +390,8 @@ class _AssetImportMixin:
                     ),
                     "is_verified": is_verified if is_verified is not None else False,
                 }
+                if cash_amount is not None:
+                    serializer_data["cash_amount"] = cash_amount
                 tx_serializer = AssetTransactionSerializer(
                     data=serializer_data,
                     context={"request": request},

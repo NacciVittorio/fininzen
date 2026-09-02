@@ -61,7 +61,14 @@ def _expected_derived_type(parent):
 def _expected_derived_child(parent, kind):
     if kind == AssetTransaction.DERIVED_PRINCIPAL:
         expected_type = _expected_derived_type(parent)
-        expected_amount = parent.shares * parent.price_per_share
+        if parent.cash_amount is None:
+            expected_amount = parent.shares * parent.price_per_share
+        elif parent.transaction_type == AssetTransaction.BUY:
+            expected_amount = parent.cash_amount - parent.fee
+        elif parent.transaction_type == AssetTransaction.SELL:
+            expected_amount = parent.cash_amount + parent.fee + parent.tax_amount
+        else:
+            expected_amount = parent.shares * parent.price_per_share
     elif kind == AssetTransaction.DERIVED_FEE:
         expected_type = AssetTransaction.CASH_OUT
         expected_amount = parent.fee or Decimal("0")

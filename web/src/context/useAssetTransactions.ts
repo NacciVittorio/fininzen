@@ -24,6 +24,7 @@ export type AssetTransaction = {
     date?: string;
     shares?: number | string | null;
     price_per_share?: number | string | null;
+    cash_amount?: number | string | null;
     fee?: number | string | null;
     tax_amount?: number | string | null;
     tax_amount_is_manual?: boolean;
@@ -299,6 +300,7 @@ export function useAssetTransactions({
                 date: tx.date || today(),
                 shares: String(tx.shares ?? ""),
                 price_per_share: String(tx.price_per_share ?? ""),
+                cash_amount: String(tx.cash_amount ?? ""),
                 fee: String(tx.fee ?? ""),
                 tax_amount: tx.tax_amount_is_manual
                     ? String(tx.tax_amount ?? "")

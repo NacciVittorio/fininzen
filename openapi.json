@@ -4230,7 +4230,7 @@
         "/api/portfolio/import-assets/": {
             "post": {
                 "operationId": "portfolio_import_assets_create",
-                "description": "POST /api/portfolio/import-assets/\n\nBody: {\n  rows: [{name?, isin?, transaction_type|segno, date, shares,\n          price_per_share, source_account_id?, contribution_source?, notes?}],\n  preview_only?: bool,\n  include_duplicate_rows?: [row_number...]\n}\n\nThis importer does NOT create new assets.\nIt resolves a pre-existing asset by ISIN (preferred) then name.",
+                "description": "POST /api/portfolio/import-assets/\n\nBody: {\n  rows: [{name?, isin?, transaction_type|segno, date, shares,\n          price_per_share, cash_amount?, source_account_id?,\n          contribution_source?, notes?}],\n  preview_only?: bool,\n  include_duplicate_rows?: [row_number...]\n}\n\nThis importer does NOT create new assets.\nIt resolves a pre-existing asset by ISIN (preferred) then name.",
                 "tags": [
                     "portfolio"
                 ],
@@ -4279,7 +4279,7 @@
         "/api/portfolio/import-transactions/": {
             "post": {
                 "operationId": "portfolio_import_transactions_create",
-                "description": "POST /api/portfolio/import-transactions/\n\nBody: {rows: [{asset_id, transaction_type, date, shares,\nprice_per_share, contribution_source?, notes?}]}",
+                "description": "POST /api/portfolio/import-transactions/\n\nBody: {rows: [{asset_id, transaction_type, date, shares,\nprice_per_share, cash_amount?, contribution_source?, notes?}]}",
                 "tags": [
                     "portfolio"
                 ],

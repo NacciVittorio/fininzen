@@ -1,7 +1,7 @@
 import logging
 from django.db import transaction
 from django.db.models import F, Prefetch, Q
-from django.db.models.functions import Abs
+from django.db.models.functions import Abs, Coalesce
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,6 +17,7 @@ from ..services import (
     ArchivedAssetTransactionError,
     patch_transaction,
     tax_cost_basis_for_sell,
+    transaction_cash_amount,
 )
 from datetime import date as date_cls
 from decimal import Decimal, ROUND_HALF_UP
@@ -128,7 +129,9 @@ def _portfolio_transactions_queryset(user, params):
 
     ordering = filters["ordering"]
     if ordering in ("-amount", "amount"):
-        qs = qs.annotate(_amount=Abs(F("shares") * F("price_per_share")))
+        qs = qs.annotate(
+            _amount=Abs(Coalesce("cash_amount", F("shares") * F("price_per_share")))
+        )
         qs = qs.order_by(
             "-_amount" if ordering == "-amount" else "_amount",
             "-date" if ordering == "-amount" else "date",
@@ -160,6 +163,8 @@ def _portfolio_tx_realized_tax(tx):
 
 
 def _portfolio_tx_cash_flow_value(tx):
+    if tx.transaction_type in (AssetTransaction.BUY, AssetTransaction.SELL):
+        return transaction_cash_amount(tx)
     total = _portfolio_tx_total(tx)
     fee = Decimal(tx.fee or 0)
     tax = _portfolio_tx_realized_tax(tx)
@@ -273,6 +278,9 @@ class TransactionsFeedView(APIView):
             "shares": str(tx.shares) if tx.shares is not None else None,
             "price_per_share": str(tx.price_per_share)
             if tx.price_per_share is not None
+            else None,
+            "cash_amount": str(transaction_cash_amount(tx))
+            if tx.transaction_type in (AssetTransaction.BUY, AssetTransaction.SELL)
             else None,
             "total_value": str(total),
             "cash_flow_value": str(_portfolio_tx_cash_flow_value(tx)),

@@ -38,6 +38,7 @@ export type AssetTransactionFeedItem = {
     date?: string | null;
     shares?: string | null;
     price_per_share?: string | null;
+    cash_amount?: string | null;
     total_value?: string;
     cash_flow_value?: string;
     fee?: string;

@@ -68,7 +68,7 @@ def taxable_asset(test_user):
     )
 
 
-def test_buy_with_fee_debits_account_without_increasing_cost_basis(
+def test_buy_with_fee_uses_final_cash_as_invested_capital(
     taxable_asset, bank_account, test_user
 ):
     tx, extra = create_transaction(
@@ -91,7 +91,7 @@ def test_buy_with_fee_debits_account_without_increasing_cost_basis(
     bank_account.refresh_from_db()
 
     assert extra == {}
-    assert taxable_asset.invested_capital == Decimal("1000.00")
+    assert taxable_asset.invested_capital == Decimal("1005.00")
     assert remaining_tax_cost_basis(taxable_asset) == Decimal("1005.00")
     assert bank_account.current_value == Decimal("8995.00")
     assert tx.derived_txs.get(
@@ -364,7 +364,7 @@ def test_patch_sell_recalculates_fee_and_tax(taxable_asset, bank_account, test_u
     assert tx.derived_txs.get(
         derived_kind=AssetTransaction.DERIVED_FEE
     ).price_per_share == Decimal("20.0000")
-    assert bank_account.current_value == Decimal("10596.20")
+    assert bank_account.current_value == Decimal("10566.60")
 
 
 def test_patch_sell_preserves_manual_tax(taxable_asset, bank_account, test_user):
@@ -413,7 +413,7 @@ def test_patch_sell_preserves_manual_tax(taxable_asset, bank_account, test_user)
     assert tx.derived_txs.get(
         derived_kind=AssetTransaction.DERIVED_TAX
     ).price_per_share == Decimal("20.0000")
-    assert bank_account.current_value == Decimal("10620.00")
+    assert bank_account.current_value == Decimal("10570.00")
 
 
 def _make_sell(taxable_asset, bank_account, test_user, **overrides):

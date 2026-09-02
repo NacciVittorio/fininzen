@@ -8,6 +8,7 @@ export type AddTransactionForm = {
     date: string;
     shares: string;
     price_per_share: string;
+    cash_amount: string;
     fee: string;
     tax_amount: string;
     notes: string;
@@ -29,6 +30,7 @@ export function createAddTransactionForm(
         date: today(),
         shares: "",
         price_per_share: "",
+        cash_amount: "",
         fee: "",
         tax_amount: "",
         notes: "",

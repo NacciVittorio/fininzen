@@ -2,6 +2,8 @@
 portfolio/serializers.py — Serializzatori per il portafoglio.
 """
 
+from decimal import Decimal
+
 from rest_framework import serializers
 from fininzen.utils import serializer_user
 from .models import (
@@ -334,6 +336,7 @@ class AssetTransactionSerializer(serializers.ModelSerializer):
             "date",
             "shares",
             "price_per_share",
+            "cash_amount",
             "total_value",
             "fee",
             "tax_amount",
@@ -448,6 +451,10 @@ class AssetTransactionSerializer(serializers.ModelSerializer):
         price = attrs.get(
             "price_per_share", instance.price_per_share if instance else None
         )
+        cash_amount = attrs.get(
+            "cash_amount", instance.cash_amount if instance else None
+        )
+        fee = attrs.get("fee", instance.fee if instance else Decimal("0"))
         if price is not None:
             if tx_type == AssetTransaction.ADJUSTMENT:
                 if price == 0:
@@ -458,6 +465,31 @@ class AssetTransactionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"price_per_share": "L'importo deve essere maggiore di zero."}
                 )
+        if tx_type in (AssetTransaction.BUY, AssetTransaction.SELL):
+            if "cash_amount" in attrs and cash_amount is None:
+                raise serializers.ValidationError(
+                    {"cash_amount": "L'importo finale non può essere vuoto."}
+                )
+            if cash_amount is not None and cash_amount <= 0:
+                raise serializers.ValidationError(
+                    {"cash_amount": "L'importo finale deve essere maggiore di zero."}
+                )
+            if (
+                tx_type == AssetTransaction.BUY
+                and cash_amount is not None
+                and cash_amount <= Decimal(fee or 0)
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "cash_amount": "L'importo finale deve essere maggiore delle commissioni."
+                    }
+                )
+        elif "cash_amount" in attrs and cash_amount is not None:
+            raise serializers.ValidationError(
+                {
+                    "cash_amount": "L'importo finale è valido solo per acquisti e vendite."
+                }
+            )
         return attrs
 
 

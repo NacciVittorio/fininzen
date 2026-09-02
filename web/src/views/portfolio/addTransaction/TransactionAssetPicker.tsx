@@ -15,6 +15,7 @@ export default function TransactionAssetPicker({
     setAddTxAssetId,
     setAddTxForm,
     setAddTxPriceTouched,
+    setAddTxCashTouched,
     investments,
     T,
 }: {
@@ -22,6 +23,7 @@ export default function TransactionAssetPicker({
     setAddTxAssetId: SetAddTxAssetId;
     setAddTxForm: SetAddTxForm;
     setAddTxPriceTouched: SetTouched;
+    setAddTxCashTouched: SetTouched;
     investments: readonly Asset[];
     T: Translator;
 }) {
@@ -38,9 +40,11 @@ export default function TransactionAssetPicker({
                 onChange={(value) => {
                     setAddTxAssetId(value);
                     setAddTxPriceTouched(false);
+                    setAddTxCashTouched(false);
                     setAddTxForm((previous) => ({
                         ...previous,
                         price_per_share: "",
+                        cash_amount: "",
                         contribution_source: "",
                     }));
                 }}

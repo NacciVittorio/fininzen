@@ -194,6 +194,7 @@ def test_export_transactions_returns_csv(client, buy_tx, bank_cash_in_tx):
         "shares",
         "price_per_share",
         "total_value",
+        "cash_amount",
         "contribution_source",
         "notes",
         "fee",
@@ -206,7 +207,10 @@ def test_export_transactions_returns_csv(client, buy_tx, bank_cash_in_tx):
     ]
     asset_names = [r[1] for r in rows[1:]]
     # Investment trade is included…
-    assert any(r[1] == "VWCE" and r[2] == "buy" and r[7] == "TFR" for r in rows[1:])
+    assert any(
+        r[1] == "VWCE" and r[2] == "buy" and r[7] == "1000.00" and r[8] == "TFR"
+        for r in rows[1:]
+    )
     # …but bank-account cashflow movements (cash_in / cash_out / adjustment)
     # are excluded from the standalone Investments export.
     assert "Main Bank" not in asset_names
@@ -971,7 +975,7 @@ def test_export_transactions_sanitizes_formulas(client, dangerous_tx):
     _assert_no_unescaped_formula(rows[1:])
     # asset_name and notes columns must be sanitized
     assert any(r[1].startswith("'+") for r in rows[1:])
-    assert any(r[8].startswith("'@") for r in rows[1:])
+    assert any(r[9].startswith("'@") for r in rows[1:])
 
 
 def test_export_cashflow_sanitizes_formulas(client, dangerous_expense):

@@ -118,24 +118,63 @@ def test_create_transaction_returns_precise_decimal_total(client, asset):
     assert asset.invested_capital == Decimal("441.51")
 
 
+def test_create_transaction_keeps_exact_cash_independent_from_execution_fields(
+    client, asset
+):
+    res = _post_tx(
+        client,
+        asset.id,
+        shares="13.218",
+        price_per_share="7.565",
+        cash_amount="100.00",
+    )
+
+    assert res.status_code == 201
+    assert res.json()["cash_amount"] == "100.00"
+    assert res.json()["total_value"] == "99.99"
+    tx = AssetTransaction.objects.get(pk=res.json()["id"])
+    assert tx.shares == Decimal("13.218000")
+    assert tx.price_per_share == Decimal("7.5650")
+    assert tx.cash_amount == Decimal("100.00")
+    asset.refresh_from_db()
+    assert asset.invested_capital == Decimal("100.00")
+
+
 def test_create_transaction_rejects_non_positive_amount(client, asset):
     res = _post_tx(client, asset.id, price_per_share="-1")
     assert res.status_code == 400
 
 
-def test_patch_transaction_recomputes_asset(client, asset):
+def test_patch_execution_fields_preserves_exact_cash_amount(client, asset):
     res = _post_tx(client, asset.id)
     tx_id = res.json()["id"]
-    # Update shares from 10 to 20
+    # Quote and quantity remain independently editable execution snapshots.
     res = client.patch(
         f"/api/portfolio/{asset.id}/transactions/{tx_id}/",
         data={"shares": "20"},
         content_type="application/json",
     )
     assert res.status_code == 200
+    assert res.json()["cash_amount"] == "500.00"
     asset.refresh_from_db()
     assert asset.shares == Decimal("20.000000")
-    assert asset.invested_capital == Decimal("1000.00")
+    assert asset.invested_capital == Decimal("500.00")
+
+
+def test_patch_exact_cash_amount_recomputes_invested_capital(client, asset):
+    res = _post_tx(client, asset.id)
+    tx_id = res.json()["id"]
+
+    res = client.patch(
+        f"/api/portfolio/{asset.id}/transactions/{tx_id}/",
+        data={"cash_amount": "499.90"},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert res.json()["cash_amount"] == "499.90"
+    asset.refresh_from_db()
+    assert asset.invested_capital == Decimal("499.90")
 
 
 def test_delete_transaction_recomputes_asset(client, asset):
@@ -732,7 +771,7 @@ def test_patch_buy_syncs_derived_cash_out_amount(client, asset, bank_account):
     )
     buy_tx_id = res.json()["id"]
 
-    # Patch shares from 2 to 3 → cost goes from 200 to 300
+    # Editing quantity alone does not rewrite the frozen cash movement.
     res = client.patch(
         f"/api/portfolio/{asset.id}/transactions/{buy_tx_id}/",
         data={"shares": "3"},
@@ -740,9 +779,9 @@ def test_patch_buy_syncs_derived_cash_out_amount(client, asset, bank_account):
     )
     assert res.status_code == 200
     derived = AssetTransaction.objects.get(derived_from_id=buy_tx_id)
-    assert derived.price_per_share == Decimal("300.0000")
+    assert derived.price_per_share == Decimal("200.0000")
     bank_account.refresh_from_db()
-    assert bank_account.current_value == Decimal("700.00")
+    assert bank_account.current_value == Decimal("800.00")
 
 
 def test_patch_buy_cash_mirror_directly_is_rejected(client, asset, bank_account):

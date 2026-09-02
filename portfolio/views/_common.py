@@ -15,7 +15,7 @@ from decimal import Decimal
 logger = logging.getLogger(__name__)
 
 
-IMPORT_PRICE_QUANT = Decimal("0.01")
+IMPORT_PRICE_QUANT = Decimal("0.0001")
 
 IMPORT_SHARES_QUANT = Decimal("0.000001")
 

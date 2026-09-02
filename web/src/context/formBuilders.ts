@@ -10,6 +10,7 @@ export type TransactionForm = {
     date: string;
     shares: string;
     price_per_share: string;
+    cash_amount: string;
     fee: string;
     tax_amount: string;
     notes: string;
@@ -73,6 +74,7 @@ export const buildTxForm = (
     date: today(),
     shares: "",
     price_per_share: "",
+    cash_amount: "",
     fee: "",
     tax_amount: "",
     notes: "",
