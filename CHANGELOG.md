@@ -6,6 +6,12 @@ All notable changes to Fininzen are documented here. The format follows
 automatically by `just release` (commitizen) from Conventional Commits — see
 [wiki/VERSIONING.md](wiki/VERSIONING.md).
 
+## v1.1.0 (2026-09-02)
+
+### Feat
+
+- **portfolio**: preserve exact transaction cash amounts
+
 ## v1.0.0 (2026-08-31)
 
 ### Feat
