@@ -89,6 +89,7 @@ type AssetImportRow = {
     date: string;
     shares: string;
     price_per_share: string;
+    cash_amount: string;
     source_account_id: string;
     contribution_source: string;
     is_verified: string;
@@ -159,6 +160,7 @@ export const buildCsvImportPayload = ({
                 row,
                 csvMap.price_per_share,
             ),
+            cash_amount: getCsvColumnValue(csvParsed, row, csvMap.cash_amount),
             source_account_id: getCsvColumnValue(
                 csvParsed,
                 row,

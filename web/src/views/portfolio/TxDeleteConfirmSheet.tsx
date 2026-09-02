@@ -70,7 +70,11 @@ export default function TxDeleteConfirmSheet({
                             )
                                 ? "-"
                                 : "+"}
-                            {formatEur(txDeleteConfirm.total_value)}
+                            {formatEur(
+                                txDeleteConfirm.cash_amount ??
+                                    txDeleteConfirm.cash_flow_value ??
+                                    txDeleteConfirm.total_value,
+                            )}
                         </div>
                     </div>
                     <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>

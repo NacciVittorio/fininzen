@@ -697,6 +697,9 @@ const en: Record<string, string> = {
     tx_price: "Price per Share",
     tx_price_per_share: "Price / Share",
     tx_total: "Total",
+    tx_cash_amount: "Final amount",
+    tx_cash_amount_variance:
+        "Differs by {difference} {currency} from shares × price, fees and taxes. The entered value will still be saved.",
     tx_fee: "Fee",
     tx_tax_paid: "Tax",
     tx_estimated_tax: "Estimated tax",
@@ -709,6 +712,7 @@ const en: Record<string, string> = {
     tx_error_date_required: "Enter the date",
     tx_error_shares_required: "Enter the number of shares",
     tx_error_price_required: "Enter the price per share",
+    tx_error_cash_amount_required: "Enter the final amount",
     tx_price_unavailable:
         "No price available for this date — enter it manually",
     // Edit / validation

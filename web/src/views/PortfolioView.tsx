@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { useApp } from "../context/useApp";
 import { API } from "../utils/api";
-import { today } from "../utils/formatters";
+import { parseFlexibleDecimal, today } from "../utils/formatters";
 import { useFormatters } from "../utils/useFormatters";
 import { regroupTargets } from "../utils/allocationGroups";
 import type { Asset, ContributionSource } from "../api/types";
@@ -72,6 +72,7 @@ export default function PortfolioView() {
     const [editingAddTxId, setEditingAddTxId] = useState<EntityId | null>(null);
     const [editingAddTxItem, setEditingAddTxItem] = useState<EditingItem>(null);
     const [addTxPriceTouched, setAddTxPriceTouched] = useState(false);
+    const [addTxCashTouched, setAddTxCashTouched] = useState(false);
     // Surfaces the historical-price autofill to the user: "loading" while the
     // lookup runs, "unavailable" when the backend has no quote for that date
     // (weekend/holiday/pre-IPO → 404). Without it the price field just silently
@@ -273,6 +274,7 @@ export default function PortfolioView() {
             ),
         );
         setAddTxPriceTouched(false);
+        setAddTxCashTouched(false);
         setAddTxTaxTouched(false);
     };
 
@@ -287,6 +289,7 @@ export default function PortfolioView() {
             date: item.date || today(),
             shares: String(item.shares ?? ""),
             price_per_share: String(item.price_per_share ?? ""),
+            cash_amount: String(item.cash_amount ?? item.cash_flow_value ?? ""),
             fee: String(item.fee ?? ""),
             tax_amount: item.tax_amount_is_manual
                 ? String(item.tax_amount ?? "")
@@ -301,6 +304,7 @@ export default function PortfolioView() {
             is_verified: item.is_verified ?? false,
         });
         setAddTxPriceTouched(true);
+        setAddTxCashTouched(true);
         // Preserve the manual/auto nature of the tax on edit: a manual override
         // stays manual (and editable); an auto one stays auto unless the user edits.
         setAddTxTaxTouched(!!item.tax_amount_is_manual);
@@ -312,6 +316,7 @@ export default function PortfolioView() {
         setEditingAddTxItem(null);
         setAddTxError(null);
         setAddTxPriceTouched(false);
+        setAddTxCashTouched(false);
         setAddTxTaxTouched(false);
     };
 
@@ -426,6 +431,54 @@ export default function PortfolioView() {
         editingAddTxItem,
     ]);
 
+    // The cash movement is a first-class snapshot.  For a new transaction we
+    // offer the legacy formula as a convenient default, but once the user edits
+    // it (or when an existing transaction is opened) it is never overwritten by
+    // quote/fee/tax changes in the background.
+    useEffect(() => {
+        if (!addModalOpen || addTxCashTouched) return;
+        const shares = parseFlexibleDecimal(addTxForm.shares);
+        const price = parseFlexibleDecimal(addTxForm.price_per_share);
+        const fee = addTxForm.fee ? parseFlexibleDecimal(addTxForm.fee) : 0;
+        const tax = addTxForm.tax_amount
+            ? parseFlexibleDecimal(addTxForm.tax_amount)
+            : 0;
+        if (
+            !Number.isFinite(shares) ||
+            !Number.isFinite(price) ||
+            !Number.isFinite(fee) ||
+            !Number.isFinite(tax) ||
+            shares <= 0 ||
+            price <= 0 ||
+            fee < 0 ||
+            tax < 0
+        ) {
+            setAddTxForm((prev) =>
+                prev.cash_amount ? { ...prev, cash_amount: "" } : prev,
+            );
+            return;
+        }
+        const gross = shares * price;
+        const cash =
+            addTxForm.transaction_type === "sell"
+                ? gross - fee - tax
+                : gross + fee;
+        const formatted = cash > 0 ? cash.toFixed(2) : "";
+        setAddTxForm((prev) =>
+            prev.cash_amount === formatted
+                ? prev
+                : { ...prev, cash_amount: formatted },
+        );
+    }, [
+        addModalOpen,
+        addTxCashTouched,
+        addTxForm.transaction_type,
+        addTxForm.shares,
+        addTxForm.price_per_share,
+        addTxForm.fee,
+        addTxForm.tax_amount,
+    ]);
+
     const handleAddTxSubmit = async () => {
         // React applies the loading state on the next render, so two click events
         // dispatched in the same tick can both observe an enabled button. Keep a
@@ -517,6 +570,7 @@ export default function PortfolioView() {
                 addTxError={addTxError}
                 addTxLoading={addTxLoading}
                 setAddTxPriceTouched={setAddTxPriceTouched}
+                setAddTxCashTouched={setAddTxCashTouched}
                 setAddTxTaxTouched={setAddTxTaxTouched}
                 addTxPriceStatus={addTxPriceStatus}
                 editingAddTxItem={editingAddTxItem}

@@ -94,6 +94,7 @@ def test_feed_includes_asset_info(client, asset_a, make_tx):
     assert item["asset"]["is_archived"] is False
     assert item["transaction_type"] == "buy"
     assert item["total_value"] == "100.00"
+    assert item["cash_amount"] == "100.00"
 
 
 def test_feed_keeps_currency_for_each_bank_account_transaction(
@@ -194,8 +195,27 @@ def test_feed_includes_net_cash_flow_value(client, asset_a, make_tx):
     sell_item = next(item for item in res.json()["results"] if item["id"] == sell.id)
 
     assert sell_item["total_value"] == "2294.10"
+    assert sell_item["cash_amount"] == "2287.30"
     assert sell_item["tax_amount"] == "5.80"
     assert sell_item["cash_flow_value"] == "2287.30"
+
+
+def test_feed_prefers_frozen_cash_over_shares_times_price(client, asset_a, make_tx):
+    tx = make_tx(
+        asset_a,
+        date="2026-06-15",
+        transaction_type=AssetTransaction.BUY,
+        shares=Decimal("13.218"),
+        price_per_share=Decimal("7.565"),
+        cash_amount=Decimal("100.00"),
+        is_verified=True,
+    )
+
+    res = client.get("/api/portfolio/transactions/")
+    item = next(row for row in res.json()["results"] if row["id"] == tx.id)
+
+    assert item["cash_amount"] == "100.00"
+    assert item["cash_flow_value"] == "100.00"
 
 
 def test_feed_uses_manual_sell_tax_for_net_cash_flow_value(client, asset_a, make_tx):

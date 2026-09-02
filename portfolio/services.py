@@ -51,6 +51,52 @@ def _q2(value):
     return Decimal(value or 0).quantize(_Q2, rounding=ROUND_HALF_UP)
 
 
+def transaction_cash_amount(tx: AssetTransaction) -> Decimal:
+    """Return the frozen cash movement, with a legacy-safe fallback."""
+    if tx.cash_amount is not None:
+        return _q2(tx.cash_amount)
+    calculated = AssetTransaction.calculated_cash_amount(
+        tx.transaction_type,
+        tx.shares,
+        tx.price_per_share,
+        tx.fee,
+        tx.tax_amount,
+    )
+    if calculated is not None:
+        return calculated
+    return _q2(Decimal(tx.shares or 0) * Decimal(tx.price_per_share or 0))
+
+
+def transaction_trade_amount(tx: AssetTransaction) -> Decimal:
+    """Gross trade consideration implied by the exact cash snapshot."""
+    cash = transaction_cash_amount(tx)
+    fee = Decimal(tx.fee or 0)
+    tax = Decimal(tx.tax_amount or 0)
+    if tx.transaction_type == AssetTransaction.BUY:
+        return _q2(cash - fee)
+    if tx.transaction_type == AssetTransaction.SELL:
+        return _q2(cash + fee + tax)
+    return _q2(Decimal(tx.shares or 0) * Decimal(tx.price_per_share or 0))
+
+
+def _sync_transaction_cash_snapshot(tx: AssetTransaction, *, force=False) -> None:
+    if tx.transaction_type not in (AssetTransaction.BUY, AssetTransaction.SELL):
+        if tx.cash_amount is not None:
+            tx.cash_amount = None
+            tx.save(update_fields=["cash_amount"])
+        return
+    if tx.cash_amount is not None and not force:
+        return
+    tx.cash_amount = AssetTransaction.calculated_cash_amount(
+        tx.transaction_type,
+        tx.shares,
+        tx.price_per_share,
+        tx.fee,
+        tx.tax_amount,
+    )
+    tx.save(update_fields=["cash_amount"])
+
+
 def _ensure_transaction_asset_mutable(asset: Asset) -> None:
     if asset.is_archived:
         raise ArchivedAssetTransactionError("Archived asset transactions are read-only")
@@ -286,8 +332,7 @@ def _cmp_tax_lot_state_for_asset(
     for prev in txs:
         if prev.transaction_type == AssetTransaction.BUY:
             running_shares += prev.shares
-            running_tax_cost += prev.shares * prev.price_per_share
-            running_tax_cost += Decimal(prev.fee or 0)
+            running_tax_cost += transaction_cash_amount(prev)
         elif prev.transaction_type == AssetTransaction.SELL and running_shares > 0:
             avg_tax_cost = running_tax_cost / running_shares
             sold = min(prev.shares, running_shares)
@@ -315,7 +360,7 @@ def _fifo_lots_for_asset(
         if prev.transaction_type == AssetTransaction.BUY:
             if prev.shares <= 0:
                 continue
-            gross_cost = prev.shares * prev.price_per_share + Decimal(prev.fee or 0)
+            gross_cost = transaction_cash_amount(prev)
             unit_cost = gross_cost / prev.shares
             lots.append((prev.shares, unit_cost))
             continue
@@ -478,13 +523,24 @@ def resync_asset_tax(asset: Asset) -> int:
             continue
         changed += 1
         # The destination account of a sell is the asset of its principal cash
-        # mirror; charge/refund the tax delta there so the balance stays correct.
+        # mirror.  The net cash snapshot remains immutable, so a confirmed tax
+        # propagation adjusts both the gross principal and the tax child while
+        # their net remains exactly ``tx.cash_amount``.
         principal = (
             tx.derived_txs.filter(derived_kind=AssetTransaction.DERIVED_PRINCIPAL)
             .select_related("asset")
             .first()
         )
         if principal is not None:
+            touched_accounts |= _sync_derived_cash_movement(
+                tx,
+                kind=AssetTransaction.DERIVED_PRINCIPAL,
+                account=principal.asset,
+                transaction_type=AssetTransaction.CASH_IN,
+                amount=transaction_trade_amount(tx),
+                notes=f"SELL {asset.name}",
+                owner=owner,
+            )
             touched_accounts |= _sync_derived_cash_movement(
                 tx,
                 kind=AssetTransaction.DERIVED_TAX,
@@ -539,7 +595,7 @@ def _sync_transaction_eur_snapshot(tx: AssetTransaction) -> None:
         tx.fee_eur = None
         tx.tax_amount_eur = None
     else:
-        gross_native = tx.shares * tx.price_per_share
+        gross_native = transaction_trade_amount(tx)
         tx.fx_rate_to_eur = rate
         tx.gross_amount_eur = _q2(gross_native * rate)
         tx.fee_eur = _q2(Decimal(tx.fee or 0) * rate)
@@ -755,6 +811,7 @@ def generate_recurring_investments(user, year: int, month: int) -> dict:
                     date=execution_date,
                     shares=shares,
                     price_per_share=open_price,
+                    cash_amount=plan.amount,
                     notes=f"PAC {plan.name}",
                     recurring_plan=plan,
                     recurring_occurrence_date=occurrence_date,
@@ -1060,9 +1117,12 @@ def create_transaction(
         if tx_type == AssetTransaction.SELL
         else None
     )
+    cash_amount_explicit = "cash_amount" in serializer.validated_data
 
     with transaction.atomic():
         tx = serializer.save(asset=asset, owner=owner)
+        _sync_parent_tax_amount(asset, tx)
+        _sync_transaction_cash_snapshot(tx, force=not cash_amount_explicit)
         _sync_transaction_eur_snapshot(tx)
         _recompute_asset_locked(asset)
         if asset.tracking_type == Asset.MANUAL:
@@ -1071,15 +1131,15 @@ def create_transaction(
         tx_type = tx.transaction_type
         fee = Decimal(tx.fee or 0)
         if tx_type == AssetTransaction.BUY and src:
-            cost = _q2(tx.shares * tx.price_per_share)
-            if src.current_value < cost + fee:
+            principal = transaction_trade_amount(tx)
+            if src.current_value < transaction_cash_amount(tx):
                 response_extra["warning"] = "insufficient_balance"
             touched = _sync_derived_cash_movement(
                 tx,
                 kind=AssetTransaction.DERIVED_PRINCIPAL,
                 account=src,
                 transaction_type=AssetTransaction.CASH_OUT,
-                amount=cost,
+                amount=principal,
                 notes=f"BUY {asset.name}",
                 owner=owner,
             )
@@ -1096,8 +1156,7 @@ def create_transaction(
                 _refresh_manual_asset(touched_asset)
 
         elif tx_type == AssetTransaction.SELL:
-            proceeds = _q2(tx.shares * tx.price_per_share)
-            _sync_parent_tax_amount(asset, tx)
+            proceeds = transaction_trade_amount(tx)
             if dst:
                 touched = _sync_derived_cash_movement(
                     tx,
@@ -1128,9 +1187,6 @@ def create_transaction(
                 )
                 for touched_asset in touched:
                     _refresh_manual_asset(touched_asset)
-        elif tx_type != AssetTransaction.SELL:
-            _sync_parent_tax_amount(asset, tx)
-
     invalidate_dashboard_summary(DashboardSummary.REASON_TRANSACTION, user=owner)
     return tx, response_extra
 
@@ -1203,6 +1259,7 @@ def patch_transaction(
         "price_per_share": serializer.validated_data.get(
             "price_per_share", tx.price_per_share
         ),
+        "cash_amount": serializer.validated_data.get("cash_amount", tx.cash_amount),
         "contribution_source": serializer.validated_data.get(
             "contribution_source", tx.contribution_source
         ),
@@ -1231,9 +1288,11 @@ def patch_transaction(
         _get_bank_account(dest_account_pk, effective_owner)
     with transaction.atomic():
         updated_tx = serializer.save(owner=effective_owner)
+        _sync_parent_tax_amount(asset, updated_tx)
+        _sync_transaction_cash_snapshot(updated_tx)
         _sync_transaction_eur_snapshot(updated_tx)
         _recompute_asset_locked(asset)
-        new_amount = _q2(updated_tx.shares * updated_tx.price_per_share)
+        new_amount = transaction_trade_amount(updated_tx)
         cash_types = {
             AssetTransaction.CASH_IN,
             AssetTransaction.CASH_OUT,
@@ -1284,7 +1343,6 @@ def patch_transaction(
                 notes="",
                 owner=effective_owner,
             )
-            _sync_parent_tax_amount(asset, updated_tx)
             for touched_asset in touched:
                 _refresh_manual_asset(touched_asset)
         elif updated_tx.transaction_type == AssetTransaction.SELL:
@@ -1304,7 +1362,6 @@ def patch_transaction(
                     raise
             else:
                 dst = mirror.asset if mirror else None
-            _sync_parent_tax_amount(asset, updated_tx)
             touched |= _sync_derived_cash_movement(
                 updated_tx,
                 kind=AssetTransaction.DERIVED_PRINCIPAL,
@@ -1335,7 +1392,6 @@ def patch_transaction(
             for touched_asset in touched:
                 _refresh_manual_asset(touched_asset)
         elif updated_tx.transaction_type in cash_types:
-            _sync_parent_tax_amount(asset, updated_tx)
             if updated_tx.derived_from_id:
                 # If this row is itself a derived cash movement, drop stale mirrors.
                 try:
@@ -1374,7 +1430,6 @@ def patch_transaction(
                 old_asset = mirror.asset
                 mirror.delete()
                 _refresh_manual_asset(old_asset)
-            _sync_parent_tax_amount(asset, updated_tx)
 
         # Transfer pairs are represented as CASH_OUT -> derived CASH_IN; keep the
         # verification flag mirrored so the aggregated Cash Flow row stays coherent.

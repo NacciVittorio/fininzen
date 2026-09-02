@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
-from portfolio.models import Asset, AssetPriceHistory
+from portfolio.models import Asset, AssetPriceHistory, AssetTransaction
 from portfolio.price_providers import (
     BorsaItalianaFundsProvider,
     PriceQuote,
@@ -316,6 +316,16 @@ def test_refresh_borsa_asset_updates_price_and_history(itype, test_user):
         name="Arca Previdenza Alta Crescita Sostenibile C",
     )
     provider.get_history.return_value = [(date(2026, 4, 30), Decimal("42.0560"))]
+    tx = AssetTransaction.objects.create(
+        asset=asset,
+        transaction_type=AssetTransaction.BUY,
+        date=date(2026, 4, 1),
+        shares=Decimal("13.218"),
+        price_per_share=Decimal("7.565"),
+        cash_amount=Decimal("100.00"),
+        is_verified=True,
+        owner=test_user,
+    )
 
     with patch("portfolio.prices.BorsaItalianaFundsProvider", return_value=provider):
         assert aggiorna_prezzo_singolo(asset) is True
@@ -324,6 +334,10 @@ def test_refresh_borsa_asset_updates_price_and_history(itype, test_user):
     assert asset.price_per_share == Decimal("42.0560")
     assert asset.current_value == Decimal("420.56")
     assert asset.current_value_eur == Decimal("420.56")
+    tx.refresh_from_db()
+    assert tx.shares == Decimal("13.218000")
+    assert tx.price_per_share == Decimal("7.5650")
+    assert tx.cash_amount == Decimal("100.00")
     assert AssetPriceHistory.objects.filter(
         asset=asset, date=date(2026, 4, 30), close=Decimal("42.0560")
     ).exists()

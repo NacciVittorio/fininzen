@@ -28,6 +28,7 @@ export default function AddTransactionSheet({
     addTxError,
     addTxLoading,
     setAddTxPriceTouched,
+    setAddTxCashTouched,
     setAddTxTaxTouched,
     addTxPriceStatus,
     editingAddTxItem,
@@ -49,6 +50,7 @@ export default function AddTransactionSheet({
     addTxError?: string | null;
     addTxLoading: boolean;
     setAddTxPriceTouched: SetTouched;
+    setAddTxCashTouched: SetTouched;
     setAddTxTaxTouched: SetTouched;
     addTxPriceStatus?: AddTxPriceStatus;
     editingAddTxItem?: Parameters<typeof estimateSellTax>[3];
@@ -144,6 +146,7 @@ export default function AddTransactionSheet({
                             setAddTxAssetId={setAddTxAssetId}
                             setAddTxForm={setAddTxForm}
                             setAddTxPriceTouched={setAddTxPriceTouched}
+                            setAddTxCashTouched={setAddTxCashTouched}
                             investments={investments}
                             T={T}
                         />
@@ -154,6 +157,7 @@ export default function AddTransactionSheet({
                             addTxForm={addTxForm}
                             setAddTxForm={setAddTxForm}
                             setAddTxPriceTouched={setAddTxPriceTouched}
+                            setAddTxCashTouched={setAddTxCashTouched}
                             setAddTxTaxTouched={setAddTxTaxTouched}
                             addTxPriceStatus={addTxPriceStatus}
                             editingAddTxId={editingAddTxId}

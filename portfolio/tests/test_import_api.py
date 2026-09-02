@@ -292,7 +292,9 @@ def test_import_assets_preview_duplicates_and_selective_import(
     assert include_body["skipped"] == 0
 
 
-def test_import_assets_rounds_price_per_share_to_2_decimals(client, itype, test_user):
+def test_import_assets_preserves_price_per_share_to_4_decimals(
+    client, itype, test_user
+):
     existing = Asset.objects.create(
         name="Round ETF",
         isin="IE00ROUND001",
@@ -318,7 +320,7 @@ def test_import_assets_rounds_price_per_share_to_2_decimals(client, itype, test_
     body = res.json()
     assert body["imported"] == 1
     tx = AssetTransaction.objects.get(asset=existing)
-    assert tx.price_per_share == Decimal("120.51")
+    assert tx.price_per_share == Decimal("120.5050")
 
 
 def test_import_assets_truncates_shares_to_6_decimals(client, itype, test_user):
@@ -380,7 +382,9 @@ def test_import_assets_supports_is_verified(client, itype, test_user):
     assert tx.is_verified is True
 
 
-def test_import_assets_duplicate_detection_uses_rounded_price(client, itype, test_user):
+def test_import_assets_duplicate_detection_uses_4_decimal_price(
+    client, itype, test_user
+):
     existing = Asset.objects.create(
         name="Dup ETF",
         isin="IE00ROUND002",
@@ -393,7 +397,7 @@ def test_import_assets_duplicate_detection_uses_rounded_price(client, itype, tes
         transaction_type=AssetTransaction.BUY,
         date=date(2026, 3, 15),
         shares=Decimal("1"),
-        price_per_share=Decimal("120.51"),
+        price_per_share=Decimal("120.5050"),
         owner=test_user,
     )
     rows = [
@@ -413,7 +417,43 @@ def test_import_assets_duplicate_detection_uses_rounded_price(client, itype, tes
     )
     body = preview.json()
     assert body["duplicates"] == 1
-    assert body["duplicate_rows"][0]["price_per_share"] == "120.51"
+    assert body["duplicate_rows"][0]["price_per_share"] == "120.5050"
+
+
+def test_import_assets_accepts_exact_cash_amount(client, itype, test_user):
+    existing = Asset.objects.create(
+        name="Exact ETF",
+        isin="IE00EXACT001",
+        tracking_type="AUTO",
+        investment_type=itype,
+        owner=test_user,
+    )
+    rows = [
+        {
+            "name": "Exact ETF",
+            "isin": "IE00EXACT001",
+            "transaction_type": "buy",
+            "date": "2026-03-15",
+            "shares": "13.218",
+            "price_per_share": "7.565",
+            "cash_amount": "100",
+            "is_verified": "true",
+        }
+    ]
+
+    res = client.post(
+        "/api/portfolio/import-assets/",
+        data={"rows": rows},
+        content_type="application/json",
+    )
+
+    assert res.status_code == 200
+    assert res.json()["imported"] == 1
+    tx = AssetTransaction.objects.get(asset=existing)
+    assert tx.price_per_share == Decimal("7.5650")
+    assert tx.cash_amount == Decimal("100.00")
+    existing.refresh_from_db()
+    assert existing.invested_capital == Decimal("100.00")
 
 
 def test_import_assets_partial_failure_does_not_block_valid(client, itype):

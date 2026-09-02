@@ -257,6 +257,12 @@ test.describe("Portfolio CRUD", () => {
         await page.click(`[data-testid="addtx-asset-option-${assetId}"]`);
         await page.fill('[data-testid="addtx-shares"]', "3");
         await page.fill('[data-testid="addtx-price"]', "50");
+        const cashAmount = page.locator('[data-testid="addtx-cash-amount"]');
+        await expect(cashAmount).toHaveValue("150.00");
+        await cashAmount.fill("149.90");
+        await expect(
+            page.locator('[data-testid="addtx-cash-variance"]'),
+        ).toBeVisible();
 
         let releaseFirstRequest = () => {};
         const firstRequestCanFinish = new Promise<void>((resolve) => {
@@ -321,6 +327,7 @@ test.describe("Portfolio CRUD", () => {
         expect(transactionsResponse.ok()).toBeTruthy();
         const transactions = await transactionsResponse.json();
         expect(transactions).toHaveLength(1);
+        expect(transactions[0].cash_amount).toBe("149.90");
 
         await deleteAsset(page, token, assetId);
         await deleteInvestmentType(page, token, typeId);

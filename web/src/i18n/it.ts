@@ -701,6 +701,9 @@ const it: Record<string, string> = {
     tx_price: "Prezzo per Quota",
     tx_price_per_share: "Prezzo / Quota",
     tx_total: "Totale",
+    tx_cash_amount: "Importo finale",
+    tx_cash_amount_variance:
+        "Differisce di {difference} {currency} da quote × prezzo, commissioni e tasse. Il valore inserito verrà comunque salvato.",
     tx_fee: "Commissione",
     tx_tax_paid: "Tasse",
     tx_estimated_tax: "Tasse stimate",
@@ -713,6 +716,7 @@ const it: Record<string, string> = {
     tx_error_date_required: "Inserisci la data",
     tx_error_shares_required: "Inserisci il numero di quote",
     tx_error_price_required: "Inserisci il prezzo per quota",
+    tx_error_cash_amount_required: "Inserisci l'importo finale",
     tx_price_unavailable:
         "Prezzo non disponibile per questa data — inseriscilo a mano",
     // Edit / validation

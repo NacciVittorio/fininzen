@@ -18,6 +18,7 @@ from ...prices import (
 from ...services import (
     asset_current_value_eur,
     asset_invested_capital_eur,
+    transaction_cash_amount,
 )
 from datetime import datetime, timedelta, timezone, date as date_cls
 from decimal import Decimal
@@ -934,7 +935,7 @@ class _AssetAnalyticsMixin:
             is_verified=True,
         )
         invested = sum(
-            (tx.shares * tx.price_per_share for tx in buy_txs),
+            (transaction_cash_amount(tx) for tx in buy_txs),
             Decimal("0"),
         )
 
@@ -968,6 +969,7 @@ class _AssetAnalyticsMixin:
                     "transaction_type",
                     "shares",
                     "price_per_share",
+                    "cash_amount",
                     "fee",
                     "tax_amount",
                     "date",
@@ -980,15 +982,14 @@ class _AssetAnalyticsMixin:
             for t in all_txs:
                 if t.transaction_type == AssetTransaction.BUY:
                     r_shares += t.shares
-                    r_cost += t.shares * t.price_per_share
+                    r_cost += transaction_cash_amount(t)
                 elif t.transaction_type == AssetTransaction.SELL:
                     if r_shares > 0:
                         avg_cost = r_cost / r_shares
                         sold = min(t.shares, r_shares)
                         cost_basis = sold * avg_cost
-                        gain = (
-                            sold * t.price_per_share - cost_basis - t.fee - t.tax_amount
-                        )
+                        net_proceeds = transaction_cash_amount(t) * sold / t.shares
+                        gain = net_proceeds - cost_basis
                         r_cost -= cost_basis
                         r_shares -= sold
                         if t.date.month == month and t.date.year == year:

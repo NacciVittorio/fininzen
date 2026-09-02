@@ -57,6 +57,11 @@ export function getCsvImportFields(
                 required: true,
             },
             {
+                field: "cash_amount",
+                label: T("tx_cash_amount"),
+                required: false,
+            },
+            {
                 field: "source_account_id",
                 label: T("tx_source_account"),
                 required: false,

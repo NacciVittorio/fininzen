@@ -397,16 +397,29 @@ class Asset(models.Model):
             eur_complete = True
             for tx in txs:
                 if tx.transaction_type == AssetTransaction.BUY:
+                    cash_cost = (
+                        Decimal(tx.cash_amount)
+                        if tx.cash_amount is not None
+                        else AssetTransaction.calculated_cash_amount(
+                            tx.transaction_type,
+                            tx.shares,
+                            tx.price_per_share,
+                            tx.fee,
+                            tx.tax_amount,
+                        )
+                    )
                     running_shares += tx.shares
-                    running_cost += tx.shares * tx.price_per_share
+                    running_cost += cash_cost
                     if tx.gross_amount_eur is not None:
-                        running_cost_eur += tx.gross_amount_eur
+                        running_cost_eur += tx.gross_amount_eur + Decimal(
+                            tx.fee_eur or 0
+                        )
                     else:
                         rate = _historical_rate(tx.date)
                         if rate is None:
                             eur_complete = False
                         elif eur_complete:
-                            running_cost_eur += tx.shares * tx.price_per_share * rate
+                            running_cost_eur += cash_cost * rate
                 elif tx.transaction_type == AssetTransaction.SELL:
                     if running_shares > 0:
                         avg_cost = running_cost / running_shares
@@ -543,6 +556,24 @@ class AssetTransaction(models.Model):
     )
     # price_per_share può essere negativo per ADJUSTMENT (delta negativo)
     price_per_share = models.DecimalField(max_digits=15, decimal_places=4)
+    # Exact, frozen cash movement for investment trades, expressed in the
+    # asset's native currency.  It is intentionally independent from
+    # ``shares * price_per_share``: brokers commonly round the two execution
+    # fields to different precisions, so their product is not a reliable record
+    # of the amount that actually left/entered the account.
+    #
+    # BUY  -> cash paid, including fees
+    # SELL -> cash received, after fees and taxes
+    #
+    # Non-trade rows keep this null and continue to use their existing amount
+    # representation (shares=1, price_per_share=amount).
+    cash_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
     fee = models.DecimalField(
         max_digits=15,
         decimal_places=2,
@@ -637,6 +668,44 @@ class AssetTransaction(models.Model):
     @property
     def total_value(self):
         return self.shares * self.price_per_share
+
+    @staticmethod
+    def calculated_cash_amount(
+        transaction_type, shares, price_per_share, fee=Decimal("0"), tax=Decimal("0")
+    ):
+        """Return the legacy formula used only to initialise a cash snapshot."""
+        gross = Decimal(shares or 0) * Decimal(price_per_share or 0)
+        fee = Decimal(fee or 0)
+        tax = Decimal(tax or 0)
+        if transaction_type == AssetTransaction.BUY:
+            return _q2(gross + fee)
+        if transaction_type == AssetTransaction.SELL:
+            return _q2(gross - fee - tax)
+        return None
+
+    def save(self, *args, **kwargs):
+        # Raw model creates are used by imports, migrations and a few internal
+        # services.  Snapshot the formula once there too, so every newly-created
+        # BUY/SELL is static even when it does not go through the REST service.
+        if (
+            self.cash_amount is None
+            and self.transaction_type in (self.BUY, self.SELL)
+            and self.shares is not None
+            and self.price_per_share is not None
+        ):
+            self.cash_amount = self.calculated_cash_amount(
+                self.transaction_type,
+                self.shares,
+                self.price_per_share,
+                self.fee,
+                self.tax_amount,
+            )
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = list(
+                    dict.fromkeys([*update_fields, "cash_amount"])
+                )
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["-date", "-created_at"]

@@ -1673,7 +1673,8 @@ export interface paths {
          *
          *     Body: {
          *       rows: [{name?, isin?, transaction_type|segno, date, shares,
-         *               price_per_share, source_account_id?, contribution_source?, notes?}],
+         *               price_per_share, cash_amount?, source_account_id?,
+         *               contribution_source?, notes?}],
          *       preview_only?: bool,
          *       include_duplicate_rows?: [row_number...]
          *     }
@@ -1701,7 +1702,7 @@ export interface paths {
          * @description POST /api/portfolio/import-transactions/
          *
          *     Body: {rows: [{asset_id, transaction_type, date, shares,
-         *     price_per_share, contribution_source?, notes?}]}
+         *     price_per_share, cash_amount?, contribution_source?, notes?}]}
          */
         post: operations["portfolio_import_transactions_create"];
         delete?: never;

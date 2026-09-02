@@ -48,9 +48,13 @@ export const buildPortfolioTransactionPayload = ({
     if (!form.price_per_share) {
         return { ok: false, errorKey: "tx_error_price_required" };
     }
+    if (!form.cash_amount) {
+        return { ok: false, errorKey: "tx_error_cash_amount_required" };
+    }
 
     const parsedShares = parseFlexibleDecimal(form.shares);
     const parsedPrice = parseFlexibleDecimal(form.price_per_share);
+    const parsedCashAmount = parseFlexibleDecimal(form.cash_amount);
     const parsedFee = form.fee ? parseFlexibleDecimal(form.fee) : 0;
     const parsedTaxAmount = form.tax_amount
         ? parseFlexibleDecimal(form.tax_amount)
@@ -58,10 +62,12 @@ export const buildPortfolioTransactionPayload = ({
     if (
         Number.isNaN(parsedShares) ||
         Number.isNaN(parsedPrice) ||
+        Number.isNaN(parsedCashAmount) ||
         Number.isNaN(parsedFee) ||
         Number.isNaN(parsedTaxAmount) ||
         parsedShares <= 0 ||
         parsedPrice <= 0 ||
+        parsedCashAmount <= 0 ||
         parsedFee < 0 ||
         parsedTaxAmount < 0
     ) {
@@ -75,6 +81,7 @@ export const buildPortfolioTransactionPayload = ({
         : null;
     const shares = parseMoneyToString(form.shares, null);
     const pricePerShare = parseMoneyToString(form.price_per_share, null);
+    const cashAmount = parseMoneyToString(form.cash_amount, null);
     const fee = form.fee ? parseMoneyToString(form.fee, null) : "0";
     const taxAmount =
         form.transaction_type === "sell" && form.tax_amount
@@ -83,6 +90,7 @@ export const buildPortfolioTransactionPayload = ({
     if (
         shares == null ||
         pricePerShare == null ||
+        cashAmount == null ||
         fee == null ||
         taxAmount == null
     ) {
@@ -92,6 +100,7 @@ export const buildPortfolioTransactionPayload = ({
         ...formWithoutLinkedAccount,
         shares,
         price_per_share: pricePerShare,
+        cash_amount: cashAmount,
         fee,
         tax_amount: taxAmount,
         tax_amount_is_manual:
